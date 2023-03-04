@@ -8,10 +8,15 @@ import (
 	"testing"
 	"time"
 
-	"github.com/Krixlion/def-forum_proto/Entity_service/pb"
 	"github.com/gofrs/uuid"
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/go-cmp/cmp/cmpopts"
+	"github.com/krixlion/dev_forum-auth/pkg/entity"
+	"github.com/krixlion/dev_forum-auth/pkg/grpc/server"
+	"github.com/krixlion/dev_forum-auth/pkg/helpers/gentest"
+	"github.com/krixlion/dev_forum-auth/pkg/storage"
+	"github.com/krixlion/dev_forum-lib/mocks"
+	"github.com/krixlion/dev_forum-proto/auth_service/pb"
 	"github.com/stretchr/testify/mock"
 
 	"google.golang.org/grpc"
@@ -23,7 +28,7 @@ import (
 // server allowing only for local calls for testing.
 // Returns a client to interact with the server.
 // The server is shutdown when ctx.Done() receives.
-func setUpServer(ctx context.Context, mock storage.CQRStorage) pb.EntityServiceClient {
+func setUpServer(ctx context.Context, mock storage.CQRStorage) pb.AuthServiceClient {
 	// bufconn allows the server to call itself
 	// great for testing across whole infrastructure
 	lis := bufconn.Listen(1024 * 1024)
@@ -32,10 +37,10 @@ func setUpServer(ctx context.Context, mock storage.CQRStorage) pb.EntityServiceC
 	}
 
 	s := grpc.NewServer()
-	server := server.EntityServer{
+	server := server.AuthServer{
 		Storage: mock,
 	}
-	pb.RegisterEntityServiceServer(s, server)
+	pb.RegisterauthServiceServer(s, server)
 	go func() {
 		if err := s.Serve(lis); err != nil {
 			log.Fatalf("Server exited with error: %v", err)
@@ -52,13 +57,13 @@ func setUpServer(ctx context.Context, mock storage.CQRStorage) pb.EntityServiceC
 		log.Fatalf("Failed to dial bufnet: %v", err)
 	}
 
-	client := pb.NewEntityServiceClient(conn)
+	client := pb.NewauthServiceClient(conn)
 	return client
 }
 
 func Test_Get(t *testing.T) {
-	v := gentest.RandomEntity(2, 5)
-	Entity := &pb.Entity{
+	v := gentest.Randomauth(2, 5)
+	auth := &pb.Auth{
 		Id:     v.Id,
 		UserId: v.UserId,
 		Title:  v.Title,
@@ -67,33 +72,33 @@ func Test_Get(t *testing.T) {
 
 	testCases := []struct {
 		desc    string
-		arg     *pb.GetEntityRequest
-		want    *pb.GetEntityResponse
+		arg     *pb.GetauthRequest
+		want    *pb.GetauthResponse
 		wantErr bool
 		storage storage.CQRStorage
 	}{
 		{
 			desc: "Test if response is returned properly on simple request",
-			arg: &pb.GetEntityRequest{
-				EntityId: Entity.Id,
+			arg: &pb.GetauthRequest{
+				authId: auth.Id,
 			},
-			want: &pb.GetEntityResponse{
-				Entity: Entity,
+			want: &pb.GetauthResponse{
+				auth: auth,
 			},
-			storage: func() (m mockStorage) {
+			storage: func() (m mocks.Storage[entity.Token]) {
 				m.On("Get", mock.Anything, mock.AnythingOfType("string")).Return(v, nil).Times(1)
 				return
 			}(),
 		},
 		{
 			desc: "Test if error is returned properly on storage error",
-			arg: &pb.GetEntityRequest{
-				EntityId: "",
+			arg: &pb.GetauthRequest{
+				authId: "",
 			},
 			want:    nil,
 			wantErr: true,
-			storage: func() (m mockStorage) {
-				m.On("Get", mock.Anything, mock.AnythingOfType("string")).Return(entity.Entity{}, errors.New("test err")).Times(1)
+			storage: func() (m mocks.Storage[entity.Token]) {
+				m.On("Get", mock.Anything, mock.AnythingOfType("string")).Return(entity.Token{}, errors.New("test err")).Times(1)
 				return
 			}(),
 		},
@@ -110,15 +115,15 @@ func Test_Get(t *testing.T) {
 
 			getResponse, err := client.Get(ctx, tC.arg)
 			if (err != nil) != tC.wantErr {
-				t.Errorf("Failed to Get Entity, err: %v", err)
+				t.Errorf("Failed to Get auth, err: %v", err)
 				return
 			}
 
 			// Equals false if both are nil or they point to the same memory address
 			// so be sure to use seperate structs when providing args in order to prevent SEGV.
 			if getResponse != tC.want {
-				if !cmp.Equal(getResponse.Entity, tC.want.Entity, cmpopts.IgnoreUnexported(pb.Entity{})) {
-					t.Errorf("Entitys are not equal:\n Got = %+v\n, want = %+v\n", getResponse.Entity, tC.want.Entity)
+				if !cmp.Equal(getResponse.auth, tC.want.auth, cmpopts.IgnoreUnexported(pb.Auth{})) {
+					t.Errorf("auths are not equal:\n Got = %+v\n, want = %+v\n", getResponse.auth, tC.want.auth)
 					return
 				}
 			}
@@ -127,8 +132,8 @@ func Test_Get(t *testing.T) {
 }
 
 func Test_Create(t *testing.T) {
-	v := gentest.RandomEntity(2, 5)
-	Entity := &pb.Entity{
+	v := gentest.Randomauth(2, 5)
+	auth := &pb.Auth{
 		Id:     v.Id,
 		UserId: v.UserId,
 		Title:  v.Title,
@@ -137,33 +142,33 @@ func Test_Create(t *testing.T) {
 
 	testCases := []struct {
 		desc     string
-		arg      *pb.CreateEntityRequest
-		dontWant *pb.CreateEntityResponse
+		arg      *pb.CreateauthRequest
+		dontWant *pb.CreateauthResponse
 		wantErr  bool
 		storage  storage.CQRStorage
 	}{
 		{
 			desc: "Test if response is returned properly on simple request",
-			arg: &pb.CreateEntityRequest{
-				Entity: Entity,
+			arg: &pb.CreateauthRequest{
+				auth: auth,
 			},
-			dontWant: &pb.CreateEntityResponse{
-				Id: Entity.Id,
+			dontWant: &pb.CreateauthResponse{
+				Id: auth.Id,
 			},
-			storage: func() (m mockStorage) {
-				m.On("Create", mock.Anything, mock.AnythingOfType("entity.Entity")).Return(nil).Times(1)
+			storage: func() (m mocks.Storage[entity.Token]) {
+				m.On("Create", mock.Anything, mock.AnythingOfType("entity.Auth")).Return(nil).Times(1)
 				return
 			}(),
 		},
 		{
 			desc: "Test if error is returned properly on storage error",
-			arg: &pb.CreateEntityRequest{
-				Entity: Entity,
+			arg: &pb.CreateauthRequest{
+				auth: auth,
 			},
 			dontWant: nil,
 			wantErr:  true,
-			storage: func() (m mockStorage) {
-				m.On("Create", mock.Anything, mock.AnythingOfType("entity.Entity")).Return(errors.New("test err")).Times(1)
+			storage: func() (m mocks.Storage[entity.Token]) {
+				m.On("Create", mock.Anything, mock.AnythingOfType("entity.Auth")).Return(errors.New("test err")).Times(1)
 				return
 			}(),
 		},
@@ -176,7 +181,7 @@ func Test_Create(t *testing.T) {
 
 			createResponse, err := client.Create(ctx, tC.arg)
 			if (err != nil) != tC.wantErr {
-				t.Errorf("Failed to Get Entity, err: %v", err)
+				t.Errorf("Failed to Get auth, err: %v", err)
 				return
 			}
 
@@ -184,11 +189,11 @@ func Test_Create(t *testing.T) {
 			// so be sure to use seperate structs when providing args in order to prevent SEGV.
 			if createResponse != tC.dontWant {
 				if cmp.Equal(createResponse.Id, tC.dontWant.Id) {
-					t.Errorf("Entity IDs was not reassigned:\n Got = %+v\n want = %+v\n", createResponse.Id, tC.dontWant.Id)
+					t.Errorf("auth IDs was not reassigned:\n Got = %+v\n want = %+v\n", createResponse.Id, tC.dontWant.Id)
 					return
 				}
 				if _, err := uuid.FromString(createResponse.Id); err != nil {
-					t.Errorf("Entity ID is not correct UUID:\n ID = %+v\n err = %+v", createResponse.Id, err)
+					t.Errorf("auth ID is not correct UUID:\n ID = %+v\n err = %+v", createResponse.Id, err)
 					return
 				}
 			}
@@ -197,8 +202,8 @@ func Test_Create(t *testing.T) {
 }
 
 func Test_Update(t *testing.T) {
-	v := gentest.RandomEntity(2, 5)
-	Entity := &pb.Entity{
+	v := gentest.Randomauth(2, 5)
+	auth := &pb.Auth{
 		Id:     v.Id,
 		UserId: v.UserId,
 		Title:  v.Title,
@@ -207,31 +212,31 @@ func Test_Update(t *testing.T) {
 
 	testCases := []struct {
 		desc    string
-		arg     *pb.UpdateEntityRequest
-		want    *pb.UpdateEntityResponse
+		arg     *pb.UpdateauthRequest
+		want    *pb.UpdateauthResponse
 		wantErr bool
 		storage storage.CQRStorage
 	}{
 		{
 			desc: "Test if response is returned properly on simple request",
-			arg: &pb.UpdateEntityRequest{
-				Entity: Entity,
+			arg: &pb.UpdateauthRequest{
+				auth: auth,
 			},
-			want: &pb.UpdateEntityResponse{},
-			storage: func() (m mockStorage) {
-				m.On("Update", mock.Anything, mock.AnythingOfType("entity.Entity")).Return(nil).Times(1)
+			want: &pb.UpdateauthResponse{},
+			storage: func() (m mocks.Storage[entity.Token]) {
+				m.On("Update", mock.Anything, mock.AnythingOfType("entity.Auth")).Return(nil).Times(1)
 				return
 			}(),
 		},
 		{
 			desc: "Test if error is returned properly on storage error",
-			arg: &pb.UpdateEntityRequest{
-				Entity: Entity,
+			arg: &pb.UpdateauthRequest{
+				auth: auth,
 			},
 			want:    nil,
 			wantErr: true,
-			storage: func() (m mockStorage) {
-				m.On("Update", mock.Anything, mock.AnythingOfType("entity.Entity")).Return(errors.New("test err")).Times(1)
+			storage: func() (m mocks.Storage[entity.Token]) {
+				m.On("Update", mock.Anything, mock.AnythingOfType("entity.Auth")).Return(errors.New("test err")).Times(1)
 				return
 			}(),
 		},
@@ -244,14 +249,14 @@ func Test_Update(t *testing.T) {
 
 			got, err := client.Update(ctx, tC.arg)
 			if (err != nil) != tC.wantErr {
-				t.Errorf("Failed to Update Entity, err: %v", err)
+				t.Errorf("Failed to Update auth, err: %v", err)
 				return
 			}
 
 			// Equals false if both are nil or they point to the same memory address
 			// so be sure to use seperate structs when providing args in order to prevent SEGV.
 			if got != tC.want {
-				if !cmp.Equal(got, tC.want, cmpopts.IgnoreUnexported(pb.UpdateEntityResponse{})) {
+				if !cmp.Equal(got, tC.want, cmpopts.IgnoreUnexported(pb.UpdateauthResponse{})) {
 					t.Errorf("Wrong response:\n got = %+v\n want = %+v\n", got, tC.want)
 					return
 				}
@@ -261,8 +266,8 @@ func Test_Update(t *testing.T) {
 }
 
 func Test_Delete(t *testing.T) {
-	v := gentest.RandomEntity(2, 5)
-	Entity := &pb.Entity{
+	v := gentest.Randomauth(2, 5)
+	auth := &pb.Auth{
 		Id:     v.Id,
 		UserId: v.UserId,
 		Title:  v.Title,
@@ -271,30 +276,30 @@ func Test_Delete(t *testing.T) {
 
 	testCases := []struct {
 		desc    string
-		arg     *pb.DeleteEntityRequest
-		want    *pb.DeleteEntityResponse
+		arg     *pb.DeleteauthRequest
+		want    *pb.DeleteauthResponse
 		wantErr bool
 		storage storage.CQRStorage
 	}{
 		{
 			desc: "Test if response is returned properly on simple request",
-			arg: &pb.DeleteEntityRequest{
-				EntityId: Entity.Id,
+			arg: &pb.DeleteauthRequest{
+				authId: auth.Id,
 			},
-			want: &pb.DeleteEntityResponse{},
-			storage: func() (m mockStorage) {
+			want: &pb.DeleteauthResponse{},
+			storage: func() (m mocks.Storage[entity.Token]) {
 				m.On("Delete", mock.Anything, mock.AnythingOfType("string")).Return(nil).Times(1)
 				return
 			}(),
 		},
 		{
 			desc: "Test if error is returned properly on storage error",
-			arg: &pb.DeleteEntityRequest{
-				EntityId: Entity.Id,
+			arg: &pb.DeleteauthRequest{
+				authId: auth.Id,
 			},
 			want:    nil,
 			wantErr: true,
-			storage: func() (m mockStorage) {
+			storage: func() (m mocks.Storage[entity.Token]) {
 				m.On("Delete", mock.Anything, mock.AnythingOfType("string")).Return(errors.New("test err")).Times(1)
 				return
 			}(),
@@ -308,14 +313,14 @@ func Test_Delete(t *testing.T) {
 
 			got, err := client.Delete(ctx, tC.arg)
 			if (err != nil) != tC.wantErr {
-				t.Errorf("Failed to Delete Entity, err: %v", err)
+				t.Errorf("Failed to Delete auth, err: %v", err)
 				return
 			}
 
 			// Equals false if both are nil or they point to the same memory address
 			// so be sure to use seperate structs when providing args in order to prevent SEGV.
 			if got != tC.want {
-				if !cmp.Equal(got, tC.want, cmpopts.IgnoreUnexported(pb.DeleteEntityResponse{})) {
+				if !cmp.Equal(got, tC.want, cmpopts.IgnoreUnexported(pb.DeleteauthResponse{})) {
 					t.Errorf("Wrong response:\n got = %+v\n want = %+v\n", got, tC.want)
 					return
 				}
@@ -325,49 +330,49 @@ func Test_Delete(t *testing.T) {
 }
 
 func Test_GetStream(t *testing.T) {
-	var Entitys []entity.Entity
+	var auths []entity.Token
 	for i := 0; i < 5; i++ {
-		Entity := gentest.RandomEntity(2, 5)
-		Entitys = append(Entitys, Entity)
+		auth := gentest.Randomauth(2, 5)
+		auths = append(auths, auth)
 	}
 
-	var pbEntitys []*pb.Entity
-	for _, v := range Entitys {
-		pbEntity := &pb.Entity{
+	var pbauths []*pb.Auth
+	for _, v := range auths {
+		pbauth := &pb.Auth{
 			Id:     v.Id,
 			UserId: v.UserId,
 			Title:  v.Title,
 			Body:   v.Body,
 		}
-		pbEntitys = append(pbEntitys, pbEntity)
+		pbauths = append(pbauths, pbauth)
 	}
 
 	testCases := []struct {
 		desc    string
-		arg     *pb.GetEntitysRequest
-		want    []*pb.Entity
+		arg     *pb.GetauthsRequest
+		want    []*pb.Auth
 		wantErr bool
 		storage storage.CQRStorage
 	}{
 		{
 			desc: "Test if response is returned properly on simple request",
-			arg: &pb.GetEntitysRequest{
+			arg: &pb.GetauthsRequest{
 				Offset: "0",
 				Limit:  "5",
 			},
-			want: pbEntitys,
-			storage: func() (m mockStorage) {
-				m.On("GetMultiple", mock.Anything, mock.AnythingOfType("string"), mock.AnythingOfType("string")).Return(Entitys, nil).Times(1)
+			want: pbauths,
+			storage: func() (m mocks.Storage[entity.Token]) {
+				m.On("GetMultiple", mock.Anything, mock.AnythingOfType("string"), mock.AnythingOfType("string")).Return(auths, nil).Times(1)
 				return
 			}(),
 		},
 		{
 			desc:    "Test if error is returned properly on storage error",
-			arg:     &pb.GetEntitysRequest{},
+			arg:     &pb.GetauthsRequest{},
 			want:    nil,
 			wantErr: true,
-			storage: func() (m mockStorage) {
-				m.On("GetMultiple", mock.Anything, mock.AnythingOfType("string"), mock.AnythingOfType("string")).Return([]entity.Entity{}, errors.New("test err")).Times(1)
+			storage: func() (m mocks.Storage[entity.Token]) {
+				m.On("GetMultiple", mock.Anything, mock.AnythingOfType("string"), mock.AnythingOfType("string")).Return([]entity.Token{}, errors.New("test err")).Times(1)
 				return
 			}(),
 		},
@@ -384,18 +389,18 @@ func Test_GetStream(t *testing.T) {
 				return
 			}
 
-			var got []*pb.Entity
+			var got []*pb.Auth
 			for i := 0; i < len(tC.want); i++ {
-				Entity, err := stream.Recv()
+				auth, err := stream.Recv()
 				if (err != nil) != tC.wantErr {
-					t.Errorf("Failed to receive Entity from stream, err: %v", err)
+					t.Errorf("Failed to receive auth from stream, err: %v", err)
 					return
 				}
-				got = append(got, Entity)
+				got = append(got, auth)
 			}
 
-			if !cmp.Equal(got, tC.want, cmpopts.IgnoreUnexported(pb.Entity{})) {
-				t.Errorf("Entitys are not equal:\n Got = %+v\n want = %+v\n", got, tC.want)
+			if !cmp.Equal(got, tC.want, cmpopts.IgnoreUnexported(pb.Auth{})) {
+				t.Errorf("auths are not equal:\n Got = %+v\n want = %+v\n", got, tC.want)
 				return
 			}
 		})

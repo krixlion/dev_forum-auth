@@ -6,13 +6,14 @@ import (
 	"fmt"
 	"net"
 
+	"github.com/krixlion/dev_forum-auth/pkg/storage"
 	"github.com/krixlion/dev_forum-lib/event"
 	"github.com/krixlion/dev_forum-lib/event/dispatcher"
 	"github.com/krixlion/dev_forum-lib/logging"
 	"google.golang.org/grpc"
 )
 
-type EntityService struct {
+type AuthService struct {
 	grpcPort   int
 	grpcServer *grpc.Server
 
@@ -34,8 +35,8 @@ type Dependencies struct {
 	ShutdownFunc func() error
 }
 
-func NewEntityService(grpcPort int, d Dependencies) *EntityService {
-	s := &EntityService{
+func NewAuthService(grpcPort int, d Dependencies) *AuthService {
+	s := &AuthService{
 		grpcPort:        grpcPort,
 		dispatcher:      d.Dispatcher,
 		grpcServer:      d.GRPCServer,
@@ -47,7 +48,7 @@ func NewEntityService(grpcPort int, d Dependencies) *EntityService {
 
 	return s
 }
-func (s *EntityService) Run(ctx context.Context) {
+func (s *AuthService) Run(ctx context.Context) {
 	if err := ctx.Err(); err != nil {
 		return
 	}
@@ -69,23 +70,23 @@ func (s *EntityService) Run(ctx context.Context) {
 	}
 }
 
-func (s *EntityService) Close() error {
+func (s *AuthService) Close() error {
 	return s.shutdown()
 }
 
-func (s *EntityService) SyncEventSources(ctx context.Context) (chans []<-chan event.Event) {
+func (s *AuthService) SyncEventSources(ctx context.Context) (chans []<-chan event.Event) {
 
-	aCreated, err := s.syncEventSource.Consume(ctx, "", event.EntityCreated)
+	aCreated, err := s.syncEventSource.Consume(ctx, "", event.AuthCreated)
 	if err != nil {
 		panic(err)
 	}
 
-	aDeleted, err := s.syncEventSource.Consume(ctx, "", event.EntityDeleted)
+	aDeleted, err := s.syncEventSource.Consume(ctx, "", event.AuthDeleted)
 	if err != nil {
 		panic(err)
 	}
 
-	aUpdated, err := s.syncEventSource.Consume(ctx, "", event.EntityUpdated)
+	aUpdated, err := s.syncEventSource.Consume(ctx, "", event.AuthUpdated)
 	if err != nil {
 		panic(err)
 	}

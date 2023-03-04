@@ -6,13 +6,12 @@ import (
 
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/go-cmp/cmp/cmpopts"
-	"github.com/krixlion/dev_forum-Entity/pkg/entity"
-	"github.com/krixlion/dev_forum-Entity/pkg/helpers/gentest"
-	"github.com/krixlion/dev_forum-proto/Entity_service/pb"
+	"github.com/krixlion/dev_forum-auth/pkg/entity"
+	"github.com/krixlion/dev_forum-auth/pkg/helpers/gentest"
 	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
-func Test_entityFromPB(t *testing.T) {
+func Test_authFromPB(t *testing.T) {
 	id := gentest.RandomString(3)
 	userId := gentest.RandomString(3)
 	body := gentest.RandomString(3)
@@ -20,12 +19,12 @@ func Test_entityFromPB(t *testing.T) {
 
 	testCases := []struct {
 		desc string
-		arg  *pb.Entity
-		want entity.Entity
+		arg  *pb.auth
+		want entity.Token
 	}{
 		{
 			desc: "Test if works on simple random data",
-			arg: &pb.Entity{
+			arg: &pb.auth{
 				Id:        id,
 				UserId:    userId,
 				Title:     title,
@@ -33,7 +32,7 @@ func Test_entityFromPB(t *testing.T) {
 				CreatedAt: timestamppb.New(time.Time{}),
 				UpdatedAt: timestamppb.New(time.Time{}),
 			},
-			want: entity.Entity{
+			want: entity.Token{
 				Id:        id,
 				UserId:    userId,
 				Title:     title,
@@ -46,10 +45,10 @@ func Test_entityFromPB(t *testing.T) {
 
 	for _, tC := range testCases {
 		t.Run(tC.desc, func(t *testing.T) {
-			got := EntityFromPB(tC.arg)
+			got := authFromPB(tC.arg)
 
-			if !cmp.Equal(got, tC.want, cmpopts.IgnoreUnexported(pb.Entity{})) {
-				t.Errorf("Entitys are not equal:\n got = %+v\n want = %+v\n", got, tC.want)
+			if !cmp.Equal(got, tC.want, cmpopts.IgnoreUnexported(pb.auth{})) {
+				t.Errorf("auths are not equal:\n got = %+v\n want = %+v\n", got, tC.want)
 				return
 			}
 		})

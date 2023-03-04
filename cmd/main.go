@@ -11,14 +11,17 @@ import (
 	grpc_middleware "github.com/grpc-ecosystem/go-grpc-middleware"
 	grpc_zap "github.com/grpc-ecosystem/go-grpc-middleware/logging/zap"
 	grpc_recovery "github.com/grpc-ecosystem/go-grpc-middleware/recovery"
-	rabbitmq "github.com/krixlion/dev-forum_rabbitmq"
+	"github.com/krixlion/dev_forum-auth/pkg/grpc/server"
+	"github.com/krixlion/dev_forum-auth/pkg/service"
+	"github.com/krixlion/dev_forum-auth/pkg/storage"
 	"github.com/krixlion/dev_forum-lib/env"
 	"github.com/krixlion/dev_forum-lib/event"
 	"github.com/krixlion/dev_forum-lib/event/broker"
 	"github.com/krixlion/dev_forum-lib/event/dispatcher"
 	"github.com/krixlion/dev_forum-lib/logging"
 	"github.com/krixlion/dev_forum-lib/tracing"
-	"github.com/krixlion/dev_forum-proto/entity_service/pb"
+	"github.com/krixlion/dev_forum-proto/auth_service/pb"
+	rabbitmq "github.com/krixlion/dev_forum-rabbitmq"
 	"go.opentelemetry.io/contrib/instrumentation/google.golang.org/grpc/otelgrpc"
 	"go.opentelemetry.io/otel"
 	"go.uber.org/zap"
@@ -36,7 +39,7 @@ func init() {
 
 // Hardcoded root dir name.
 const projectDir = "app"
-const serviceName = "entity-service"
+const serviceName = "auth-service"
 
 func main() {
 	env.Load(projectDir)
@@ -48,7 +51,7 @@ func main() {
 		logging.Log("Failed to initialize tracing", "err", err)
 	}
 
-	service := service.NewEntityService(port, getServiceDependencies())
+	service := service.NewAuthService(port, getServiceDependencies())
 	service.Run(ctx)
 
 	<-ctx.Done()
@@ -76,22 +79,22 @@ func getServiceDependencies() service.Dependencies {
 		panic(err)
 	}
 
-	cmdPort := os.Getenv("DB_WRITE_PORT")
-	cmdHost := os.Getenv("DB_WRITE_HOST")
-	cmdUser := os.Getenv("DB_WRITE_USER")
-	cmdPass := os.Getenv("DB_WRITE_PASS")
+	// cmdPort := os.Getenv("DB_WRITE_PORT")
+	// cmdHost := os.Getenv("DB_WRITE_HOST")
+	// cmdUser := os.Getenv("DB_WRITE_USER")
+	// cmdPass := os.Getenv("DB_WRITE_PASS")
 	// cmd, err := eventstore.MakeDB(cmdPort, cmdHost, cmdUser, cmdPass, logger, tracer)
-	if err != nil {
-		panic(err)
-	}
+	// if err != nil {
+	// 	panic(err)
+	// }
 
-	queryPort := os.Getenv("DB_READ_PORT")
-	queryHost := os.Getenv("DB_READ_HOST")
-	queryPass := os.Getenv("DB_READ_PASS")
+	// queryPort := os.Getenv("DB_READ_PORT")
+	// queryHost := os.Getenv("DB_READ_HOST")
+	// queryPass := os.Getenv("DB_READ_PASS")
 	// query, err := query.MakeDB(queryHost, queryPort, queryPass, logger, tracer)
-	if err != nil {
-		panic(err)
-	}
+	// if err != nil {
+	// 	panic(err)
+	// }
 
 	mqPort := os.Getenv("MQ_PORT")
 	mqHost := os.Getenv("MQ_HOST")
@@ -107,7 +110,8 @@ func getServiceDependencies() service.Dependencies {
 		ClosedTimeout:     time.Second * 15,
 	}
 
-	storage := storage.NewCQRStorage(cmd, query, logger, tracer)
+	// storage := storage.NewCQRStorage(cmd, query, logger, tracer)
+	storage := *new(storage.CQRStorage)
 
 	mq := rabbitmq.NewRabbitMQ(serviceName, mqUser, mqPass, mqHost, mqPort, mqConfig, logger, tracer)
 	broker := broker.NewBroker(mq, logger, tracer)
@@ -118,7 +122,7 @@ func getServiceDependencies() service.Dependencies {
 		dispatcher.Subscribe(eType, handlers...)
 	}
 
-	entityServer := server.NewEntityServer(storage, logger, dispatcher)
+	authServer := server.NewAuthServer(storage, logger, dispatcher)
 
 	grpcServer := grpc.NewServer(
 		grpc.StreamInterceptor(otelgrpc.StreamServerInterceptor()),
@@ -127,12 +131,12 @@ func getServiceDependencies() service.Dependencies {
 			grpc_recovery.UnaryServerInterceptor(),
 			grpc_zap.UnaryServerInterceptor(zap.L()),
 			otelgrpc.UnaryServerInterceptor(),
-			entityServer.ValidateRequestInterceptor(),
+			authServer.ValidateRequestInterceptor(),
 		),
 	)
 
 	reflection.Register(grpcServer)
-	pb.RegisterEntityServiceServer(grpcServer, entityServer)
+	pb.RegisterauthServiceServer(grpcServer, authServer)
 
 	return service.Dependencies{
 		Logger:     logger,
@@ -143,7 +147,7 @@ func getServiceDependencies() service.Dependencies {
 		Dispatcher: dispatcher,
 		ShutdownFunc: func() error {
 			grpcServer.GracefulStop()
-			return entityServer.Close()
+			return authServer.Close()
 		},
 	}
 }

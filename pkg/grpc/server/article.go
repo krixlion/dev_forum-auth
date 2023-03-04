@@ -1,12 +1,12 @@
 package server
 
 import (
-	"github.com/krixlion/dev_forum-Entity/pkg/entity"
-	"github.com/krixlion/dev_forum-proto/Entity_service/pb"
+	"github.com/krixlion/dev_forum-auth/pkg/entity"
+	"github.com/krixlion/dev_forum-proto/auth_service/pb"
 )
 
-func entityFromPB(v *pb.Entity) entity.Entity {
-	return entity.Entity{
+func authFromPB(v *pb.Auth) entity.Token {
+	return entity.Token{
 		Id:        v.GetId(),
 		UserId:    v.GetUserId(),
 		Title:     v.GetTitle(),

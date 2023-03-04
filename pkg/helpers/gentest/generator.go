@@ -5,6 +5,7 @@ import (
 	"math/rand"
 
 	"github.com/gofrs/uuid"
+	"github.com/krixlion/dev_forum-auth/pkg/entity"
 )
 
 func RandomString(length int) string {
@@ -16,13 +17,13 @@ func RandomString(length int) string {
 	return string(v)
 }
 
-// RandomEntity panics on hardware error.
+// Randomauth panics on hardware error.
 // It should be used ONLY for testing.
-func RandomEntity(titleLen, bodyLen int) entity.Entity {
+func Randomauth(titleLen, bodyLen int) entity.Token {
 	id := uuid.Must(uuid.NewV4())
 	userId := uuid.Must(uuid.NewV4())
 
-	return entity.Entity{
+	return entity.Token{
 		Id:     id.String(),
 		UserId: userId.String(),
 		Title:  RandomString(titleLen),
@@ -30,12 +31,12 @@ func RandomEntity(titleLen, bodyLen int) entity.Entity {
 	}
 }
 
-// RandomEntity returns a random Entity marshaled
+// Randomauth returns a random auth marshaled
 // to JSON and panics on error.
 // It should be used ONLY for testing.
-func RandomJSONEntity(titleLen, bodyLen int) []byte {
-	Entity := RandomEntity(titleLen, bodyLen)
-	json, err := json.Marshal(Entity)
+func RandomJSONauth(titleLen, bodyLen int) []byte {
+	auth := Randomauth(titleLen, bodyLen)
+	json, err := json.Marshal(auth)
 	if err != nil {
 		panic(err)
 	}
