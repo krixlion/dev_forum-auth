@@ -17,33 +17,29 @@ type AuthService struct {
 	grpcPort   int
 	grpcServer *grpc.Server
 
-	// Consumer for events used to update and sync the read model.
-	syncEventSource event.Consumer
-	broker          event.Broker
-	dispatcher      *dispatcher.Dispatcher
-	logger          logging.Logger
-	shutdown        func() error
+	broker     event.Broker
+	dispatcher *dispatcher.Dispatcher
+	logger     logging.Logger
+	shutdown   func() error
 }
 
 type Dependencies struct {
 	Logger       logging.Logger
 	Broker       event.Broker
 	GRPCServer   *grpc.Server
-	SyncEvents   event.Consumer
-	Storage      storage.CQRStorage
+	Storage      storage.Storage
 	Dispatcher   *dispatcher.Dispatcher
 	ShutdownFunc func() error
 }
 
 func NewAuthService(grpcPort int, d Dependencies) *AuthService {
 	s := &AuthService{
-		grpcPort:        grpcPort,
-		dispatcher:      d.Dispatcher,
-		grpcServer:      d.GRPCServer,
-		broker:          d.Broker,
-		syncEventSource: d.SyncEvents,
-		logger:          d.Logger,
-		shutdown:        d.ShutdownFunc,
+		grpcPort:   grpcPort,
+		dispatcher: d.Dispatcher,
+		grpcServer: d.GRPCServer,
+		broker:     d.Broker,
+		logger:     d.Logger,
+		shutdown:   d.ShutdownFunc,
 	}
 
 	return s
@@ -58,10 +54,7 @@ func (s *AuthService) Run(ctx context.Context) {
 		s.logger.Log(ctx, "failed to create a listener", "transport", "grpc", "err", err)
 	}
 
-	go func() {
-		s.dispatcher.AddEventSources(s.SyncEventSources(ctx)...)
-		s.dispatcher.Run(ctx)
-	}()
+	go s.dispatcher.Run(ctx)
 
 	s.logger.Log(ctx, "listening", "transport", "grpc", "port", s.grpcPort)
 
@@ -72,24 +65,4 @@ func (s *AuthService) Run(ctx context.Context) {
 
 func (s *AuthService) Close() error {
 	return s.shutdown()
-}
-
-func (s *AuthService) SyncEventSources(ctx context.Context) (chans []<-chan event.Event) {
-
-	aCreated, err := s.syncEventSource.Consume(ctx, "", event.AuthCreated)
-	if err != nil {
-		panic(err)
-	}
-
-	aDeleted, err := s.syncEventSource.Consume(ctx, "", event.AuthDeleted)
-	if err != nil {
-		panic(err)
-	}
-
-	aUpdated, err := s.syncEventSource.Consume(ctx, "", event.AuthUpdated)
-	if err != nil {
-		panic(err)
-	}
-
-	return append(chans, aCreated, aDeleted, aUpdated)
 }

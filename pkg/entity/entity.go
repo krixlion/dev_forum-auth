@@ -1,11 +1,18 @@
 package entity
 
-import "time"
+import (
+	"time"
+)
+
+const Issuer = "http://auth-service"
 
 type Token struct {
-	Id      string
-	Type    TokenType
-	Expires time.Time
+	Id        string
+	UserId    string
+	Type      TokenType
+	Issuer    string
+	ExpiresAt time.Time
+	IssuedAt  time.Time
 }
 
 type TokenType string

@@ -11,26 +11,32 @@ func (s AuthServer) ValidateRequestInterceptor() grpc.UnaryServerInterceptor {
 
 	return func(ctx context.Context, req interface{}, info *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (resp interface{}, err error) {
 		switch info.FullMethod {
-		case "/authService/Create":
-			return s.validateCreate(ctx, req.(*pb.CreateauthRequest), handler)
-		case "/authService/Update":
-			return s.validateUpdate(ctx, req.(*pb.UpdateauthRequest), handler)
-		case "/authService/Delete":
-			return s.validateDelete(ctx, req.(*pb.DeleteauthRequest), handler)
+		case "/AuthService/SignIn":
+			return s.validateSignIn(ctx, req.(*pb.SignInRequest), handler)
+		case "/AuthService/SignOut":
+			return s.validateSignOut(ctx, req.(*pb.SignOutRequest), handler)
+		case "/AuthService/GetAccessToken":
+			return s.validateGetAccessToken(ctx, req.(*pb.GetAccessTokenRequest), handler)
+		case "/AuthService/TranslateAccessToken":
+			return s.validateTranslateAccessToken(ctx, req.(*pb.TranslateAccessTokenRequest), handler)
 		default:
 			return handler(ctx, req)
 		}
 	}
 }
 
-func (s AuthServer) validateCreate(ctx context.Context, req *pb.CreateauthRequest, handler grpc.UnaryHandler) (interface{}, error) {
+func (s AuthServer) validateSignIn(ctx context.Context, req *pb.SignInRequest, handler grpc.UnaryHandler) (interface{}, error) {
 	return handler(ctx, req)
 }
 
-func (s AuthServer) validateUpdate(ctx context.Context, req *pb.UpdateauthRequest, handler grpc.UnaryHandler) (interface{}, error) {
+func (s AuthServer) validateSignOut(ctx context.Context, req *pb.SignOutRequest, handler grpc.UnaryHandler) (interface{}, error) {
 	return handler(ctx, req)
 }
 
-func (s AuthServer) validateDelete(ctx context.Context, req *pb.DeleteauthRequest, handler grpc.UnaryHandler) (interface{}, error) {
+func (s AuthServer) validateGetAccessToken(ctx context.Context, req *pb.GetAccessTokenRequest, handler grpc.UnaryHandler) (interface{}, error) {
+	return handler(ctx, req)
+}
+
+func (s AuthServer) validateTranslateAccessToken(ctx context.Context, req *pb.TranslateAccessTokenRequest, handler grpc.UnaryHandler) (interface{}, error) {
 	return handler(ctx, req)
 }

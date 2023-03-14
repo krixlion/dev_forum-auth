@@ -13,19 +13,20 @@ import (
 	grpc_recovery "github.com/grpc-ecosystem/go-grpc-middleware/recovery"
 	"github.com/krixlion/dev_forum-auth/pkg/grpc/server"
 	"github.com/krixlion/dev_forum-auth/pkg/service"
-	"github.com/krixlion/dev_forum-auth/pkg/storage"
+	"github.com/krixlion/dev_forum-auth/pkg/storage/db"
 	"github.com/krixlion/dev_forum-lib/env"
-	"github.com/krixlion/dev_forum-lib/event"
 	"github.com/krixlion/dev_forum-lib/event/broker"
 	"github.com/krixlion/dev_forum-lib/event/dispatcher"
 	"github.com/krixlion/dev_forum-lib/logging"
 	"github.com/krixlion/dev_forum-lib/tracing"
 	"github.com/krixlion/dev_forum-proto/auth_service/pb"
+	userPb "github.com/krixlion/dev_forum-proto/user_service/pb"
 	rabbitmq "github.com/krixlion/dev_forum-rabbitmq"
 	"go.opentelemetry.io/contrib/instrumentation/google.golang.org/grpc/otelgrpc"
 	"go.opentelemetry.io/otel"
 	"go.uber.org/zap"
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/credentials/insecure"
 	"google.golang.org/grpc/reflection"
 )
 
@@ -79,22 +80,17 @@ func getServiceDependencies() service.Dependencies {
 		panic(err)
 	}
 
-	// cmdPort := os.Getenv("DB_WRITE_PORT")
-	// cmdHost := os.Getenv("DB_WRITE_HOST")
-	// cmdUser := os.Getenv("DB_WRITE_USER")
-	// cmdPass := os.Getenv("DB_WRITE_PASS")
-	// cmd, err := eventstore.MakeDB(cmdPort, cmdHost, cmdUser, cmdPass, logger, tracer)
-	// if err != nil {
-	// 	panic(err)
-	// }
+	userServiceAccessSecret := os.Getenv("USER_SERVICE_ACCESS_SECRET")
+	signingKey := os.Getenv("SIGNING_KEY")
 
-	// queryPort := os.Getenv("DB_READ_PORT")
-	// queryHost := os.Getenv("DB_READ_HOST")
-	// queryPass := os.Getenv("DB_READ_PASS")
-	// query, err := query.MakeDB(queryHost, queryPort, queryPass, logger, tracer)
-	// if err != nil {
-	// 	panic(err)
-	// }
+	dbPort := os.Getenv("DB_WRITE_PORT")
+	dbHost := os.Getenv("DB_WRITE_HOST")
+	dbUser := os.Getenv("DB_WRITE_USER")
+	dbPass := os.Getenv("DB_WRITE_PASS")
+	storage, err := db.MakeDB(dbUser, dbPass, dbHost, dbPort, logger, tracer)
+	if err != nil {
+		panic(err)
+	}
 
 	mqPort := os.Getenv("MQ_PORT")
 	mqHost := os.Getenv("MQ_HOST")
@@ -110,19 +106,38 @@ func getServiceDependencies() service.Dependencies {
 		ClosedTimeout:     time.Second * 15,
 	}
 
-	// storage := storage.NewCQRStorage(cmd, query, logger, tracer)
-	storage := *new(storage.CQRStorage)
-
 	mq := rabbitmq.NewRabbitMQ(serviceName, mqUser, mqPass, mqHost, mqPort, mqConfig, logger, tracer)
 	broker := broker.NewBroker(mq, logger, tracer)
 	dispatcher := dispatcher.NewDispatcher(broker, 20)
-	dispatcher.SetSyncHandler(event.HandlerFunc(storage.CatchUp))
 
 	for eType, handlers := range storage.EventHandlers() {
 		dispatcher.Subscribe(eType, handlers...)
 	}
 
-	authServer := server.NewAuthServer(storage, logger, dispatcher)
+	conn, err := grpc.Dial("user-service:50051",
+		grpc.WithTransportCredentials(insecure.NewCredentials()),
+		grpc.WithChainUnaryInterceptor(
+			otelgrpc.UnaryClientInterceptor(),
+		),
+	)
+	if err != nil {
+		panic(err)
+	}
+	userClient := userPb.NewUserServiceClient(conn)
+
+	authServer := server.NewAuthServer(server.Dependencies{
+		Services: server.Services{
+			User: userClient,
+		},
+		Storage:    storage,
+		Logger:     logger,
+		Dispatcher: dispatcher,
+	}, server.Config{}, server.Secrets{
+		UserServiceAccessToken: userServiceAccessSecret,
+		SigningKey:             signingKey,
+		// PrivateKey:             secretKey,
+		// PublicKey:              secretKey,
+	})
 
 	grpcServer := grpc.NewServer(
 		grpc.StreamInterceptor(otelgrpc.StreamServerInterceptor()),
@@ -136,13 +151,12 @@ func getServiceDependencies() service.Dependencies {
 	)
 
 	reflection.Register(grpcServer)
-	pb.RegisterauthServiceServer(grpcServer, authServer)
+	pb.RegisterAuthServiceServer(grpcServer, authServer)
 
 	return service.Dependencies{
 		Logger:     logger,
 		Broker:     broker,
 		GRPCServer: grpcServer,
-		SyncEvents: &cmd,
 		Storage:    storage,
 		Dispatcher: dispatcher,
 		ShutdownFunc: func() error {
