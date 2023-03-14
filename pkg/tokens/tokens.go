@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"hash/crc32"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/go-jose/go-jose/v3"
@@ -31,7 +32,6 @@ func (m TokenManager) Parse(token string) (entity.Token, error) {
 		Id:        claims.Id,
 		UserId:    claims.Subject,
 		Type:      claims.Type,
-		Issuer:    claims.Issuer,
 		ExpiresAt: time.Unix(claims.ExpiresAt, 0),
 		IssuedAt:  time.Unix(claims.IssuedAt, 0),
 	}, nil
@@ -39,19 +39,21 @@ func (m TokenManager) Parse(token string) (entity.Token, error) {
 
 // GenerateAccessToken returns an access token following this package's
 // specification or a non-nil error on validation failure.
-func (m TokenManager) Encode(token entity.Token) (string, error) {
+func (m TokenManager) Encode(userPassword string, token entity.Token) (string, error) {
 	jwtoken := jwt.NewWithClaims(m.config.SigningMethod, jwtClaims{
 		Type: token.Type,
 		StandardClaims: jwt.StandardClaims{
 			Id:        token.Id,
-			Issuer:    token.Issuer,
+			Issuer:    m.issuer,
 			Subject:   token.UserId,
 			IssuedAt:  token.IssuedAt.Unix(),
 			ExpiresAt: token.ExpiresAt.Unix(),
 		},
 	})
 
-	signedJWT, err := jwtoken.SignedString(m.signingKey)
+	// Use user's password for signing instead of a general key in order to be able to invalidate
+	// access token when an account is compromised by reseting user's password.
+	signedJWT, err := jwtoken.SignedString(userPassword)
 	if err != nil {
 		return "", err
 	}
@@ -68,7 +70,7 @@ func (TokenManager) GenerateOpaqueToken(prefixType OpaqueTokenPrefix) (string, s
 	checksum := crc32.ChecksumIEEE([]byte(randomString))
 	suffix := strconv.FormatUint(uint64(checksum), 16)
 
-	encoded := base64.StdEncoding.EncodeToString([]byte(randomString + suffix))
+	encoded := base64.URLEncoding.EncodeToString([]byte(randomString + "_" + suffix))
 
 	token := prefixType.String() + "_" + encoded
 
@@ -77,8 +79,8 @@ func (TokenManager) GenerateOpaqueToken(prefixType OpaqueTokenPrefix) (string, s
 
 // DecodeOpaqueToken decodes a opaque AccessToken and returns a non-nil error if it's invalid.
 func (m TokenManager) DecodeOpaqueToken(typ OpaqueTokenPrefix, encodedOpaqueToken string) (string, error) {
-	// Token is shorter than prefix.
 	if len(encodedOpaqueToken) < 4 {
+		// Token is shorter than prefix.
 		return "", ErrInvalidToken
 	}
 
@@ -137,25 +139,21 @@ func (m TokenManager) DecryptJWE(input string) ([]byte, error) {
 
 // decodeAndValidateOpaque takes a base64 encoded token without it's prefix, decodes it and returns it.
 // Returns ErrInvalidToken on invalid checksum or length or any errors during decoding.
-func (m TokenManager) decodeAndValidateOpaque(rawToken string) (string, error) {
-	decodedToken, err := base64.StdEncoding.DecodeString(rawToken)
+func (m TokenManager) decodeAndValidateOpaque(encodedToken string) (string, error) {
+	decodedToken, err := base64.URLEncoding.DecodeString(encodedToken)
 	if err != nil {
 		return "", err
 	}
 
-	offset := len(decodedToken) - 8
-	if offset < 0 {
-		// Token is too short and does not have a valid checksum.
+	// Extract token's value and checksum.
+	token, extractedChecksum, ok := strings.Cut(string(decodedToken), "_")
+	if !ok {
 		return "", ErrInvalidToken
 	}
 
-	// Extract token's value and checksum.
-	extractedChecksum := decodedToken[offset:]
-	token := decodedToken[:offset]
-
 	// Convert to HEX for comparison with extracted checksum.
 	// Use strconv.FormatUint instead of fmt.Sprintf("%x") for better performance.
-	receivedChecksum := strconv.FormatUint(uint64(crc32.ChecksumIEEE(token)), 16)
+	receivedChecksum := strconv.FormatUint(uint64(crc32.ChecksumIEEE([]byte(token))), 16)
 
 	if receivedChecksum != string(extractedChecksum) {
 		return "", ErrInvalidToken

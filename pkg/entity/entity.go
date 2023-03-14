@@ -4,13 +4,10 @@ import (
 	"time"
 )
 
-const Issuer = "http://auth-service"
-
 type Token struct {
 	Id        string
 	UserId    string
 	Type      TokenType
-	Issuer    string
 	ExpiresAt time.Time
 	IssuedAt  time.Time
 }

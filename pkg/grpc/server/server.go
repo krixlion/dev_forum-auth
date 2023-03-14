@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/gofrs/uuid"
 	"github.com/krixlion/dev_forum-auth/pkg/entity"
 	"github.com/krixlion/dev_forum-auth/pkg/storage"
 	"github.com/krixlion/dev_forum-auth/pkg/tokens"
@@ -44,15 +43,13 @@ type Services struct {
 }
 
 type Config struct {
-	AccessTokenLength       int
-	AccessTokenValidityTime time.Duration
-	RefreshTokenExpiration  time.Duration
+	AccessTokenValidityTime  time.Duration
+	RefreshTokenValidityTime time.Duration
 }
 
 type Secrets struct {
-	SigningKey             interface{}
-	PrivateKey             interface{}
-	PublicKey              interface{}
+	// PrivateKey             interface{}
+	// PublicKey              interface{}
 	UserServiceAccessToken string
 }
 
@@ -80,12 +77,12 @@ func (s AuthServer) Close() error {
 	return nil
 }
 
-func (s AuthServer) SignIn(ctx context.Context, req *pb.SignInRequest) (*pb.SignInResponse, error) {
+func (server AuthServer) SignIn(ctx context.Context, req *pb.SignInRequest) (*pb.SignInResponse, error) {
 	password := req.GetPassword()
 	email := req.GetEmail()
 
-	resp, err := s.services.User.GetSecret(ctx, &userPb.GetUserSecretRequest{
-		Secret: s.secrets.UserServiceAccessToken,
+	resp, err := server.services.User.GetSecret(ctx, &userPb.GetUserSecretRequest{
+		Secret: server.secrets.UserServiceAccessToken,
 		Query: &userPb.GetUserSecretRequest_Email{
 			Email: email,
 		},
@@ -100,25 +97,19 @@ func (s AuthServer) SignIn(ctx context.Context, req *pb.SignInRequest) (*pb.Sign
 		return nil, status.Error(codes.FailedPrecondition, err.Error())
 	}
 
-	id, err := uuid.NewV4()
+	encodedOpaqueRefreshToken, tokenId, err := server.tokenManager.GenerateOpaqueToken(tokens.RefreshToken)
 	if err != nil {
 		return nil, status.Error(codes.Internal, err.Error())
 	}
 
 	token := entity.Token{
-		Id:        id.String(),
+		Id:        tokenId,
 		UserId:    user.Id,
 		Type:      entity.RefreshToken,
-		Issuer:    entity.Issuer,
-		ExpiresAt: time.Now().Add(s.config.RefreshTokenExpiration),
+		ExpiresAt: time.Now().Add(server.config.RefreshTokenValidityTime),
 	}
 
-	encodedOpaqueRefreshToken, opaqueRefreshToken, err := s.tokenManager.GenerateOpaqueToken(tokens.RefreshToken)
-	if err != nil {
-		return nil, status.Error(codes.Internal, err.Error())
-	}
-
-	if err := s.storage.Create(ctx, opaqueRefreshToken, token); err != nil {
+	if err := server.storage.Create(ctx, token); err != nil {
 		return nil, status.Error(codes.Internal, err.Error())
 	}
 
@@ -127,78 +118,84 @@ func (s AuthServer) SignIn(ctx context.Context, req *pb.SignInRequest) (*pb.Sign
 	}, nil
 }
 
-func (s AuthServer) SignOut(ctx context.Context, req *pb.SignOutRequest) (*pb.Empty, error) {
+func (server AuthServer) SignOut(ctx context.Context, req *pb.SignOutRequest) (*pb.Empty, error) {
 	encodedOpaqueRefreshToken := req.GetRefreshToken()
 
-	refreshOpaqueToken, err := s.tokenManager.DecodeOpaqueToken(tokens.RefreshToken, encodedOpaqueRefreshToken)
+	opaqueRefreshToken, err := server.tokenManager.DecodeOpaqueToken(tokens.RefreshToken, encodedOpaqueRefreshToken)
 	if err != nil {
 		return nil, status.Error(codes.PermissionDenied, err.Error())
 	}
 
-	if err := s.storage.Delete(ctx, refreshOpaqueToken); err != nil {
+	if err := server.storage.Delete(ctx, opaqueRefreshToken); err != nil {
 		return nil, status.Error(codes.Internal, err.Error())
 	}
 
 	return nil, nil
 }
 
-func (s AuthServer) GetAccessToken(ctx context.Context, req *pb.GetAccessTokenRequest) (*pb.GetAccessTokenResponse, error) {
-	encodedOpaqueRefreshToken := req.GetRefreshToken()
+func (server AuthServer) GetAccessToken(ctx context.Context, req *pb.GetAccessTokenRequest) (*pb.GetAccessTokenResponse, error) {
+	opaqueRefreshToken := req.GetRefreshToken()
 
-	refreshOpaqueToken, err := s.tokenManager.DecodeOpaqueToken(tokens.RefreshToken, encodedOpaqueRefreshToken)
+	refreshTokenId, err := server.tokenManager.DecodeOpaqueToken(tokens.RefreshToken, opaqueRefreshToken)
 	if err != nil {
 		return nil, status.Error(codes.PermissionDenied, err.Error())
 	}
 
-	refreshToken, err := s.storage.Get(ctx, refreshOpaqueToken)
-	if err != nil {
-		return nil, status.Error(codes.Internal, err.Error())
-	}
-
-	id, err := uuid.NewV4()
+	refreshToken, err := server.storage.Get(ctx, refreshTokenId)
 	if err != nil {
 		return nil, status.Error(codes.Internal, err.Error())
 	}
 
 	now := time.Now()
 
-	accessToken := entity.Token{
-		Id:        id.String(),
-		UserId:    refreshToken.UserId,
-		Type:      entity.AccessToken,
-		Issuer:    entity.Issuer,
-		ExpiresAt: now.Add(s.config.AccessTokenValidityTime),
-		IssuedAt:  now,
-	}
-
-	encodedOpaqueAccessToken, opaqueAccessToken, err := s.tokenManager.GenerateOpaqueToken(tokens.AccessToken)
+	opaqueAccessToken, accessTokenId, err := server.tokenManager.GenerateOpaqueToken(tokens.AccessToken)
 	if err != nil {
 		return nil, status.Error(codes.Internal, err.Error())
 	}
 
-	if s.storage.Create(ctx, opaqueAccessToken, accessToken); err != nil {
+	accessToken := entity.Token{
+		Id:        accessTokenId,
+		UserId:    refreshToken.UserId,
+		Type:      entity.AccessToken,
+		ExpiresAt: now.Add(server.config.AccessTokenValidityTime),
+		IssuedAt:  now,
+	}
+
+	if server.storage.Create(ctx, accessToken); err != nil {
 		return nil, status.Error(codes.Internal, err.Error())
 	}
 
 	return &pb.GetAccessTokenResponse{
-		AccessToken: encodedOpaqueAccessToken,
+		AccessToken: opaqueAccessToken,
 	}, nil
 }
 
-func (s AuthServer) TranslateAccessToken(ctx context.Context, req *pb.TranslateAccessTokenRequest) (*pb.TranslateAccessTokenResponse, error) {
+func (server AuthServer) TranslateAccessToken(ctx context.Context, req *pb.TranslateAccessTokenRequest) (*pb.TranslateAccessTokenResponse, error) {
 	encodedOpaqueAccessToken := req.GetOpaqueAccessToken()
 
-	opaqueAccessToken, err := s.tokenManager.DecodeOpaqueToken(tokens.AccessToken, encodedOpaqueAccessToken)
+	opaqueAccessToken, err := server.tokenManager.DecodeOpaqueToken(tokens.AccessToken, encodedOpaqueAccessToken)
 	if err != nil {
 		return nil, status.Error(codes.FailedPrecondition, err.Error())
 	}
 
-	token, err := s.storage.Get(ctx, opaqueAccessToken)
+	token, err := server.storage.Get(ctx, opaqueAccessToken)
 	if err != nil {
 		return nil, status.Error(codes.Internal, err.Error())
 	}
 
-	tokenEncoded, err := s.tokenManager.Encode(token)
+	response, err := server.services.User.GetSecret(ctx, &userPb.GetUserSecretRequest{
+		Secret: server.secrets.UserServiceAccessToken,
+		Query: &userPb.GetUserSecretRequest_Id{
+			Id: token.UserId,
+		},
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	user := response.GetUser()
+
+	tokenEncoded, err := server.tokenManager.Encode(user.GetPassword(), token)
 	if err != nil {
 		return nil, status.Error(codes.Internal, err.Error())
 	}

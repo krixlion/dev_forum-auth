@@ -9,8 +9,12 @@ import (
 	"github.com/krixlion/dev_forum-lib/logging"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
+	"go.opentelemetry.io/contrib/instrumentation/go.mongodb.org/mongo-driver/mongo/otelmongo"
 	"go.opentelemetry.io/otel/trace"
 )
+
+const databaseName = "auth-service"
+const collectionName = "tokens"
 
 type DB struct {
 	client *mongo.Client
@@ -23,6 +27,8 @@ func MakeDB(user, pass, host, port string, logger logging.Logger, tracer trace.T
 
 	serverAPI := options.ServerAPI(options.ServerAPIVersion1)
 	opts := options.Client().ApplyURI(uri).SetServerAPIOptions(serverAPI)
+	// Add tracing and metrics.
+	opts.Monitor = otelmongo.NewMonitor()
 
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second*2)
 	defer cancel()

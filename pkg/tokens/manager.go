@@ -31,7 +31,6 @@ func (t OpaqueTokenPrefix) String() string {
 
 type TokenManager struct {
 	issuer     string
-	signingKey interface{}
 	privateKey interface{}
 	publicKey  interface{}
 	config     Config
@@ -41,10 +40,9 @@ type Config struct {
 	SigningMethod jwt.SigningMethod
 }
 
-func MakeTokenManager(issuer string, signingKey, privateKey, publicKey interface{}) TokenManager {
+func MakeTokenManager(issuer string, privateKey, publicKey interface{}) TokenManager {
 	return TokenManager{
 		issuer:     issuer,
-		signingKey: signingKey,
 		publicKey:  publicKey,
 		privateKey: privateKey,
 	}
@@ -66,9 +64,9 @@ func (c jwtClaims) Valid() error {
 		return jwt.NewValidationError("", jwt.ValidationErrorIssuedAt)
 	}
 
-	if !c.VerifyIssuer(entity.Issuer, true) {
-		return jwt.NewValidationError("", jwt.ValidationErrorIssuer)
-	}
+	// if !c.VerifyIssuer(Issuer, true) {
+	// 	return jwt.NewValidationError("", jwt.ValidationErrorIssuer)
+	// }
 
 	return nil
 }

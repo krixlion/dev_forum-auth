@@ -14,6 +14,7 @@ import (
 	"github.com/krixlion/dev_forum-auth/pkg/grpc/server"
 	"github.com/krixlion/dev_forum-auth/pkg/service"
 	"github.com/krixlion/dev_forum-auth/pkg/storage/db"
+	"github.com/krixlion/dev_forum-auth/pkg/tokens"
 	"github.com/krixlion/dev_forum-lib/env"
 	"github.com/krixlion/dev_forum-lib/event/broker"
 	"github.com/krixlion/dev_forum-lib/event/dispatcher"
@@ -30,6 +31,11 @@ import (
 	"google.golang.org/grpc/reflection"
 )
 
+// Hardcoded root dir name.
+const projectDir = "app"
+const serviceName = "auth-service"
+const issuer = "http://auth-service"
+
 var port int
 
 func init() {
@@ -37,10 +43,6 @@ func init() {
 	flag.Parse()
 	port = *portFlag
 }
-
-// Hardcoded root dir name.
-const projectDir = "app"
-const serviceName = "auth-service"
 
 func main() {
 	env.Load(projectDir)
@@ -81,7 +83,6 @@ func getServiceDependencies() service.Dependencies {
 	}
 
 	userServiceAccessSecret := os.Getenv("USER_SERVICE_ACCESS_SECRET")
-	signingKey := os.Getenv("SIGNING_KEY")
 
 	dbPort := os.Getenv("DB_WRITE_PORT")
 	dbHost := os.Getenv("DB_WRITE_HOST")
@@ -106,13 +107,15 @@ func getServiceDependencies() service.Dependencies {
 		ClosedTimeout:     time.Second * 15,
 	}
 
-	mq := rabbitmq.NewRabbitMQ(serviceName, mqUser, mqPass, mqHost, mqPort, mqConfig, logger, tracer)
+	mq := rabbitmq.NewRabbitMQ(serviceName, mqUser, mqPass, mqHost, mqPort, mqConfig, rabbitmq.WithLogger(logger), rabbitmq.WithTracer(tracer))
 	broker := broker.NewBroker(mq, logger, tracer)
 	dispatcher := dispatcher.NewDispatcher(broker, 20)
 
 	for eType, handlers := range storage.EventHandlers() {
 		dispatcher.Subscribe(eType, handlers...)
 	}
+
+	tokenManager := tokens.MakeTokenManager(issuer, nil, nil)
 
 	conn, err := grpc.Dial("user-service:50051",
 		grpc.WithTransportCredentials(insecure.NewCredentials()),
@@ -125,16 +128,23 @@ func getServiceDependencies() service.Dependencies {
 	}
 	userClient := userPb.NewUserServiceClient(conn)
 
-	authServer := server.NewAuthServer(server.Dependencies{
+	authConfig := server.Config{
+		AccessTokenValidityTime:  time.Minute * 5,
+		RefreshTokenValidityTime: time.Minute * 5,
+	}
+
+	authDependencies := server.Dependencies{
 		Services: server.Services{
 			User: userClient,
 		},
-		Storage:    storage,
-		Logger:     logger,
-		Dispatcher: dispatcher,
-	}, server.Config{}, server.Secrets{
+		Storage:      storage,
+		Logger:       logger,
+		TokenManager: tokenManager,
+		Dispatcher:   dispatcher,
+	}
+
+	authServer := server.NewAuthServer(authDependencies, authConfig, server.Secrets{
 		UserServiceAccessToken: userServiceAccessSecret,
-		SigningKey:             signingKey,
 		// PrivateKey:             secretKey,
 		// PublicKey:              secretKey,
 	})
@@ -158,6 +168,7 @@ func getServiceDependencies() service.Dependencies {
 		Broker:     broker,
 		GRPCServer: grpcServer,
 		Storage:    storage,
+
 		Dispatcher: dispatcher,
 		ShutdownFunc: func() error {
 			grpcServer.GracefulStop()

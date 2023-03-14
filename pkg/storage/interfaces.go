@@ -15,11 +15,11 @@ type Storage interface {
 type Getter interface {
 	io.Closer
 	Get(ctx context.Context, opaqueToken string) (entity.Token, error)
-	GetMultiple(ctx context.Context, offset, limit string) ([]entity.Token, error)
+	// GetMultiple(ctx context.Context, offset, limit string) ([]entity.Token, error)
 }
 
 type Writer interface {
 	io.Closer
-	Create(ctx context.Context, opaqueToken string, token entity.Token) error
+	Create(ctx context.Context, token entity.Token) error
 	Delete(ctx context.Context, id string) error
 }

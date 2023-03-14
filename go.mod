@@ -4,13 +4,13 @@ go 1.19
 
 require (
 	github.com/go-jose/go-jose/v3 v3.0.0
-	github.com/gofrs/uuid v4.4.0+incompatible
 	github.com/golang-jwt/jwt v3.2.2+incompatible
 	github.com/grpc-ecosystem/go-grpc-middleware v1.3.0
 	github.com/krixlion/dev_forum-lib v0.0.0-20230220215359-21053ad24c4e
 	github.com/krixlion/dev_forum-proto v0.0.0-20230313224853-54d7bfdadeba
 	github.com/krixlion/dev_forum-rabbitmq v0.0.0-20230212211448-d0b71a52cf4b
 	go.mongodb.org/mongo-driver v1.11.2
+	go.opentelemetry.io/contrib/instrumentation/go.mongodb.org/mongo-driver/mongo/otelmongo v0.40.0
 	go.opentelemetry.io/contrib/instrumentation/google.golang.org/grpc/otelgrpc v0.40.0
 	go.opentelemetry.io/otel v1.14.0
 	go.opentelemetry.io/otel/trace v1.14.0
@@ -56,7 +56,7 @@ require (
 	go.opentelemetry.io/proto/otlp v0.19.0 // indirect
 	go.uber.org/atomic v1.10.0 // indirect
 	go.uber.org/multierr v1.9.0 // indirect
-	golang.org/x/crypto v0.0.0-20220622213112-05595931fe9d // indirect
+	golang.org/x/crypto v0.1.0 // indirect
 	golang.org/x/net v0.7.0 // indirect
 	golang.org/x/sync v0.1.0 // indirect
 	golang.org/x/sys v0.5.0 // indirect
