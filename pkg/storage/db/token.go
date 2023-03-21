@@ -24,7 +24,7 @@ func makeTokenDocument(token entity.Token) tokenDocument {
 	}
 }
 
-func makeTokenFromDoc(v tokenDocument) entity.Token {
+func makeTokenFromDocument(v tokenDocument) entity.Token {
 	return entity.Token{
 		Id:        v.Id,
 		UserId:    v.UserId,

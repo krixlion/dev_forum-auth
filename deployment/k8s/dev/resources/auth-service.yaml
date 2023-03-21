@@ -1,6 +1,3 @@
-# This is a template for aggregate deployment.
-# All you need to do to get this up and running
-# is to change all occurrences of "auth" to your aggregate's id or auth name.
 apiVersion: v1
 kind: Service
 metadata:
@@ -19,15 +16,15 @@ spec:
   ports:
   - name: grpc
     protocol: TCP
-    port: 50051
+    port: 50053
     targetPort: 50051
   - name: delve
     protocol: TCP
-    port: 2345
+    port: 2347
     targetPort: 2345
   - name: metrics
     protocol: TCP
-    port: 2223
+    port: 2225
     targetPort: 2223
 ---
 apiVersion: apps/v1
@@ -41,6 +38,7 @@ metadata:
   name: auth-d
 spec:
   replicas: 1
+  revisionHistoryLimit: 0
   selector:
     matchLabels:
       app: auth
@@ -122,7 +120,7 @@ spec:
     - ReadWriteOnce
   volumeMode: Filesystem
   local:
-    # Windows is mounted in Docker desktop VM under /run/desktop/mnt/host/{drive-letter}/your/path eg:
+    # Windows is mounted in Docker desktop VM under /run/desktop/mnt/host/{drive-char}/your/path eg:
     # path: /run/desktop/mnt/host/c/data
     # Wsl is mounted in Docker desktop VM under /run/desktop/mnt/host/wsl
     # Locally in WSL it's /mnt/wsl

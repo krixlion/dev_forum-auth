@@ -23,7 +23,7 @@ type DB struct {
 }
 
 func MakeDB(user, pass, host, port string, logger logging.Logger, tracer trace.Tracer) (DB, error) {
-	uri := fmt.Sprintf("mongodb+srv://%s:%s@%s:%s/?retryWrites=true&w=majority", user, pass, host, port)
+	uri := fmt.Sprintf("mongodb://%s:%s@%s:%s/?retryWrites=true&w=majority&tls=false", user, pass, host, port)
 
 	serverAPI := options.ServerAPI(options.ServerAPIVersion1)
 	opts := options.Client().ApplyURI(uri).SetServerAPIOptions(serverAPI)

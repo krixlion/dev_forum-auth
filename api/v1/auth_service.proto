@@ -1,0 +1,49 @@
+syntax = "proto3";
+
+package auth;
+
+option go_package = "github.com/krixlion/dev_forum-auth/pkg/grpc/v1;pb";
+
+import "google/protobuf/empty.proto";
+
+service AuthService {
+    // Upon succesful login user receives a refresh_token.
+    // When it expires or is revoked user has to login again.
+    rpc SignIn(SignInRequest) returns (SignInResponse) {}
+
+    // SignOut revokes user's active refresh_token.
+    rpc SignOut(SignOutRequest) returns (google.protobuf.Empty) {}
+
+    rpc GetAccessToken(GetAccessTokenRequest) returns (GetAccessTokenResponse);
+    
+    rpc TranslateAccessToken(TranslateAccessTokenRequest) returns (TranslateAccessTokenResponse);
+}
+
+message SignInRequest {
+    string password = 3;
+    string email = 4;
+}
+
+message SignInResponse {    
+    string refresh_token = 2;
+}
+
+message SignOutRequest {
+    string refresh_token = 1;
+}
+
+message GetAccessTokenRequest {
+    string refresh_token = 1;
+}
+
+message GetAccessTokenResponse {
+    string access_token = 1;
+}
+
+message TranslateAccessTokenRequest {
+    string opaque_access_token = 1;
+}
+
+message TranslateAccessTokenResponse {
+    string access_token = 1;
+}

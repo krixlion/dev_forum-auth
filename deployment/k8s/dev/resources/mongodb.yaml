@@ -1,0 +1,194 @@
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  namespace: dev
+  labels:
+    aggregate: auth
+    database: mongodb
+    version: v0.1.0
+  name: mongodb-cluster
+spec:
+  serviceName: mongodb-service
+  replicas: 1
+  selector:
+    matchLabels:
+      aggregate: auth
+      database: mongodb
+      version: v0.1.0
+  volumeClaimTemplates:
+    - metadata:
+        name: mongodb-data
+        namespace: dev
+        labels:
+          version: v0.1.0
+          database: mongodb
+          aggregate: auth
+      spec:
+        accessModes: ["ReadWriteOnce"]
+        # storageClassName: hostpath
+        resources:
+          requests:
+            storage: 300Mi
+  template:
+    metadata:
+      namespace: dev
+      labels:
+        aggregate: auth
+        database: mongodb
+        version: v0.1.0
+    spec:
+      containers:
+        - name: mongodb-cluster
+          image: mongo:6.0.5
+          # env:
+          #   - name: MONGO_INITDB_ROOT_USERNAME_FILE
+          #     value: /etc/secrets/admin/MONGO_ROOT_USERNAME
+          #   - name: MONGO_INITDB_ROOT_PASSWORD_FILE
+          #     value: /etc/secrets/admin/MONGO_ROOT_PASSWORD
+          ports:
+            - name: mongodb
+              containerPort: 27017
+              protocol: TCP
+          resources:
+            limits:
+              cpu: 750m
+              memory: 350Mi
+            requests:
+              cpu: 250m
+              memory: 50Mi
+          volumeMounts:
+            # - name: secrets
+            #   mountPath: /etc/secrets
+            #   readOnly: true
+            # - name: mongodb-scripts
+            #   mountPath: /docker-entrypoint-initdb.d
+            #   readOnly: true
+            - name: mongodb-config
+              mountPath: /config
+              readOnly: true
+            - name: mongodb-data
+              mountPath: /data/db
+      volumes:
+        # - name: secrets
+        #   secret:
+        #     secretName: mongodb-secret
+        #     items:
+        #     - key: MONGO_ROOT_USERNAME
+        #       path: admin/MONGO_ROOT_USERNAME
+        #       mode: 0444
+        #     - key: MONGO_ROOT_PASSWORD
+        #       path: admin/MONGO_ROOT_PASSWORD
+        #       mode: 0444
+        #     - key: MONGO_USERNAME
+        #       path: MONGO_USERNAME
+        #       mode: 0444
+        #     - key: MONGO_PASSWORD
+        #       path: MONGO_PASSWORD
+        #       mode: 0444
+        #     - key: MONGO_USERS_LIST
+        #       path: MONGO_USERS_LIST
+        #       mode: 0444
+        # - name: mongodb-scripts
+        #   configMap:
+        #     name: mongodb-config
+        #     items:
+        #     - key: ensure-users.js
+        #       path: ensure-users.js
+        - name: mongodb-config
+          configMap:
+            name: mongodb-config
+            items:
+              - key: mongo.conf
+                path: mongo.conf
+        - name: mongodb-data
+          persistentVolumeClaim:
+            claimName: mongodb-pvc
+---
+apiVersion: v1
+kind: Service
+metadata:
+  namespace: dev
+  name: mongodb-service
+spec:
+  clusterIP: None
+  selector:
+    aggregate: auth
+    database: mongodb
+    version: v0.1.0
+  ports:
+    - port: 27017
+      targetPort: 27017
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: mongodb-config
+  namespace: dev
+data:
+  mongo.conf: |
+    storage:
+      dbPath: /data/db
+  ensure-users.js: |
+    const targetDbStr = 'test';
+    const rootUser = cat('/etc/secrets/admin/MONGO_ROOT_USERNAME');
+    const rootPass = cat('/etc/secrets/admin/MONGO_ROOT_PASSWORD');
+    const usersStr = cat('/etc/secrets/MONGO_USERS_LIST');
+
+    const adminDb = db.getSiblingDB('admin');
+    adminDb.auth(rootUser, rootPass);
+    print('Successfully authenticated admin user');
+
+    const targetDb = db.getSiblingDB(targetDbStr);
+
+    const customRoles = adminDb
+      .getRoles({rolesInfo: 1, showBuiltinRoles: false})
+      .map(role => role.role)
+      .filter(Boolean);
+
+    usersStr
+      .trim()
+      .split(';')
+      .map(s => s.split(':'))
+      .forEach(user => {
+        const username = user[0];
+        const rolesStr = user[1];
+        const password = user[2];
+
+        if (!rolesStr || !password) {
+          return;
+        }
+
+        const roles = rolesStr.split(',');
+        const userDoc = {
+          user: username,
+          pwd: password,
+        };
+
+        userDoc.roles = roles.map(role => {
+          if (!~customRoles.indexOf(role)) {
+            return role;
+          }
+          return {role: role, db: 'admin'}; 
+        });
+
+        try {
+          targetDb.createUser(userDoc);
+        } catch (err) {
+          if (!~err.message.toLowerCase().indexOf('duplicate')) {
+            throw err;
+          }
+        }
+      });
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: mongodb-secret
+  namespace: dev
+type: Opaque
+data:
+  MONGO_ROOT_USERNAME: YWRtaW4K
+  MONGO_ROOT_PASSWORD: cGFzc3dvcmQK
+  MONGO_USERNAME: dGVzdAo=
+  MONGO_PASSWORD: cGFzc3dvcmQK
+  MONGO_USERS_LIST: dGVzdDpkYkFkbWluLHJlYWRXcml0ZTpwYXNzd29yZAo=

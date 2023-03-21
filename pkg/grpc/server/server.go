@@ -2,17 +2,17 @@ package server
 
 import (
 	"context"
-	"errors"
-	"fmt"
 	"time"
 
+	empty "github.com/golang/protobuf/ptypes/empty"
 	"github.com/krixlion/dev_forum-auth/pkg/entity"
+	pb "github.com/krixlion/dev_forum-auth/pkg/grpc/v1"
 	"github.com/krixlion/dev_forum-auth/pkg/storage"
 	"github.com/krixlion/dev_forum-auth/pkg/tokens"
 	"github.com/krixlion/dev_forum-lib/event/dispatcher"
 	"github.com/krixlion/dev_forum-lib/logging"
-	"github.com/krixlion/dev_forum-proto/auth_service/pb"
-	userPb "github.com/krixlion/dev_forum-proto/user_service/pb"
+	"github.com/krixlion/dev_forum-lib/tracing"
+	userPb "github.com/krixlion/dev_forum-user/pkg/grpc/v1"
 	"go.opentelemetry.io/otel/trace"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
@@ -24,8 +24,9 @@ type AuthServer struct {
 	secrets      Secrets
 	storage      storage.Storage
 	tokenManager tokens.TokenManager
-	logger       logging.Logger
 	dispatcher   *dispatcher.Dispatcher
+	logger       logging.Logger
+	tracer       trace.Tracer
 	config       Config
 }
 
@@ -57,27 +58,33 @@ func NewAuthServer(dependencies Dependencies, config Config, secrets Secrets) Au
 	return AuthServer{
 		services:   dependencies.Services,
 		storage:    dependencies.Storage,
-		logger:     dependencies.Logger,
 		dispatcher: dependencies.Dispatcher,
+		logger:     dependencies.Logger,
+		tracer:     dependencies.Tracer,
 	}
 }
 
 func (s AuthServer) Close() error {
-	var errMsg string
+	// // A way to wrap multiple err messages from different sources into one.
+	// var errMsg string
 
-	err := s.storage.Close()
-	if err != nil {
-		errMsg = fmt.Sprintf("%s, failed to close storage: %s", errMsg, err)
-	}
+	// if err := s.storage.Close(); err != nil {
+	// 	errMsg = fmt.Sprintf("%s, failed to close storage: %s", errMsg, err)
+	// }
 
-	if errMsg != "" {
-		return errors.New(errMsg)
-	}
+	// if errMsg != "" {
+	// 	return errors.New(errMsg)
+	// }
 
-	return nil
+	// return nil
+
+	return s.storage.Close()
 }
 
 func (server AuthServer) SignIn(ctx context.Context, req *pb.SignInRequest) (*pb.SignInResponse, error) {
+	ctx, span := server.tracer.Start(ctx, "server.SignIn")
+	defer span.End()
+
 	password := req.GetPassword()
 	email := req.GetEmail()
 
@@ -88,6 +95,7 @@ func (server AuthServer) SignIn(ctx context.Context, req *pb.SignInRequest) (*pb
 		},
 	})
 	if err != nil {
+		tracing.SetSpanErr(span, err)
 		return nil, status.Error(codes.FailedPrecondition, err.Error())
 	}
 
@@ -99,6 +107,7 @@ func (server AuthServer) SignIn(ctx context.Context, req *pb.SignInRequest) (*pb
 
 	encodedOpaqueRefreshToken, tokenId, err := server.tokenManager.GenerateOpaqueToken(tokens.RefreshToken)
 	if err != nil {
+		tracing.SetSpanErr(span, err)
 		return nil, status.Error(codes.Internal, err.Error())
 	}
 
@@ -118,11 +127,15 @@ func (server AuthServer) SignIn(ctx context.Context, req *pb.SignInRequest) (*pb
 	}, nil
 }
 
-func (server AuthServer) SignOut(ctx context.Context, req *pb.SignOutRequest) (*pb.Empty, error) {
+func (server AuthServer) SignOut(ctx context.Context, req *pb.SignOutRequest) (*empty.Empty, error) {
+	ctx, span := server.tracer.Start(ctx, "server.SignOut")
+	defer span.End()
+
 	encodedOpaqueRefreshToken := req.GetRefreshToken()
 
 	opaqueRefreshToken, err := server.tokenManager.DecodeOpaqueToken(tokens.RefreshToken, encodedOpaqueRefreshToken)
 	if err != nil {
+		tracing.SetSpanErr(span, err)
 		return nil, status.Error(codes.PermissionDenied, err.Error())
 	}
 
@@ -134,15 +147,20 @@ func (server AuthServer) SignOut(ctx context.Context, req *pb.SignOutRequest) (*
 }
 
 func (server AuthServer) GetAccessToken(ctx context.Context, req *pb.GetAccessTokenRequest) (*pb.GetAccessTokenResponse, error) {
+	ctx, span := server.tracer.Start(ctx, "server.GetAccessToken")
+	defer span.End()
+
 	opaqueRefreshToken := req.GetRefreshToken()
 
 	refreshTokenId, err := server.tokenManager.DecodeOpaqueToken(tokens.RefreshToken, opaqueRefreshToken)
 	if err != nil {
+		tracing.SetSpanErr(span, err)
 		return nil, status.Error(codes.PermissionDenied, err.Error())
 	}
 
 	refreshToken, err := server.storage.Get(ctx, refreshTokenId)
 	if err != nil {
+		tracing.SetSpanErr(span, err)
 		return nil, status.Error(codes.Internal, err.Error())
 	}
 
@@ -150,6 +168,7 @@ func (server AuthServer) GetAccessToken(ctx context.Context, req *pb.GetAccessTo
 
 	opaqueAccessToken, accessTokenId, err := server.tokenManager.GenerateOpaqueToken(tokens.AccessToken)
 	if err != nil {
+		tracing.SetSpanErr(span, err)
 		return nil, status.Error(codes.Internal, err.Error())
 	}
 
@@ -171,15 +190,20 @@ func (server AuthServer) GetAccessToken(ctx context.Context, req *pb.GetAccessTo
 }
 
 func (server AuthServer) TranslateAccessToken(ctx context.Context, req *pb.TranslateAccessTokenRequest) (*pb.TranslateAccessTokenResponse, error) {
+	ctx, span := server.tracer.Start(ctx, "server.TranslateAccessToken")
+	defer span.End()
+
 	encodedOpaqueAccessToken := req.GetOpaqueAccessToken()
 
 	opaqueAccessToken, err := server.tokenManager.DecodeOpaqueToken(tokens.AccessToken, encodedOpaqueAccessToken)
 	if err != nil {
+		tracing.SetSpanErr(span, err)
 		return nil, status.Error(codes.FailedPrecondition, err.Error())
 	}
 
 	token, err := server.storage.Get(ctx, opaqueAccessToken)
 	if err != nil {
+		tracing.SetSpanErr(span, err)
 		return nil, status.Error(codes.Internal, err.Error())
 	}
 
@@ -190,6 +214,7 @@ func (server AuthServer) TranslateAccessToken(ctx context.Context, req *pb.Trans
 		},
 	})
 	if err != nil {
+		tracing.SetSpanErr(span, err)
 		return nil, err
 	}
 
@@ -197,6 +222,7 @@ func (server AuthServer) TranslateAccessToken(ctx context.Context, req *pb.Trans
 
 	tokenEncoded, err := server.tokenManager.Encode(user.GetPassword(), token)
 	if err != nil {
+		tracing.SetSpanErr(span, err)
 		return nil, status.Error(codes.Internal, err.Error())
 	}
 

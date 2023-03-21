@@ -12,6 +12,7 @@ import (
 	grpc_zap "github.com/grpc-ecosystem/go-grpc-middleware/logging/zap"
 	grpc_recovery "github.com/grpc-ecosystem/go-grpc-middleware/recovery"
 	"github.com/krixlion/dev_forum-auth/pkg/grpc/server"
+	pb "github.com/krixlion/dev_forum-auth/pkg/grpc/v1"
 	"github.com/krixlion/dev_forum-auth/pkg/service"
 	"github.com/krixlion/dev_forum-auth/pkg/storage/db"
 	"github.com/krixlion/dev_forum-auth/pkg/tokens"
@@ -20,9 +21,8 @@ import (
 	"github.com/krixlion/dev_forum-lib/event/dispatcher"
 	"github.com/krixlion/dev_forum-lib/logging"
 	"github.com/krixlion/dev_forum-lib/tracing"
-	"github.com/krixlion/dev_forum-proto/auth_service/pb"
-	userPb "github.com/krixlion/dev_forum-proto/user_service/pb"
 	rabbitmq "github.com/krixlion/dev_forum-rabbitmq"
+	userPb "github.com/krixlion/dev_forum-user/pkg/grpc/v1"
 	"go.opentelemetry.io/contrib/instrumentation/google.golang.org/grpc/otelgrpc"
 	"go.opentelemetry.io/otel"
 	"go.uber.org/zap"
@@ -84,10 +84,10 @@ func getServiceDependencies() service.Dependencies {
 
 	userServiceAccessSecret := os.Getenv("USER_SERVICE_ACCESS_SECRET")
 
-	dbPort := os.Getenv("DB_WRITE_PORT")
-	dbHost := os.Getenv("DB_WRITE_HOST")
-	dbUser := os.Getenv("DB_WRITE_USER")
-	dbPass := os.Getenv("DB_WRITE_PASS")
+	dbPort := os.Getenv("DB_PORT")
+	dbHost := os.Getenv("DB_HOST")
+	dbUser := os.Getenv("DB_USER")
+	dbPass := os.Getenv("DB_PASS")
 	storage, err := db.MakeDB(dbUser, dbPass, dbHost, dbPort, logger, tracer)
 	if err != nil {
 		panic(err)
@@ -139,6 +139,7 @@ func getServiceDependencies() service.Dependencies {
 		},
 		Storage:      storage,
 		Logger:       logger,
+		Tracer:       tracer,
 		TokenManager: tokenManager,
 		Dispatcher:   dispatcher,
 	}
@@ -168,7 +169,6 @@ func getServiceDependencies() service.Dependencies {
 		Broker:     broker,
 		GRPCServer: grpcServer,
 		Storage:    storage,
-
 		Dispatcher: dispatcher,
 		ShutdownFunc: func() error {
 			grpcServer.GracefulStop()

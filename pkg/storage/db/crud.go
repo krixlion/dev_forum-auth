@@ -23,7 +23,7 @@ func (db DB) Get(ctx context.Context, opaqueToken string) (entity.Token, error) 
 		return entity.Token{}, err
 	}
 
-	token := makeTokenFromDoc(tokenDoc)
+	token := makeTokenFromDocument(tokenDoc)
 
 	return token, nil
 }
