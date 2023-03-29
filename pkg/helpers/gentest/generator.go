@@ -1,7 +1,13 @@
 package gentest
 
 import (
+	"encoding/json"
 	"math/rand"
+	"time"
+
+	"github.com/gofrs/uuid"
+	"github.com/krixlion/dev_forum-auth/pkg/entity"
+	"github.com/krixlion/dev_forum-auth/pkg/tokens"
 )
 
 func RandomString(length int) string {
@@ -13,28 +19,40 @@ func RandomString(length int) string {
 	return string(v)
 }
 
-// // RandomAuth panics on hardware error.
-// // It should be used ONLY for testing.
-// func RandomAuth(titleLen, bodyLen int) entity.Token {
-// 	id := uuid.Must(uuid.NewV4())
-// 	userId := uuid.Must(uuid.NewV4())
+// RandomToken panics on hardware error.
+// It should be used ONLY for testing.
+func RandomToken(tokenType entity.TokenType) entity.Token {
+	userId := uuid.Must(uuid.NewV4())
 
-// 	return entity.Token{
-// 		Id:     id.String(),
-// 		UserId: userId.String(),
-// 		Title:  RandomString(titleLen),
-// 		Body:   RandomString(bodyLen),
-// 	}
-// }
+	var prefix tokens.OpaqueTokenPrefix
+	if tokenType == entity.AccessToken {
+		prefix = tokens.AccessToken
+	} else {
+		prefix = tokens.RefreshToken
+	}
 
-// // Randomauth returns a random auth marshaled
-// // to JSON and panics on error.
-// // It should be used ONLY for testing.
-// func RandomJSONauth(titleLen, bodyLen int) []byte {
-// 	auth := Randomauth(titleLen, bodyLen)
-// 	json, err := json.Marshal(auth)
-// 	if err != nil {
-// 		panic(err)
-// 	}
-// 	return json
-// }
+	_, id, err := tokens.MakeTokenManager("gentest", nil, nil).GenerateOpaqueToken(prefix)
+	if err != nil {
+		panic(err)
+	}
+
+	return entity.Token{
+		Id:        id,
+		UserId:    userId.String(),
+		Type:      tokenType,
+		ExpiresAt: time.Now(),
+		IssuedAt:  time.Now(),
+	}
+}
+
+// Randomauth returns a random auth marshaled
+// to JSON and panics on error.
+// It should be used ONLY for testing.
+func RandomJSONauth(tokenType entity.TokenType) []byte {
+	auth := RandomToken(tokenType)
+	json, err := json.Marshal(auth)
+	if err != nil {
+		panic(err)
+	}
+	return json
+}

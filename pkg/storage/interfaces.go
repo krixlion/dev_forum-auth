@@ -14,8 +14,8 @@ type Storage interface {
 }
 
 type Getter interface {
-	Get(ctx context.Context, opaqueToken string) (entity.Token, error)
-	// GetMultiple(ctx context.Context, offset, limit string) ([]entity.Token, error)
+	// Token's id is it's opaque token.
+	Get(ctx context.Context, id string) (entity.Token, error)
 }
 
 type Writer interface {

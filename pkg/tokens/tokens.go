@@ -61,6 +61,8 @@ func (m TokenManager) Encode(userPassword string, token entity.Token) (string, e
 	return signedJWT, nil
 }
 
+// GenerateOpaqueToken generates an opaque token. It returns an
+// encoded token, a random string used as a token's base and an err.
 func (TokenManager) GenerateOpaqueToken(prefixType OpaqueTokenPrefix) (string, string, error) {
 	randomString, err := randomAlphaString(16)
 	if err != nil {

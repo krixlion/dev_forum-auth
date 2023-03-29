@@ -14,7 +14,7 @@ type tokenDocument struct {
 	IssuedAt  time.Time `bson:"issued_at,omitempty"`
 }
 
-func makeTokenDocument(token entity.Token) tokenDocument {
+func makeDocumentFromToken(token entity.Token) tokenDocument {
 	return tokenDocument{
 		Id:        token.Id,
 		UserId:    token.UserId,

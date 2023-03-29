@@ -25,7 +25,6 @@ spec:
           aggregate: auth
       spec:
         accessModes: ["ReadWriteOnce"]
-        # storageClassName: hostpath
         resources:
           requests:
             storage: 300Mi
@@ -60,9 +59,9 @@ spec:
             # - name: secrets
             #   mountPath: /etc/secrets
             #   readOnly: true
-            # - name: mongodb-scripts
-            #   mountPath: /docker-entrypoint-initdb.d
-            #   readOnly: true
+            - name: mongodb-scripts
+              mountPath: /docker-entrypoint-initdb.d
+              readOnly: true
             - name: mongodb-config
               mountPath: /config
               readOnly: true
@@ -73,27 +72,27 @@ spec:
         #   secret:
         #     secretName: mongodb-secret
         #     items:
-        #     - key: MONGO_ROOT_USERNAME
-        #       path: admin/MONGO_ROOT_USERNAME
-        #       mode: 0444
-        #     - key: MONGO_ROOT_PASSWORD
-        #       path: admin/MONGO_ROOT_PASSWORD
-        #       mode: 0444
-        #     - key: MONGO_USERNAME
-        #       path: MONGO_USERNAME
-        #       mode: 0444
-        #     - key: MONGO_PASSWORD
-        #       path: MONGO_PASSWORD
-        #       mode: 0444
-        #     - key: MONGO_USERS_LIST
-        #       path: MONGO_USERS_LIST
-        #       mode: 0444
-        # - name: mongodb-scripts
-        #   configMap:
-        #     name: mongodb-config
-        #     items:
-        #     - key: ensure-users.js
-        #       path: ensure-users.js
+        #       - key: MONGO_ROOT_USERNAME
+        #         path: admin/MONGO_ROOT_USERNAME
+        #         mode: 0444
+        #       - key: MONGO_ROOT_PASSWORD
+        #         path: admin/MONGO_ROOT_PASSWORD
+        #         mode: 0444
+        #       - key: MONGO_USERNAME
+        #         path: MONGO_USERNAME
+        #         mode: 0444
+        #       - key: MONGO_PASSWORD
+        #         path: MONGO_PASSWORD
+        #         mode: 0444
+        #       - key: MONGO_USERS_LIST
+        #         path: MONGO_USERS_LIST
+        #         mode: 0444
+        - name: mongodb-scripts
+          configMap:
+            name: mongodb-config
+            items:
+              - key: ensure-users.js
+                path: ensure-users.js
         - name: mongodb-config
           configMap:
             name: mongodb-config
@@ -129,66 +128,35 @@ data:
     storage:
       dbPath: /data/db
   ensure-users.js: |
-    const targetDbStr = 'test';
-    const rootUser = cat('/etc/secrets/admin/MONGO_ROOT_USERNAME');
-    const rootPass = cat('/etc/secrets/admin/MONGO_ROOT_PASSWORD');
-    const usersStr = cat('/etc/secrets/MONGO_USERS_LIST');
-
-    const adminDb = db.getSiblingDB('admin');
-    adminDb.auth(rootUser, rootPass);
-    print('Successfully authenticated admin user');
-
-    const targetDb = db.getSiblingDB(targetDbStr);
-
-    const customRoles = adminDb
-      .getRoles({rolesInfo: 1, showBuiltinRoles: false})
-      .map(role => role.role)
-      .filter(Boolean);
-
-    usersStr
-      .trim()
-      .split(';')
-      .map(s => s.split(':'))
-      .forEach(user => {
-        const username = user[0];
-        const rolesStr = user[1];
-        const password = user[2];
-
-        if (!rolesStr || !password) {
-          return;
+    const targetDbStr = 'auth-service';
+    db.createUser({
+      user: "admin",
+      pwd: "changeit",
+      roles: [
+        {
+          role: "userAdminAnyDatabase",
+          db: "admin"
+        },
+        {
+          role: "dbAdminAnyDatabase",
+          db: "admin"
+        },
+        {
+          role: "readWriteAnyDatabase",
+          db: "admin"
         }
-
-        const roles = rolesStr.split(',');
-        const userDoc = {
-          user: username,
-          pwd: password,
-        };
-
-        userDoc.roles = roles.map(role => {
-          if (!~customRoles.indexOf(role)) {
-            return role;
-          }
-          return {role: role, db: 'admin'}; 
-        });
-
-        try {
-          targetDb.createUser(userDoc);
-        } catch (err) {
-          if (!~err.message.toLowerCase().indexOf('duplicate')) {
-            throw err;
-          }
-        }
-      });
----
-apiVersion: v1
-kind: Secret
-metadata:
-  name: mongodb-secret
-  namespace: dev
-type: Opaque
-data:
-  MONGO_ROOT_USERNAME: YWRtaW4K
-  MONGO_ROOT_PASSWORD: cGFzc3dvcmQK
-  MONGO_USERNAME: dGVzdAo=
-  MONGO_PASSWORD: cGFzc3dvcmQK
-  MONGO_USERS_LIST: dGVzdDpkYkFkbWluLHJlYWRXcml0ZTpwYXNzd29yZAo=
+      ]
+    });
+# ---
+# apiVersion: v1
+# kind: Secret
+# metadata:
+#   name: mongodb-secret
+#   namespace: dev
+# type: Opaque
+# data:
+#   MONGO_ROOT_USERNAME: YWRtaW4K
+#   MONGO_ROOT_PASSWORD: cGFzc3dvcmQK
+#   MONGO_USERNAME: dGVzdAo=
+#   MONGO_PASSWORD: cGFzc3dvcmQK
+#   MONGO_USERS_LIST: dGVzdDpkYkFkbWluLHJlYWRXcml0ZTpwYXNzd29yZAo=

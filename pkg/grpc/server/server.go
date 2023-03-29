@@ -14,14 +14,15 @@ import (
 	"github.com/krixlion/dev_forum-lib/tracing"
 	userPb "github.com/krixlion/dev_forum-user/pkg/grpc/v1"
 	"go.opentelemetry.io/otel/trace"
+	"golang.org/x/crypto/bcrypt"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 )
 
 type AuthServer struct {
 	pb.UnimplementedAuthServiceServer
-	services     Services
-	secrets      Secrets
+	services Services
+	// secrets      Secrets
 	storage      storage.Storage
 	tokenManager tokens.TokenManager
 	dispatcher   *dispatcher.Dispatcher
@@ -89,7 +90,6 @@ func (server AuthServer) SignIn(ctx context.Context, req *pb.SignInRequest) (*pb
 	email := req.GetEmail()
 
 	resp, err := server.services.User.GetSecret(ctx, &userPb.GetUserSecretRequest{
-		Secret: server.secrets.UserServiceAccessToken,
 		Query: &userPb.GetUserSecretRequest_Email{
 			Email: email,
 		},
@@ -101,7 +101,7 @@ func (server AuthServer) SignIn(ctx context.Context, req *pb.SignInRequest) (*pb
 
 	user := resp.GetUser()
 
-	if user.GetPassword() != password {
+	if err := bcrypt.CompareHashAndPassword([]byte(user.GetPassword()), []byte(password)); err != nil {
 		return nil, status.Error(codes.FailedPrecondition, err.Error())
 	}
 
@@ -111,11 +111,13 @@ func (server AuthServer) SignIn(ctx context.Context, req *pb.SignInRequest) (*pb
 		return nil, status.Error(codes.Internal, err.Error())
 	}
 
+	now := time.Now()
 	token := entity.Token{
 		Id:        tokenId,
 		UserId:    user.Id,
 		Type:      entity.RefreshToken,
-		ExpiresAt: time.Now().Add(server.config.RefreshTokenValidityTime),
+		ExpiresAt: now.Add(server.config.RefreshTokenValidityTime),
+		IssuedAt:  now,
 	}
 
 	if err := server.storage.Create(ctx, token); err != nil {
@@ -208,7 +210,6 @@ func (server AuthServer) TranslateAccessToken(ctx context.Context, req *pb.Trans
 	}
 
 	response, err := server.services.User.GetSecret(ctx, &userPb.GetUserSecretRequest{
-		Secret: server.secrets.UserServiceAccessToken,
 		Query: &userPb.GetUserSecretRequest_Id{
 			Id: token.UserId,
 		},

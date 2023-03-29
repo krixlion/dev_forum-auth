@@ -88,7 +88,8 @@ func getServiceDependencies() service.Dependencies {
 	dbHost := os.Getenv("DB_HOST")
 	dbUser := os.Getenv("DB_USER")
 	dbPass := os.Getenv("DB_PASS")
-	storage, err := db.MakeDB(dbUser, dbPass, dbHost, dbPort, logger, tracer)
+	dbName := os.Getenv("DB_NAME")
+	storage, err := db.Make(dbUser, dbPass, dbHost, dbPort, dbName, logger, tracer)
 	if err != nil {
 		panic(err)
 	}
