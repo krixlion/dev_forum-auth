@@ -2,9 +2,10 @@ package server
 
 import (
 	"context"
+	"errors"
+	"io"
 	"time"
 
-	empty "github.com/golang/protobuf/ptypes/empty"
 	"github.com/krixlion/dev_forum-auth/pkg/entity"
 	pb "github.com/krixlion/dev_forum-auth/pkg/grpc/v1"
 	"github.com/krixlion/dev_forum-auth/pkg/storage"
@@ -17,12 +18,14 @@ import (
 	"golang.org/x/crypto/bcrypt"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
+	"google.golang.org/protobuf/types/known/anypb"
+	empty "google.golang.org/protobuf/types/known/emptypb"
 )
 
 type AuthServer struct {
 	pb.UnimplementedAuthServiceServer
-	services Services
-	// secrets      Secrets
+	services     Services
+	vault        storage.Vault
 	storage      storage.Storage
 	tokenManager tokens.TokenManager
 	dispatcher   *dispatcher.Dispatcher
@@ -34,6 +37,7 @@ type AuthServer struct {
 type Dependencies struct {
 	Services
 	Storage      storage.Storage
+	Vault        storage.Vault
 	TokenManager tokens.TokenManager
 	Dispatcher   *dispatcher.Dispatcher
 	Logger       logging.Logger
@@ -49,36 +53,19 @@ type Config struct {
 	RefreshTokenValidityTime time.Duration
 }
 
-type Secrets struct {
-	// PrivateKey             interface{}
-	// PublicKey              interface{}
-	UserServiceAccessToken string
-}
-
-func NewAuthServer(dependencies Dependencies, config Config, secrets Secrets) AuthServer {
+func NewAuthServer(dependencies Dependencies, config Config) AuthServer {
 	return AuthServer{
-		services:   dependencies.Services,
-		storage:    dependencies.Storage,
-		dispatcher: dependencies.Dispatcher,
-		logger:     dependencies.Logger,
-		tracer:     dependencies.Tracer,
+		services:     dependencies.Services,
+		storage:      dependencies.Storage,
+		vault:        dependencies.Vault,
+		tokenManager: dependencies.TokenManager,
+		dispatcher:   dependencies.Dispatcher,
+		logger:       dependencies.Logger,
+		tracer:       dependencies.Tracer,
 	}
 }
 
 func (s AuthServer) Close() error {
-	// // A way to wrap multiple err messages from different sources into one.
-	// var errMsg string
-
-	// if err := s.storage.Close(); err != nil {
-	// 	errMsg = fmt.Sprintf("%s, failed to close storage: %s", errMsg, err)
-	// }
-
-	// if errMsg != "" {
-	// 	return errors.New(errMsg)
-	// }
-
-	// return nil
-
 	return s.storage.Close()
 }
 
@@ -145,7 +132,7 @@ func (server AuthServer) SignOut(ctx context.Context, req *pb.SignOutRequest) (*
 		return nil, status.Error(codes.Internal, err.Error())
 	}
 
-	return nil, nil
+	return &empty.Empty{}, nil
 }
 
 func (server AuthServer) GetAccessToken(ctx context.Context, req *pb.GetAccessTokenRequest) (*pb.GetAccessTokenResponse, error) {
@@ -191,7 +178,34 @@ func (server AuthServer) GetAccessToken(ctx context.Context, req *pb.GetAccessTo
 	}, nil
 }
 
-func (server AuthServer) TranslateAccessToken(ctx context.Context, req *pb.TranslateAccessTokenRequest) (*pb.TranslateAccessTokenResponse, error) {
+func (server AuthServer) TranslateAccessToken(stream pb.AuthService_TranslateAccessTokenServer) error {
+	ctx := stream.Context()
+
+	for {
+		if err := ctx.Err(); err != nil {
+			return err
+		}
+
+		req, err := stream.Recv()
+		if err != nil {
+			if errors.Is(err, io.EOF) {
+				return nil
+			}
+			return err
+		}
+
+		response, err := server.translateAccessToken(ctx, req)
+		if err != nil {
+			return err
+		}
+
+		if err := stream.Send(response); err != nil {
+			return err
+		}
+	}
+}
+
+func (server AuthServer) translateAccessToken(ctx context.Context, req *pb.TranslateAccessTokenRequest) (*pb.TranslateAccessTokenResponse, error) {
 	ctx, span := server.tracer.Start(ctx, "server.TranslateAccessToken")
 	defer span.End()
 
@@ -209,25 +223,61 @@ func (server AuthServer) TranslateAccessToken(ctx context.Context, req *pb.Trans
 		return nil, status.Error(codes.Internal, err.Error())
 	}
 
-	response, err := server.services.User.GetSecret(ctx, &userPb.GetUserSecretRequest{
-		Query: &userPb.GetUserSecretRequest_Id{
-			Id: token.UserId,
-		},
-	})
+	privateKey, err := server.vault.GetRandom(ctx)
 	if err != nil {
 		tracing.SetSpanErr(span, err)
-		return nil, err
+		return nil, status.Error(codes.Internal, err.Error())
 	}
 
-	user := response.GetUser()
-
-	tokenEncoded, err := server.tokenManager.Encode(user.GetPassword(), token)
+	tokenEncoded, err := server.tokenManager.Encode(privateKey, token)
 	if err != nil {
 		tracing.SetSpanErr(span, err)
 		return nil, status.Error(codes.Internal, err.Error())
 	}
 
 	return &pb.TranslateAccessTokenResponse{
-		AccessToken: tokenEncoded,
+		AccessToken: string(tokenEncoded),
 	}, nil
+}
+
+func (server AuthServer) GetValidationKeySet(_ *empty.Empty, stream pb.AuthService_GetValidationKeySetServer) error {
+	ctx := stream.Context()
+
+	ctx, span := server.tracer.Start(ctx, "server.GetValidationKeySet")
+	defer span.End()
+
+	keys, err := server.vault.GetKeySet(ctx)
+	if err != nil {
+		tracing.SetSpanErr(span, err)
+		return err
+	}
+
+	for _, key := range keys {
+		if err := ctx.Err(); err != nil {
+			return err
+		}
+
+		encoded, err := key.Encode()
+		if err != nil {
+			tracing.SetSpanErr(span, err)
+			return err
+		}
+
+		marshaledKey, err := anypb.New(encoded)
+		if err != nil {
+			return err
+		}
+
+		jwk := &pb.Jwk{
+			Kid: key.Id,
+			Kty: key.Type,
+			Key: marshaledKey,
+		}
+
+		if err := stream.Send(jwk); err != nil {
+			return err
+		}
+	}
+
+	return nil
 }

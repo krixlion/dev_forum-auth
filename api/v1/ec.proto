@@ -1,0 +1,18 @@
+syntax = "proto3";
+
+package auth;
+
+option go_package = "github.com/krixlion/dev_forum-auth/pkg/grpc/v1/ec;rsapb";
+
+enum ECType {
+    UNDEFINED = 0;
+    P256 = 1;
+    P384 = 2;
+    P521 = 3;
+}
+  
+message EC {
+    ECType crv = 1;
+    string x = 2;
+    string y = 3;
+}

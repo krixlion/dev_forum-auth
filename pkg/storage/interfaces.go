@@ -13,8 +13,14 @@ type Storage interface {
 	io.Closer
 }
 
+type Vault interface {
+	// Get(ctx context.Context, id string) (entity.Key, error)
+	GetRandom(ctx context.Context) (entity.Key, error)
+	GetKeySet(ctx context.Context) ([]entity.Key, error)
+}
+
 type Getter interface {
-	// Token's id is it's opaque token.
+	// Token's id is it's corresponding opaque token.
 	Get(ctx context.Context, id string) (entity.Token, error)
 }
 

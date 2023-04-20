@@ -14,5 +14,7 @@ type Token struct {
 
 type TokenType string
 
-const RefreshToken TokenType = "refresh-token"
-const AccessToken TokenType = "access-token"
+const (
+	RefreshToken TokenType = "refresh-token"
+	AccessToken  TokenType = "access-token"
+)

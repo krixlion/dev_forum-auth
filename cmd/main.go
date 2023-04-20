@@ -8,13 +8,12 @@ import (
 	"syscall"
 	"time"
 
-	grpc_middleware "github.com/grpc-ecosystem/go-grpc-middleware"
 	grpc_zap "github.com/grpc-ecosystem/go-grpc-middleware/logging/zap"
-	grpc_recovery "github.com/grpc-ecosystem/go-grpc-middleware/recovery"
 	"github.com/krixlion/dev_forum-auth/pkg/grpc/server"
 	pb "github.com/krixlion/dev_forum-auth/pkg/grpc/v1"
 	"github.com/krixlion/dev_forum-auth/pkg/service"
 	"github.com/krixlion/dev_forum-auth/pkg/storage/db"
+	"github.com/krixlion/dev_forum-auth/pkg/storage/vault"
 	"github.com/krixlion/dev_forum-auth/pkg/tokens"
 	"github.com/krixlion/dev_forum-lib/env"
 	"github.com/krixlion/dev_forum-lib/event/broker"
@@ -23,6 +22,7 @@ import (
 	"github.com/krixlion/dev_forum-lib/tracing"
 	rabbitmq "github.com/krixlion/dev_forum-rabbitmq"
 	userPb "github.com/krixlion/dev_forum-user/pkg/grpc/v1"
+	"github.com/lestrrat-go/jwx/jwa"
 	"go.opentelemetry.io/contrib/instrumentation/google.golang.org/grpc/otelgrpc"
 	"go.opentelemetry.io/otel"
 	"go.uber.org/zap"
@@ -72,7 +72,7 @@ func main() {
 	}()
 }
 
-// getServiceDependencies is a Composition root.
+// getServiceDependencies is the composition root.
 // Panics on any non-nil error.
 func getServiceDependencies() service.Dependencies {
 	tracer := otel.Tracer(serviceName)
@@ -81,8 +81,6 @@ func getServiceDependencies() service.Dependencies {
 	if err != nil {
 		panic(err)
 	}
-
-	userServiceAccessSecret := os.Getenv("USER_SERVICE_ACCESS_SECRET")
 
 	dbPort := os.Getenv("DB_PORT")
 	dbHost := os.Getenv("DB_HOST")
@@ -116,7 +114,9 @@ func getServiceDependencies() service.Dependencies {
 		dispatcher.Subscribe(eType, handlers...)
 	}
 
-	tokenManager := tokens.MakeTokenManager(issuer, nil, nil)
+	tokenManager := tokens.MakeTokenManager(issuer, tokens.Config{
+		SignatureAlgorithm: jwa.RS256,
+	})
 
 	conn, err := grpc.Dial("user-service:50051",
 		grpc.WithTransportCredentials(insecure.NewCredentials()),
@@ -129,6 +129,18 @@ func getServiceDependencies() service.Dependencies {
 	}
 	userClient := userPb.NewUserServiceClient(conn)
 
+	vaultHost := os.Getenv("VAULT_HOST")
+	vaultPort := os.Getenv("VAULT_PORT")
+	vaultMountPath := os.Getenv("VAULT_MOUNT_PATH")
+	vaultToken := os.Getenv("VAULT_TOKEN")
+	vaultConfig := vault.Config{
+		VaultPath: "secret",
+	}
+	secretStorage, err := vault.Make(vaultHost, vaultPort, vaultMountPath, vaultToken, vaultConfig, tracer, logger)
+	if err != nil {
+		panic(err)
+	}
+
 	authConfig := server.Config{
 		AccessTokenValidityTime:  time.Minute * 5,
 		RefreshTokenValidityTime: time.Minute * 5,
@@ -139,23 +151,45 @@ func getServiceDependencies() service.Dependencies {
 			User: userClient,
 		},
 		Storage:      storage,
+		Vault:        secretStorage,
 		Logger:       logger,
 		Tracer:       tracer,
 		TokenManager: tokenManager,
 		Dispatcher:   dispatcher,
 	}
 
-	authServer := server.NewAuthServer(authDependencies, authConfig, server.Secrets{
-		UserServiceAccessToken: userServiceAccessSecret,
-		// PrivateKey:             secretKey,
-		// PublicKey:              secretKey,
-	})
+	authServer := server.NewAuthServer(authDependencies, authConfig)
+
+	// tlsCertPath := os.Getenv("TLS_CERT_PATH")
+	// tlsKeyPath := os.Getenv("TLS_KEY_PATH")
+	// credentials, err := loadTLSCredentials(tlsCertPath, tlsKeyPath)
+	// if err != nil {
+	// 	panic(err)
+	// }
 
 	grpcServer := grpc.NewServer(
+		// grpc.Creds(credentials),
 		grpc.StreamInterceptor(otelgrpc.StreamServerInterceptor()),
+		grpc.ChainUnaryInterceptor(
+			// grpc_auth.UnaryServerInterceptor(func(ctx context.Context) (context.Context, error) {
+			// 	md, ok := metadata.FromIncomingContext(ctx)
+			// 	if !ok {
+			// 		return nil, status.Error(codes.InvalidArgument, "Invalid metadata")
+			// 	}
 
-		grpc_middleware.WithUnaryServerChain(
-			grpc_recovery.UnaryServerInterceptor(),
+			// 	tokens := md.Get("authorization")
+			// 	if len(tokens) == 0 {
+			// 		return nil, status.Error(codes.PermissionDenied, "missing authorization")
+			// 	}
+
+			// 	token := tokens[0]
+			// 	if token == "" {
+			// 		return nil, status.Error(codes.PermissionDenied, "missing authorization")
+			// 	}
+
+			// 	return context.WithValue(ctx, "authorization", token), nil
+			// }),
+			// grpc_recovery.UnaryServerInterceptor(),
 			grpc_zap.UnaryServerInterceptor(zap.L()),
 			otelgrpc.UnaryServerInterceptor(),
 			authServer.ValidateRequestInterceptor(),

@@ -10,6 +10,9 @@ mod-init:
 	go mod tidy
 	go mod vendor
 
+grpc-gen:
+	docker run --rm -v $(shell pwd):/app --env-file .env krixlion/go-grpc-gen:${GO_VERSION}
+
 push-image: # param: version
 	docker build deployment/ -t krixlion/$(PROJECT_NAME)_$(AGGREGATE_ID):$(version)
 	docker push krixlion/$(PROJECT_NAME)_$(AGGREGATE_ID):$(version)

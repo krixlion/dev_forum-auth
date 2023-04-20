@@ -3,32 +3,37 @@ package tokens
 import (
 	"reflect"
 	"testing"
+	"time"
 
-	"github.com/golang-jwt/jwt"
 	"github.com/krixlion/dev_forum-auth/pkg/entity"
+	"github.com/lestrrat-go/jwx/jwa"
 )
 
-func setUpTokenManager() TokenManager {
-	m := MakeTokenManager("testing", nil, nil)
+func setUpTokenManager(algo jwa.SignatureAlgorithm) TokenManager {
+	m := MakeTokenManager("test", Config{
+		SignatureAlgorithm: algo,
+	})
 	return m
 }
 
 func TestTokenManager_Parse(t *testing.T) {
 	type args struct {
-		token string
+		publicKey interface{}
+		token     string
 	}
 	tests := []struct {
 		name    string
+		algo    jwa.SignatureAlgorithm
 		args    args
 		want    entity.Token
 		wantErr bool
 	}{
-		// TODO: Add test cases.
+		// TODO add cases.
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			m := setUpTokenManager()
-			got, err := m.Parse(tt.args.token)
+			m := setUpTokenManager(tt.algo)
+			got, err := m.Parse(tt.args.publicKey, []byte(tt.args.token))
 			if (err != nil) != tt.wantErr {
 				t.Errorf("TokenManager.Parse() error = %v, wantErr %v", err, tt.wantErr)
 				return
@@ -42,27 +47,43 @@ func TestTokenManager_Parse(t *testing.T) {
 
 func TestTokenManager_Encode(t *testing.T) {
 	type args struct {
-		userPassword string
-		token        entity.Token
+		privateKey interface{}
+		token      entity.Token
 	}
 	tests := []struct {
+		algo    jwa.SignatureAlgorithm
 		name    string
 		args    args
 		want    string
 		wantErr bool
 	}{
-		// TODO: Add test cases.
+		{
+			name: "Test if correctly encodes and signes a token struct with HS256 algo",
+			algo: jwa.HS256,
+			args: args{
+				privateKey: []byte("key"),
+				token: entity.Token{
+					Id:        "test",
+					UserId:    "test-id",
+					Type:      entity.AccessToken,
+					ExpiresAt: time.Unix(1680358945, 0),
+					IssuedAt:  time.Unix(1680358945, 0),
+				},
+			},
+			want: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE2ODAzNTg5NDUsImlhdCI6MTY4MDM1ODk0NSwiaXNzIjoidGVzdCIsImp0aSI6InRlc3QiLCJzdWIiOiJ0ZXN0LWlkIn0.POi3q7JKM71nG49W-UMDo81pAO3AQ0O7KtbOxqZynD4",
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			m := setUpTokenManager()
-			got, err := m.Encode(tt.args.userPassword, tt.args.token)
+			m := setUpTokenManager(tt.algo)
+			got, err := m.Encode(tt.args.privateKey, tt.args.token)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("TokenManager.Encode() error = %v, wantErr %v", err, tt.wantErr)
 				return
 			}
-			if got != tt.want {
-				t.Errorf("TokenManager.Encode() = %v, want %v", got, tt.want)
+
+			if string(got) != tt.want {
+				t.Errorf("TokenManager.Encode():\n got = %v\n want = %v\n", string(got), tt.want)
 			}
 		})
 	}
@@ -73,27 +94,39 @@ func TestTokenManager_GenerateOpaqueToken(t *testing.T) {
 		prefixType OpaqueTokenPrefix
 	}
 	tests := []struct {
-		name    string
-		args    args
-		want    string
-		want1   string
-		wantErr bool
+		algo        jwa.SignatureAlgorithm
+		name        string
+		args        args
+		want        string
+		wantTokenId string
+		wantErr     bool
 	}{
-		// TODO: Add test cases.
+		{
+			name: "Test if raises an error on invalid prefix",
+			algo: jwa.HS256,
+			args: args{
+				prefixType: OpaqueTokenPrefix(999999999999),
+			},
+			wantErr: true,
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			m := setUpTokenManager()
-			got, got1, err := m.GenerateOpaqueToken(tt.args.prefixType)
+			m := setUpTokenManager(tt.algo)
+
+			got, gotTokenId, err := m.GenerateOpaqueToken(tt.args.prefixType)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("TokenManager.GenerateOpaqueToken() error = %v, wantErr %v", err, tt.wantErr)
 				return
 			}
+
 			if got != tt.want {
-				t.Errorf("TokenManager.GenerateOpaqueToken() got = %v, want %v", got, tt.want)
+				t.Errorf("TokenManager.GenerateOpaqueToken():\n got = %v\n want = %v\n", got, tt.want)
+				return
 			}
-			if got1 != tt.want1 {
-				t.Errorf("TokenManager.GenerateOpaqueToken() got1 = %v, want %v", got1, tt.want1)
+
+			if gotTokenId != tt.wantTokenId {
+				t.Errorf("TokenManager.GenerateOpaqueToken():\n gotTokenId = %v\n want = %v\n", gotTokenId, tt.wantTokenId)
 			}
 		})
 	}
@@ -105,16 +138,24 @@ func TestTokenManager_DecodeOpaqueToken(t *testing.T) {
 		encodedOpaqueToken string
 	}
 	tests := []struct {
+		algo    jwa.SignatureAlgorithm
 		name    string
 		args    args
 		want    string
 		wantErr bool
 	}{
-		// TODO: Add test cases.
+		{
+			name: "Test if correctly decodes a valid token",
+			args: args{
+				typ:                AccessToken,
+				encodedOpaqueToken: "dfa_c2VHWmJVVWhKTWpVYnNlR19mYWJjNTJiYQ==",
+			},
+			want: "seGZbUUhJMjUbseG",
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			m := setUpTokenManager()
+			m := setUpTokenManager(tt.algo)
 			got, err := m.DecodeOpaqueToken(tt.args.typ, tt.args.encodedOpaqueToken)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("TokenManager.DecodeOpaqueToken() error = %v, wantErr %v", err, tt.wantErr)
@@ -127,102 +168,29 @@ func TestTokenManager_DecodeOpaqueToken(t *testing.T) {
 	}
 }
 
-func TestTokenManager_isValid(t *testing.T) {
-	type args struct {
-		t *jwt.Token
-	}
-	tests := []struct {
-		name    string
-		args    args
-		want    interface{}
-		wantErr bool
-	}{
-		// TODO: Add test cases.
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			m := setUpTokenManager()
-			got, err := m.isValid(tt.args.t)
-			if (err != nil) != tt.wantErr {
-				t.Errorf("TokenManager.isValid() error = %v, wantErr %v", err, tt.wantErr)
-				return
-			}
-			if !reflect.DeepEqual(got, tt.want) {
-				t.Errorf("TokenManager.isValid() = %v, want %v", got, tt.want)
-			}
-		})
-	}
-}
-
-func TestTokenManager_EncryptAsJWE(t *testing.T) {
-	type args struct {
-		data []byte
-	}
-	tests := []struct {
-		name    string
-		args    args
-		want    string
-		wantErr bool
-	}{
-		// TODO: Add test cases.
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			m := setUpTokenManager()
-			got, err := m.EncryptAsJWE(tt.args.data)
-			if (err != nil) != tt.wantErr {
-				t.Errorf("TokenManager.EncryptAsJWE() error = %v, wantErr %v", err, tt.wantErr)
-				return
-			}
-			if got != tt.want {
-				t.Errorf("TokenManager.EncryptAsJWE() = %v, want %v", got, tt.want)
-			}
-		})
-	}
-}
-
-func TestTokenManager_DecryptJWE(t *testing.T) {
-	type args struct {
-		input string
-	}
-	tests := []struct {
-		name    string
-		args    args
-		want    []byte
-		wantErr bool
-	}{
-		// TODO: Add test cases.
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			m := setUpTokenManager()
-			got, err := m.DecryptJWE(tt.args.input)
-			if (err != nil) != tt.wantErr {
-				t.Errorf("TokenManager.DecryptJWE() error = %v, wantErr %v", err, tt.wantErr)
-				return
-			}
-			if !reflect.DeepEqual(got, tt.want) {
-				t.Errorf("TokenManager.DecryptJWE() = %v, want %v", got, tt.want)
-			}
-		})
-	}
-}
-
 func TestTokenManager_decodeAndValidateOpaque(t *testing.T) {
 	type args struct {
 		rawToken string
 	}
 	tests := []struct {
+		algo    jwa.SignatureAlgorithm
 		name    string
 		args    args
 		want    string
 		wantErr bool
 	}{
-		// TODO: Add test cases.
+		{
+			name: "Test if correctly decodes a valid token",
+			algo: jwa.HS256,
+			args: args{
+				rawToken: "eVdGUmxGcFdGVGZDUld5V18yMmRmNDkyMQ==",
+			},
+			want: "yWFRlFpWFTfCRWyW",
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			m := setUpTokenManager()
+			m := setUpTokenManager(tt.algo)
 			got, err := m.decodeAndValidateOpaque(tt.args.rawToken)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("TokenManager.decodeAndValidateOpaque() error = %v, wantErr %v", err, tt.wantErr)
@@ -245,7 +213,12 @@ func Test_randomAlphaString(t *testing.T) {
 		want    string
 		wantErr bool
 	}{
-		// TODO: Add test cases.
+		{
+			name: "Test if returned string has correct length",
+			args: args{
+				length: 5,
+			},
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -254,8 +227,9 @@ func Test_randomAlphaString(t *testing.T) {
 				t.Errorf("randomAlphaString() error = %v, wantErr %v", err, tt.wantErr)
 				return
 			}
-			if got != tt.want {
-				t.Errorf("randomAlphaString() = %v, want %v", got, tt.want)
+
+			if len(got) != tt.args.length {
+				t.Errorf("randomAlphaString() invalid length: got = %v expected length %v", got, tt.args.length)
 			}
 		})
 	}

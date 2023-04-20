@@ -23,6 +23,7 @@ const (
 	AuthService_SignIn_FullMethodName               = "/auth.AuthService/SignIn"
 	AuthService_SignOut_FullMethodName              = "/auth.AuthService/SignOut"
 	AuthService_GetAccessToken_FullMethodName       = "/auth.AuthService/GetAccessToken"
+	AuthService_GetValidationKeySet_FullMethodName  = "/auth.AuthService/GetValidationKeySet"
 	AuthService_TranslateAccessToken_FullMethodName = "/auth.AuthService/TranslateAccessToken"
 )
 
@@ -36,7 +37,8 @@ type AuthServiceClient interface {
 	// SignOut revokes user's active refresh_token.
 	SignOut(ctx context.Context, in *SignOutRequest, opts ...grpc.CallOption) (*emptypb.Empty, error)
 	GetAccessToken(ctx context.Context, in *GetAccessTokenRequest, opts ...grpc.CallOption) (*GetAccessTokenResponse, error)
-	TranslateAccessToken(ctx context.Context, in *TranslateAccessTokenRequest, opts ...grpc.CallOption) (*TranslateAccessTokenResponse, error)
+	GetValidationKeySet(ctx context.Context, in *emptypb.Empty, opts ...grpc.CallOption) (AuthService_GetValidationKeySetClient, error)
+	TranslateAccessToken(ctx context.Context, opts ...grpc.CallOption) (AuthService_TranslateAccessTokenClient, error)
 }
 
 type authServiceClient struct {
@@ -74,13 +76,67 @@ func (c *authServiceClient) GetAccessToken(ctx context.Context, in *GetAccessTok
 	return out, nil
 }
 
-func (c *authServiceClient) TranslateAccessToken(ctx context.Context, in *TranslateAccessTokenRequest, opts ...grpc.CallOption) (*TranslateAccessTokenResponse, error) {
-	out := new(TranslateAccessTokenResponse)
-	err := c.cc.Invoke(ctx, AuthService_TranslateAccessToken_FullMethodName, in, out, opts...)
+func (c *authServiceClient) GetValidationKeySet(ctx context.Context, in *emptypb.Empty, opts ...grpc.CallOption) (AuthService_GetValidationKeySetClient, error) {
+	stream, err := c.cc.NewStream(ctx, &AuthService_ServiceDesc.Streams[0], AuthService_GetValidationKeySet_FullMethodName, opts...)
 	if err != nil {
 		return nil, err
 	}
-	return out, nil
+	x := &authServiceGetValidationKeySetClient{stream}
+	if err := x.ClientStream.SendMsg(in); err != nil {
+		return nil, err
+	}
+	if err := x.ClientStream.CloseSend(); err != nil {
+		return nil, err
+	}
+	return x, nil
+}
+
+type AuthService_GetValidationKeySetClient interface {
+	Recv() (*Jwk, error)
+	grpc.ClientStream
+}
+
+type authServiceGetValidationKeySetClient struct {
+	grpc.ClientStream
+}
+
+func (x *authServiceGetValidationKeySetClient) Recv() (*Jwk, error) {
+	m := new(Jwk)
+	if err := x.ClientStream.RecvMsg(m); err != nil {
+		return nil, err
+	}
+	return m, nil
+}
+
+func (c *authServiceClient) TranslateAccessToken(ctx context.Context, opts ...grpc.CallOption) (AuthService_TranslateAccessTokenClient, error) {
+	stream, err := c.cc.NewStream(ctx, &AuthService_ServiceDesc.Streams[1], AuthService_TranslateAccessToken_FullMethodName, opts...)
+	if err != nil {
+		return nil, err
+	}
+	x := &authServiceTranslateAccessTokenClient{stream}
+	return x, nil
+}
+
+type AuthService_TranslateAccessTokenClient interface {
+	Send(*TranslateAccessTokenRequest) error
+	Recv() (*TranslateAccessTokenResponse, error)
+	grpc.ClientStream
+}
+
+type authServiceTranslateAccessTokenClient struct {
+	grpc.ClientStream
+}
+
+func (x *authServiceTranslateAccessTokenClient) Send(m *TranslateAccessTokenRequest) error {
+	return x.ClientStream.SendMsg(m)
+}
+
+func (x *authServiceTranslateAccessTokenClient) Recv() (*TranslateAccessTokenResponse, error) {
+	m := new(TranslateAccessTokenResponse)
+	if err := x.ClientStream.RecvMsg(m); err != nil {
+		return nil, err
+	}
+	return m, nil
 }
 
 // AuthServiceServer is the server API for AuthService service.
@@ -93,7 +149,8 @@ type AuthServiceServer interface {
 	// SignOut revokes user's active refresh_token.
 	SignOut(context.Context, *SignOutRequest) (*emptypb.Empty, error)
 	GetAccessToken(context.Context, *GetAccessTokenRequest) (*GetAccessTokenResponse, error)
-	TranslateAccessToken(context.Context, *TranslateAccessTokenRequest) (*TranslateAccessTokenResponse, error)
+	GetValidationKeySet(*emptypb.Empty, AuthService_GetValidationKeySetServer) error
+	TranslateAccessToken(AuthService_TranslateAccessTokenServer) error
 	mustEmbedUnimplementedAuthServiceServer()
 }
 
@@ -110,8 +167,11 @@ func (UnimplementedAuthServiceServer) SignOut(context.Context, *SignOutRequest) 
 func (UnimplementedAuthServiceServer) GetAccessToken(context.Context, *GetAccessTokenRequest) (*GetAccessTokenResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method GetAccessToken not implemented")
 }
-func (UnimplementedAuthServiceServer) TranslateAccessToken(context.Context, *TranslateAccessTokenRequest) (*TranslateAccessTokenResponse, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method TranslateAccessToken not implemented")
+func (UnimplementedAuthServiceServer) GetValidationKeySet(*emptypb.Empty, AuthService_GetValidationKeySetServer) error {
+	return status.Errorf(codes.Unimplemented, "method GetValidationKeySet not implemented")
+}
+func (UnimplementedAuthServiceServer) TranslateAccessToken(AuthService_TranslateAccessTokenServer) error {
+	return status.Errorf(codes.Unimplemented, "method TranslateAccessToken not implemented")
 }
 func (UnimplementedAuthServiceServer) mustEmbedUnimplementedAuthServiceServer() {}
 
@@ -180,22 +240,51 @@ func _AuthService_GetAccessToken_Handler(srv interface{}, ctx context.Context, d
 	return interceptor(ctx, in, info, handler)
 }
 
-func _AuthService_TranslateAccessToken_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(TranslateAccessTokenRequest)
-	if err := dec(in); err != nil {
+func _AuthService_GetValidationKeySet_Handler(srv interface{}, stream grpc.ServerStream) error {
+	m := new(emptypb.Empty)
+	if err := stream.RecvMsg(m); err != nil {
+		return err
+	}
+	return srv.(AuthServiceServer).GetValidationKeySet(m, &authServiceGetValidationKeySetServer{stream})
+}
+
+type AuthService_GetValidationKeySetServer interface {
+	Send(*Jwk) error
+	grpc.ServerStream
+}
+
+type authServiceGetValidationKeySetServer struct {
+	grpc.ServerStream
+}
+
+func (x *authServiceGetValidationKeySetServer) Send(m *Jwk) error {
+	return x.ServerStream.SendMsg(m)
+}
+
+func _AuthService_TranslateAccessToken_Handler(srv interface{}, stream grpc.ServerStream) error {
+	return srv.(AuthServiceServer).TranslateAccessToken(&authServiceTranslateAccessTokenServer{stream})
+}
+
+type AuthService_TranslateAccessTokenServer interface {
+	Send(*TranslateAccessTokenResponse) error
+	Recv() (*TranslateAccessTokenRequest, error)
+	grpc.ServerStream
+}
+
+type authServiceTranslateAccessTokenServer struct {
+	grpc.ServerStream
+}
+
+func (x *authServiceTranslateAccessTokenServer) Send(m *TranslateAccessTokenResponse) error {
+	return x.ServerStream.SendMsg(m)
+}
+
+func (x *authServiceTranslateAccessTokenServer) Recv() (*TranslateAccessTokenRequest, error) {
+	m := new(TranslateAccessTokenRequest)
+	if err := x.ServerStream.RecvMsg(m); err != nil {
 		return nil, err
 	}
-	if interceptor == nil {
-		return srv.(AuthServiceServer).TranslateAccessToken(ctx, in)
-	}
-	info := &grpc.UnaryServerInfo{
-		Server:     srv,
-		FullMethod: AuthService_TranslateAccessToken_FullMethodName,
-	}
-	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(AuthServiceServer).TranslateAccessToken(ctx, req.(*TranslateAccessTokenRequest))
-	}
-	return interceptor(ctx, in, info, handler)
+	return m, nil
 }
 
 // AuthService_ServiceDesc is the grpc.ServiceDesc for AuthService service.
@@ -217,11 +306,19 @@ var AuthService_ServiceDesc = grpc.ServiceDesc{
 			MethodName: "GetAccessToken",
 			Handler:    _AuthService_GetAccessToken_Handler,
 		},
+	},
+	Streams: []grpc.StreamDesc{
 		{
-			MethodName: "TranslateAccessToken",
-			Handler:    _AuthService_TranslateAccessToken_Handler,
+			StreamName:    "GetValidationKeySet",
+			Handler:       _AuthService_GetValidationKeySet_Handler,
+			ServerStreams: true,
+		},
+		{
+			StreamName:    "TranslateAccessToken",
+			Handler:       _AuthService_TranslateAccessToken_Handler,
+			ServerStreams: true,
+			ClientStreams: true,
 		},
 	},
-	Streams:  []grpc.StreamDesc{},
 	Metadata: "auth_service.proto",
 }

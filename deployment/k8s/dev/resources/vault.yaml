@@ -1,0 +1,131 @@
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  namespace: dev
+  labels:
+    aggregate: auth
+    database: vault
+    version: v0.1.0
+  name: vault-cluster
+spec:
+  serviceName: vault-service
+  replicas: 1
+  selector:
+    matchLabels:
+      aggregate: auth
+      database: vault
+      version: v0.1.0
+  volumeClaimTemplates:
+    - metadata:
+        name: vault-data
+        namespace: dev
+        labels:
+          version: v0.1.0
+          database: vault
+          aggregate: auth
+      spec:
+        accessModes: ["ReadWriteOnce"]
+        resources:
+          requests:
+            storage: 300Mi
+  template:
+    metadata:
+      namespace: dev
+      labels:
+        aggregate: auth
+        database: vault
+        version: v0.1.0
+    spec:
+      containers:
+        - name: vault-cluster
+          image: hashicorp/vault:1.13.1
+          ports:
+            - name: vault
+              containerPort: 8200
+              protocol: TCP
+          resources:
+            limits:
+              cpu: 500m
+              memory: 150Mi
+            requests:
+              cpu: 150m
+              memory: 50Mi
+          volumeMounts:
+            # - name: vault-config
+            #   mountPath: /vault/config
+            - name: vault-data
+              mountPath: /vault/file
+      volumes:
+        - name: vault-config
+          configMap:
+            name: vault-config
+            items:
+              - key: vault.json
+                path: vault.json
+        - name: vault-data
+          persistentVolumeClaim:
+            claimName: vault-pvc
+---
+apiVersion: v1
+kind: Service
+metadata:
+  namespace: dev
+  name: vault-service
+spec:
+  clusterIP: None
+  selector:
+    aggregate: auth
+    database: vault
+    version: v0.1.0
+  ports:
+    - port: 8200
+      targetPort: 8200
+# ---
+# apiVersion: v1
+# kind: ConfigMap
+# metadata:
+#   name: vault-config
+#   namespace: dev
+# data:
+#   vault.json: |
+#     {
+#         "storage": {
+#             "file": {
+#                 "path": "/vault/file"
+#             }
+#         },
+#         "default_lease_ttl": "168h",
+#         "max_lease_ttl": "720h",
+#         "ui": true
+#         "listener": [
+#             {
+#                 "tcp": {
+#                     "address": "0.0.0.0:8200",
+#                     "tls_disable": true
+#                 }
+#             }
+#         ],
+#         "telemetry": {
+#           "disable_hostname": true,
+#           "prometheus_retention_time": "12h"
+#         }
+#     }
+---
+apiVersion: v1
+kind: Service
+metadata:
+  namespace: dev
+  name: vault-service-ui
+  labels:
+    version: v0.1.0
+    database: vault
+spec:
+  type: LoadBalancer
+  ports:
+    - name: http
+      port: 8200
+      targetPort: 8200
+  selector:
+    statefulset.kubernetes.io/pod-name: vault-cluster-0
+    version: v0.1.0
+    database: vault

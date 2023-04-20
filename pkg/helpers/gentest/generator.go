@@ -8,6 +8,7 @@ import (
 	"github.com/gofrs/uuid"
 	"github.com/krixlion/dev_forum-auth/pkg/entity"
 	"github.com/krixlion/dev_forum-auth/pkg/tokens"
+	"github.com/lestrrat-go/jwx/jwa"
 )
 
 func RandomString(length int) string {
@@ -31,7 +32,9 @@ func RandomToken(tokenType entity.TokenType) entity.Token {
 		prefix = tokens.RefreshToken
 	}
 
-	_, id, err := tokens.MakeTokenManager("gentest", nil, nil).GenerateOpaqueToken(prefix)
+	_, id, err := tokens.MakeTokenManager("gentest", tokens.Config{
+		SignatureAlgorithm: jwa.RS256,
+	}).GenerateOpaqueToken(prefix)
 	if err != nil {
 		panic(err)
 	}
@@ -40,7 +43,7 @@ func RandomToken(tokenType entity.TokenType) entity.Token {
 		Id:        id,
 		UserId:    userId.String(),
 		Type:      tokenType,
-		ExpiresAt: time.Now(),
+		ExpiresAt: time.Now().Add(time.Minute),
 		IssuedAt:  time.Now(),
 	}
 }

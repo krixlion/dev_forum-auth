@@ -2,12 +2,7 @@
 // crc32 hex checksum and encoded in base64 with a prefix depending on their type.
 package tokens
 
-import (
-	"time"
-
-	"github.com/golang-jwt/jwt"
-	"github.com/krixlion/dev_forum-auth/pkg/entity"
-)
+import "github.com/lestrrat-go/jwx/jwa"
 
 type OpaqueTokenPrefix int
 
@@ -15,58 +10,32 @@ const (
 	// Opaque Refresh tokens are prefixed with "dfr_"
 	RefreshToken OpaqueTokenPrefix = iota
 	// Opaque Access tokens are prefixed with "dfa_"
-	AccessToken OpaqueTokenPrefix = iota
+	AccessToken
 )
 
-func (t OpaqueTokenPrefix) String() string {
+func (t OpaqueTokenPrefix) String() (string, error) {
 	switch t {
 	case RefreshToken:
-		return "dfr"
+		return "dfr", nil
 	case AccessToken:
-		return "dfa"
+		return "dfa", nil
 	default:
-		panic("invalid TokenType")
+		return "", ErrInvalidTokenType
 	}
 }
 
 type TokenManager struct {
-	issuer     string
-	privateKey interface{}
-	publicKey  interface{}
-	config     Config
+	issuer string
+	config Config
 }
 
 type Config struct {
-	SigningMethod jwt.SigningMethod
+	SignatureAlgorithm jwa.SignatureAlgorithm
 }
 
-func MakeTokenManager(issuer string, privateKey, publicKey interface{}) TokenManager {
+func MakeTokenManager(issuer string, config Config) TokenManager {
 	return TokenManager{
-		issuer:     issuer,
-		publicKey:  publicKey,
-		privateKey: privateKey,
+		issuer: issuer,
+		config: config,
 	}
-}
-
-type jwtClaims struct {
-	Type entity.TokenType `json:"token_type,omitempty"`
-	jwt.StandardClaims
-}
-
-func (c jwtClaims) Valid() error {
-	now := time.Now().Unix()
-
-	if !c.VerifyExpiresAt(now, true) {
-		return jwt.NewValidationError("", jwt.ValidationErrorExpired)
-	}
-
-	if !c.VerifyIssuedAt(now, true) {
-		return jwt.NewValidationError("", jwt.ValidationErrorIssuedAt)
-	}
-
-	// if !c.VerifyIssuer(Issuer, true) {
-	// 	return jwt.NewValidationError("", jwt.ValidationErrorIssuer)
-	// }
-
-	return nil
 }
