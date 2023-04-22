@@ -22,6 +22,10 @@ const (
 	HS  Algorithm = "HS"
 )
 
+// Decode decodes provided key with specified algorithm and returns it along with a callback
+// that should be used to encode this key to proto message format.
+// If decode func for specified algorithm is not found it returns an ErrAlgorithmNotSupported.
+// If the algorithm is not recognized it returns an ErrInvalidAlgorithm.
 func Decode(algorithm Algorithm, encodedKey string) (interface{}, entity.KeyEncodeFunc, error) {
 	switch algorithm {
 	case RSA:
@@ -40,8 +44,9 @@ func Decode(algorithm Algorithm, encodedKey string) (interface{}, entity.KeyEnco
 	}
 }
 
-func DecodeRSA(encodedKey string) (*rsa.PrivateKey, error) {
-	block, _ := pem.Decode([]byte(encodedKey))
+// DecodeRSA decodes RSA PEM block and returns a non-nil err on failure.
+func DecodeRSA(rsaPem string) (*rsa.PrivateKey, error) {
+	block, _ := pem.Decode([]byte(rsaPem))
 
 	if block == nil {
 		return nil, errors.New("failed to decode rsa pem block")
@@ -76,8 +81,10 @@ func EncodeRSA(key interface{}) (proto.Message, error) {
 
 	n := privateKey.PublicKey.N.Bytes()
 
-	return &rsapb.RSA{
+	message := &rsapb.RSA{
 		N: base64.URLEncoding.EncodeToString(n),
 		E: base64.URLEncoding.EncodeToString(e),
-	}, nil
+	}
+
+	return message, nil
 }

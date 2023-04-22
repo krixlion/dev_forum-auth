@@ -209,8 +209,10 @@ github.com/kr/pretty v0.1.0/go.mod h1:dAy3ld7l9f0ibDNOQOHHMYYIIbhfbHSm3C4ZsoJORN
 github.com/kr/pty v1.1.1/go.mod h1:pFQYn66WHrOpPYNljwOMqo10TkYh1fy3cYio2l3bCsQ=
 github.com/kr/text v0.1.0 h1:45sCR5RtlFHMR4UwH9sdQ5TC8v0qDQCHnXt+kaKSTVE=
 github.com/kr/text v0.1.0/go.mod h1:4Jbv+DJW3UT/LiOwJeYQe1efqtUx/iVham/4vfdArNI=
-github.com/krixlion/dev_forum-lib v0.0.0-20230323192530-a1944e70a6db h1:pDlmyeeegtGGedtzGeZ6D2TVSBuXYLNitZNAZA2X6KA=
-github.com/krixlion/dev_forum-lib v0.0.0-20230323192530-a1944e70a6db/go.mod h1:lZHOmq8j3lVblGU0bSKoBAP9x2q9m3uwa/hmBpw0Z9k=
+github.com/krixlion/dev_forum-lib v0.0.0-20230422222808-1fc7d78cd4ee h1:t4q+N8RnNSi+yOKNK61JjbDH04tI91ShLbaruZkPZ6I=
+github.com/krixlion/dev_forum-lib v0.0.0-20230422222808-1fc7d78cd4ee/go.mod h1:HwgsH9J7urMBq7zfZwiHe9Ts9Qhpla5GoTG2pJIp9HQ=
+github.com/krixlion/dev_forum-lib v0.0.0-20230422223825-82f003b2f071 h1:rAwW+8H+Ub3d1KvjyXJT2QkAaiT2Y1NtV/GvyAtwxfo=
+github.com/krixlion/dev_forum-lib v0.0.0-20230422223825-82f003b2f071/go.mod h1:HwgsH9J7urMBq7zfZwiHe9Ts9Qhpla5GoTG2pJIp9HQ=
 github.com/krixlion/dev_forum-rabbitmq v0.0.0-20230321225335-aacfca540fbc h1:Y4xhEFGMmjSGR7BS9eap/8EmBnV+K7AvkmJ98a1Me6I=
 github.com/krixlion/dev_forum-rabbitmq v0.0.0-20230321225335-aacfca540fbc/go.mod h1:1JHhee+g0puxJgC5TPA+S6oL3wTiwBNxPf9ko8Vy/qw=
 github.com/krixlion/dev_forum-user v0.0.0-20230323193418-8e6e611c0e10 h1:WyP/VS8Oy3AUN5stEUDto1wob1Ng2sog7cAff1TCL0Y=
@@ -274,6 +276,7 @@ github.com/stretchr/objx v0.1.0/go.mod h1:HFkY916IF+rwdDfMAkV7OtwuqBVzrE8GR6GFx+
 github.com/stretchr/objx v0.1.1/go.mod h1:HFkY916IF+rwdDfMAkV7OtwuqBVzrE8GR6GFx+wExME=
 github.com/stretchr/objx v0.4.0/go.mod h1:YvHI0jy2hoMjB+UWwv71VJQ9isScKT/TqJzVSSt89Yw=
 github.com/stretchr/objx v0.5.0 h1:1zr/of2m5FGMsad5YfcqgdqdWrIhu+EBEJRhR1U7z/c=
+github.com/stretchr/objx v0.5.0/go.mod h1:Yh+to48EsGEfYuaHDzXPcE3xhTkx73EhmCGUpEOglKo=
 github.com/stretchr/testify v1.2.2/go.mod h1:a8OnRcib4nhh0OaRAV+Yts87kKdq0PP7pXfy6kDkUVs=
 github.com/stretchr/testify v1.3.0/go.mod h1:M5WIy9Dh21IEIfnGCwXGc5bZfKNJtfHm1UVUgZn+9EI=
 github.com/stretchr/testify v1.4.0/go.mod h1:j7eGeouHqKxXV5pUuKE4zz7dFj8WfuZ+81PSLYec5m4=
@@ -283,6 +286,7 @@ github.com/stretchr/testify v1.7.0/go.mod h1:6Fq8oRcR53rry900zMqJjRRixrwX3KX962/
 github.com/stretchr/testify v1.7.1/go.mod h1:6Fq8oRcR53rry900zMqJjRRixrwX3KX962/h/Wwjteg=
 github.com/stretchr/testify v1.8.0/go.mod h1:yNjHg4UonilssWZ8iaSj1OCr/vHnekPRkoO+kdMU+MU=
 github.com/stretchr/testify v1.8.2 h1:+h33VjcLVPDHtOdpUCuF+7gSuG3yGIftsP1YvFihtJ8=
+github.com/stretchr/testify v1.8.2/go.mod h1:w2LPCIKwWwSfY2zedu0+kehJoqGctiVI29o6fzry7u4=
 github.com/tidwall/pretty v1.0.0 h1:HsD+QiTn7sK6flMKIvNmpqz1qrpP3Ps6jOKIKMooyg4=
 github.com/tidwall/pretty v1.0.0/go.mod h1:XNkn88O1ChpSDQmQeStsy+sBenx6DDtFZJxhVysOjyk=
 github.com/uptrace/opentelemetry-go-extra/otelutil v0.1.21 h1:HCqo51kNF8wxDMDhxcN5S6DlfZXigMtptRpkvjBCeVc=
@@ -644,6 +648,7 @@ google.golang.org/protobuf v1.30.0 h1:kPPoIgf3TsEvrm0PFe15JQ+570QVxYzEvvHqChK+cn
 google.golang.org/protobuf v1.30.0/go.mod h1:HV8QOd/L58Z+nl8r43ehVNZIU/HEI6OcFqwMG9pJV4I=
 gopkg.in/check.v1 v0.0.0-20161208181325-20d25e280405/go.mod h1:Co6ibVJAznAaIkqp8huTwlJQCZ016jof/cbN4VW5Yz0=
 gopkg.in/check.v1 v1.0.0-20180628173108-788fd7840127/go.mod h1:Co6ibVJAznAaIkqp8huTwlJQCZ016jof/cbN4VW5Yz0=
+gopkg.in/check.v1 v1.0.0-20201130134442-10cb98267c6c h1:Hei/4ADfdWqJk1ZMxUNpqntNwaWcugrBjAiHlqqRiVk=
 gopkg.in/errgo.v2 v2.1.0/go.mod h1:hNsd1EY+bozCKY1Ytp96fpM3vjJbqLJn88ws8XvfDNI=
 gopkg.in/square/go-jose.v2 v2.5.1 h1:7odma5RETjNHWJnR32wx8t+Io4djHE1PqxCFx3iiZ2w=
 gopkg.in/square/go-jose.v2 v2.5.1/go.mod h1:M9dMgbHiYLoDGQrXy7OpJDJWiKiU//h+vD76mk0e1AI=

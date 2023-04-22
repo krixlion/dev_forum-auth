@@ -16,35 +16,35 @@ import (
 var ErrInvalidToken error = errors.New("invalid token")
 var ErrInvalidTokenType error = errors.New("invalid token type")
 
-func (m TokenManager) Parse(publicKey interface{}, token []byte) (entity.Token, error) {
-	jwToken, err := jwt.Parse(token, jwt.WithVerify(m.config.SignatureAlgorithm, publicKey))
-	if err != nil {
-		return entity.Token{}, err
-	}
+// func (m TokenManager) Parse(publicKey interface{}, token []byte) (entity.Token, error) {
+// 	jwToken, err := jwt.Parse(token, jwt.WithVerify(m.config.SignatureAlgorithm, publicKey))
+// 	if err != nil {
+// 		return entity.Token{}, err
+// 	}
 
-	if err := jwt.Validate(jwToken, jwt.WithIssuer(m.issuer)); err != nil {
-		return entity.Token{}, err
-	}
+// 	if err := jwt.Validate(jwToken, jwt.WithIssuer(m.issuer)); err != nil {
+// 		return entity.Token{}, err
+// 	}
 
-	tokenType, err := validateTokenType(jwToken)
-	if err != nil {
-		return entity.Token{}, err
-	}
+// 	tokenType, err := validateTokenType(jwToken)
+// 	if err != nil {
+// 		return entity.Token{}, err
+// 	}
 
-	return entity.Token{
-		Id:        jwToken.JwtID(),
-		UserId:    jwToken.Subject(),
-		Type:      tokenType,
-		ExpiresAt: jwToken.Expiration(),
-		IssuedAt:  jwToken.IssuedAt(),
-	}, nil
-}
+// 	return entity.Token{
+// 		Id:        jwToken.JwtID(),
+// 		UserId:    jwToken.Subject(),
+// 		Type:      tokenType,
+// 		ExpiresAt: jwToken.Expiration(),
+// 		IssuedAt:  jwToken.IssuedAt(),
+// 	}, nil
+// }
 
 // GenerateAccessToken returns an access token following this package's
 // specification or a non-nil error on validation failure.
-func (m TokenManager) Encode(privateKey entity.Key, token entity.Token) ([]byte, error) {
+func (m StdTokenManager) Encode(privateKey entity.Key, token entity.Token) ([]byte, error) {
 	b := jwt.NewBuilder()
-	b.Expiration(token.IssuedAt)
+	b.Expiration(token.ExpiresAt)
 	b.IssuedAt(token.IssuedAt)
 	b.Issuer(m.issuer)
 	b.Subject(token.UserId)
@@ -68,9 +68,9 @@ func (m TokenManager) Encode(privateKey entity.Key, token entity.Token) ([]byte,
 	return signedJWT, nil
 }
 
-// GenerateOpaqueToken generates an opaque token. It returns an
+// GenerateOpaque generates an opaque token. It returns an
 // encoded token, a random string used as a token's base and an err.
-func (TokenManager) GenerateOpaqueToken(typ OpaqueTokenPrefix) (string, string, error) {
+func (StdTokenManager) GenerateOpaque(typ OpaqueTokenPrefix) (string, string, error) {
 	randomString, err := randomAlphaString(16)
 	if err != nil {
 		return "", "", err
@@ -91,8 +91,8 @@ func (TokenManager) GenerateOpaqueToken(typ OpaqueTokenPrefix) (string, string, 
 	return token, randomString, nil
 }
 
-// DecodeOpaqueToken decodes a opaque AccessToken and returns a non-nil error if it's invalid.
-func (m TokenManager) DecodeOpaqueToken(typ OpaqueTokenPrefix, encodedOpaqueToken string) (string, error) {
+// DecodeOpaque decodes a opaque AccessToken and returns a non-nil error if it's invalid.
+func (m StdTokenManager) DecodeOpaque(typ OpaqueTokenPrefix, encodedOpaqueToken string) (string, error) {
 	if len(encodedOpaqueToken) < 4 {
 		// Token is shorter than prefix.
 		return "", ErrInvalidToken
@@ -112,26 +112,26 @@ func (m TokenManager) DecodeOpaqueToken(typ OpaqueTokenPrefix, encodedOpaqueToke
 	return m.decodeAndValidateOpaque(encodedOpaqueToken[4:])
 }
 
-func validateTokenType(jwToken jwt.Token) (entity.TokenType, error) {
-	typ, ok := jwToken.Get("type")
-	if !ok {
-		return "", ErrInvalidTokenType
-	}
+// func validateTokenType(jwToken jwt.Token) (entity.TokenType, error) {
+// 	typ, ok := jwToken.Get("type")
+// 	if !ok {
+// 		return "", ErrInvalidTokenType
+// 	}
 
-	tokenType, ok := typ.(entity.TokenType)
-	if !ok {
-		return "", ErrInvalidTokenType
-	}
+// 	tokenType, ok := typ.(entity.TokenType)
+// 	if !ok {
+// 		return "", ErrInvalidTokenType
+// 	}
 
-	if tokenType != entity.RefreshToken && tokenType != entity.AccessToken {
-		return "", ErrInvalidTokenType
-	}
-	return tokenType, nil
-}
+// 	if tokenType != entity.RefreshToken && tokenType != entity.AccessToken {
+// 		return "", ErrInvalidTokenType
+// 	}
+// 	return tokenType, nil
+// }
 
 // decodeAndValidateOpaque takes a base64 encoded token without it's prefix, decodes it and returns it.
 // Returns ErrInvalidToken on invalid checksum or length or any errors during decoding.
-func (m TokenManager) decodeAndValidateOpaque(encodedToken string) (string, error) {
+func (m StdTokenManager) decodeAndValidateOpaque(encodedToken string) (string, error) {
 	decodedToken, err := base64.URLEncoding.DecodeString(encodedToken)
 	if err != nil {
 		return "", err

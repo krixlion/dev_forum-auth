@@ -2,7 +2,15 @@
 // crc32 hex checksum and encoded in base64 with a prefix depending on their type.
 package tokens
 
-import "github.com/lestrrat-go/jwx/jwa"
+import (
+	"github.com/krixlion/dev_forum-auth/pkg/entity"
+)
+
+type TokenManager interface {
+	Encode(privateKey entity.Key, token entity.Token) ([]byte, error)
+	GenerateOpaque(typ OpaqueTokenPrefix) (opaqueAccessToken string, seed string, err error)
+	DecodeOpaque(typ OpaqueTokenPrefix, encodedOpaqueToken string) (string, error)
+}
 
 type OpaqueTokenPrefix int
 
@@ -21,21 +29,5 @@ func (t OpaqueTokenPrefix) String() (string, error) {
 		return "dfa", nil
 	default:
 		return "", ErrInvalidTokenType
-	}
-}
-
-type TokenManager struct {
-	issuer string
-	config Config
-}
-
-type Config struct {
-	SignatureAlgorithm jwa.SignatureAlgorithm
-}
-
-func MakeTokenManager(issuer string, config Config) TokenManager {
-	return TokenManager{
-		issuer: issuer,
-		config: config,
 	}
 }

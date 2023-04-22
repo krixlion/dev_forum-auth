@@ -27,6 +27,7 @@ k8s-unit-test: # param: args
 
 k8s-integration-test: # param: args
 	$(kubernetes) exec -it deploy/${AGGREGATE_ID}-d -- go run cmd/truncate/main.go
+	$(kubernetes) exec -it deploy/${AGGREGATE_ID}-d -- go run cmd/seed/main.go
 	$(kubernetes) exec -it deploy/${AGGREGATE_ID}-d -- go test -race ${args} ./...  
 
 k8s-test-gen-coverage:

@@ -134,9 +134,9 @@ func getServiceDependencies() service.Dependencies {
 	vaultMountPath := os.Getenv("VAULT_MOUNT_PATH")
 	vaultToken := os.Getenv("VAULT_TOKEN")
 	vaultConfig := vault.Config{
-		VaultPath: "secret",
+		VaultPath: vaultMountPath,
 	}
-	secretStorage, err := vault.Make(vaultHost, vaultPort, vaultMountPath, vaultToken, vaultConfig, tracer, logger)
+	vault, err := vault.Make(vaultHost, vaultPort, vaultToken, vaultConfig, tracer, logger)
 	if err != nil {
 		panic(err)
 	}
@@ -151,7 +151,7 @@ func getServiceDependencies() service.Dependencies {
 			User: userClient,
 		},
 		Storage:      storage,
-		Vault:        secretStorage,
+		Vault:        vault,
 		Logger:       logger,
 		Tracer:       tracer,
 		TokenManager: tokenManager,

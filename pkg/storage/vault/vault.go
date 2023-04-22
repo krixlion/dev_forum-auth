@@ -18,8 +18,8 @@ var (
 	ErrInvalidKeyType        = errors.New("invalid key type")
 	ErrInvalidKeyFormat      = errors.New("invalid key format")
 	ErrAlgorithmNotSupported = errors.New("key's algorithm is not supported")
-	ErrInvalidAlgorithm      = errors.New("key's algorithm is missing or is invalid")
-	ErrKeyEmpty              = errors.New("key does not contain a private key")
+	ErrInvalidAlgorithm      = errors.New("key's algorithm is missing or invalid")
+	ErrKeyMissing            = errors.New("key does not contain a private key")
 )
 
 type Vault struct {
@@ -31,11 +31,12 @@ type Vault struct {
 }
 
 type Config struct {
+	// Path in the Vault that the client will mount on.
 	VaultPath string
 }
 
 // Make takes in a Token used to connect to Vault and returns a DB instance or a non nil error.
-func Make(host, port, mountPath, token string, config Config, tracer trace.Tracer, logger logging.Logger) (Vault, error) {
+func Make(host, port, token string, config Config, tracer trace.Tracer, logger logging.Logger) (Vault, error) {
 	if tracer == nil {
 		return Vault{}, errors.New("tracer not provided")
 	}
@@ -55,13 +56,14 @@ func Make(host, port, mountPath, token string, config Config, tracer trace.Trace
 
 	return Vault{
 		client: client,
-		vault:  client.KVv2(mountPath),
+		vault:  client.KVv2(config.VaultPath),
 		tracer: tracer,
 		config: config,
 		logger: logger,
 	}, nil
 }
 
+// GetRandom returns a random existing private key from the Vault.
 func (db Vault) GetRandom(ctx context.Context) (entity.Key, error) {
 	ctx, span := db.tracer.Start(ctx, "vault.GetRandom")
 	defer span.End()
@@ -80,22 +82,23 @@ func (db Vault) GetRandom(ctx context.Context) (entity.Key, error) {
 		return entity.Key{}, err
 	}
 
-	randomId := keyPaths[n.Int64()]
+	randomPath := keyPaths[n.Int64()]
 
-	secret, err := db.vault.Get(ctx, randomId)
+	secret, err := db.vault.Get(ctx, randomPath)
 	if err != nil {
 		tracing.SetSpanErr(span, err)
 		return entity.Key{}, err
 	}
 
-	validated, err := validateSecret(secret)
+	parsed, err := parseSecret(secret)
 	if err != nil {
 		return entity.Key{}, err
 	}
 
-	return makeKey(randomId, validated)
+	return makeKey(randomPath, parsed)
 }
 
+// GetKeySet returns a slice of keys present in the Vault.
 func (db Vault) GetKeySet(ctx context.Context) ([]entity.Key, error) {
 	ctx, span := db.tracer.Start(ctx, "vault.GetKeySet")
 	defer span.End()
@@ -117,12 +120,12 @@ func (db Vault) GetKeySet(ctx context.Context) ([]entity.Key, error) {
 			return nil, err
 		}
 
-		validated, err := validateSecret(secret)
+		parsed, err := parseSecret(secret)
 		if err != nil {
 			return nil, err
 		}
 
-		key, err := makeKey(path, validated)
+		key, err := makeKey(path, parsed)
 		if err != nil {
 			return nil, err
 		}
@@ -133,11 +136,13 @@ func (db Vault) GetKeySet(ctx context.Context) ([]entity.Key, error) {
 	return keys, nil
 }
 
-func (db Vault) list(ctx context.Context, path string) ([]string, error) {
+// list returns a slice containing all available paths in the Vault.
+// They can be used to retrieve a key from the Vault.
+func (db Vault) list(ctx context.Context, mountPath string) ([]string, error) {
 	ctx, span := db.tracer.Start(ctx, "vault.list")
 	defer span.End()
 
-	secret, err := db.client.Logical().ListWithContext(ctx, path+"/metadata/")
+	secret, err := db.client.Logical().ListWithContext(ctx, mountPath+"/metadata/")
 	if err != nil {
 		tracing.SetSpanErr(span, err)
 		return nil, err
@@ -148,10 +153,10 @@ func (db Vault) list(ctx context.Context, path string) ([]string, error) {
 		return nil, nil
 	}
 
-	ids := make([]string, len(secret.Data))
+	paths := make([]string, len(secret.Data))
 
-	for _, paths := range secret.Data {
-		pathList, ok := paths.([]interface{})
+	for _, pathLists := range secret.Data {
+		pathList, ok := pathLists.([]interface{})
 		if !ok {
 			err := errors.New("failed to parse key")
 			tracing.SetSpanErr(span, err)
@@ -165,8 +170,8 @@ func (db Vault) list(ctx context.Context, path string) ([]string, error) {
 			return nil, err
 		}
 
-		ids = append(ids, path)
+		paths = append(paths, path)
 	}
 
-	return ids, nil
+	return paths, nil
 }

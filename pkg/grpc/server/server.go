@@ -10,6 +10,7 @@ import (
 	pb "github.com/krixlion/dev_forum-auth/pkg/grpc/v1"
 	"github.com/krixlion/dev_forum-auth/pkg/storage"
 	"github.com/krixlion/dev_forum-auth/pkg/tokens"
+	"github.com/krixlion/dev_forum-lib/event"
 	"github.com/krixlion/dev_forum-lib/event/dispatcher"
 	"github.com/krixlion/dev_forum-lib/logging"
 	"github.com/krixlion/dev_forum-lib/tracing"
@@ -92,7 +93,7 @@ func (server AuthServer) SignIn(ctx context.Context, req *pb.SignInRequest) (*pb
 		return nil, status.Error(codes.FailedPrecondition, err.Error())
 	}
 
-	encodedOpaqueRefreshToken, tokenId, err := server.tokenManager.GenerateOpaqueToken(tokens.RefreshToken)
+	encodedOpaqueRefreshToken, tokenId, err := server.tokenManager.GenerateOpaque(tokens.RefreshToken)
 	if err != nil {
 		tracing.SetSpanErr(span, err)
 		return nil, status.Error(codes.Internal, err.Error())
@@ -122,7 +123,7 @@ func (server AuthServer) SignOut(ctx context.Context, req *pb.SignOutRequest) (*
 
 	encodedOpaqueRefreshToken := req.GetRefreshToken()
 
-	opaqueRefreshToken, err := server.tokenManager.DecodeOpaqueToken(tokens.RefreshToken, encodedOpaqueRefreshToken)
+	opaqueRefreshToken, err := server.tokenManager.DecodeOpaque(tokens.RefreshToken, encodedOpaqueRefreshToken)
 	if err != nil {
 		tracing.SetSpanErr(span, err)
 		return nil, status.Error(codes.PermissionDenied, err.Error())
@@ -141,7 +142,7 @@ func (server AuthServer) GetAccessToken(ctx context.Context, req *pb.GetAccessTo
 
 	opaqueRefreshToken := req.GetRefreshToken()
 
-	refreshTokenId, err := server.tokenManager.DecodeOpaqueToken(tokens.RefreshToken, opaqueRefreshToken)
+	refreshTokenId, err := server.tokenManager.DecodeOpaque(tokens.RefreshToken, opaqueRefreshToken)
 	if err != nil {
 		tracing.SetSpanErr(span, err)
 		return nil, status.Error(codes.PermissionDenied, err.Error())
@@ -155,7 +156,7 @@ func (server AuthServer) GetAccessToken(ctx context.Context, req *pb.GetAccessTo
 
 	now := time.Now()
 
-	opaqueAccessToken, accessTokenId, err := server.tokenManager.GenerateOpaqueToken(tokens.AccessToken)
+	opaqueAccessToken, accessTokenId, err := server.tokenManager.GenerateOpaque(tokens.AccessToken)
 	if err != nil {
 		tracing.SetSpanErr(span, err)
 		return nil, status.Error(codes.Internal, err.Error())
@@ -169,7 +170,7 @@ func (server AuthServer) GetAccessToken(ctx context.Context, req *pb.GetAccessTo
 		IssuedAt:  now,
 	}
 
-	if server.storage.Create(ctx, accessToken); err != nil {
+	if err := server.storage.Create(ctx, accessToken); err != nil {
 		return nil, status.Error(codes.Internal, err.Error())
 	}
 
@@ -211,7 +212,7 @@ func (server AuthServer) translateAccessToken(ctx context.Context, req *pb.Trans
 
 	encodedOpaqueAccessToken := req.GetOpaqueAccessToken()
 
-	opaqueAccessToken, err := server.tokenManager.DecodeOpaqueToken(tokens.AccessToken, encodedOpaqueAccessToken)
+	opaqueAccessToken, err := server.tokenManager.DecodeOpaque(tokens.AccessToken, encodedOpaqueAccessToken)
 	if err != nil {
 		tracing.SetSpanErr(span, err)
 		return nil, status.Error(codes.FailedPrecondition, err.Error())

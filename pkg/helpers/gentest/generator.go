@@ -34,7 +34,7 @@ func RandomToken(tokenType entity.TokenType) entity.Token {
 
 	_, id, err := tokens.MakeTokenManager("gentest", tokens.Config{
 		SignatureAlgorithm: jwa.RS256,
-	}).GenerateOpaqueToken(prefix)
+	}).GenerateOpaque(prefix)
 	if err != nil {
 		panic(err)
 	}

@@ -1,7 +1,6 @@
 package tokens
 
 import (
-	"reflect"
 	"testing"
 	"time"
 
@@ -9,45 +8,45 @@ import (
 	"github.com/lestrrat-go/jwx/jwa"
 )
 
-func setUpTokenManager(algo jwa.SignatureAlgorithm) TokenManager {
+func setUpTokenManager(algo jwa.SignatureAlgorithm) StdTokenManager {
 	m := MakeTokenManager("test", Config{
 		SignatureAlgorithm: algo,
 	})
 	return m
 }
 
-func TestTokenManager_Parse(t *testing.T) {
-	type args struct {
-		publicKey interface{}
-		token     string
-	}
-	tests := []struct {
-		name    string
-		algo    jwa.SignatureAlgorithm
-		args    args
-		want    entity.Token
-		wantErr bool
-	}{
-		// TODO add cases.
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			m := setUpTokenManager(tt.algo)
-			got, err := m.Parse(tt.args.publicKey, []byte(tt.args.token))
-			if (err != nil) != tt.wantErr {
-				t.Errorf("TokenManager.Parse() error = %v, wantErr %v", err, tt.wantErr)
-				return
-			}
-			if !reflect.DeepEqual(got, tt.want) {
-				t.Errorf("TokenManager.Parse() = %v, want %v", got, tt.want)
-			}
-		})
-	}
-}
+// func TestTokenManager_Parse(t *testing.T) {
+// 	type args struct {
+// 		publicKey interface{}
+// 		token     string
+// 	}
+// 	tests := []struct {
+// 		name    string
+// 		algo    jwa.SignatureAlgorithm
+// 		args    args
+// 		want    entity.Token
+// 		wantErr bool
+// 	}{
+// 		// TODO add cases.
+// 	}
+// 	for _, tt := range tests {
+// 		t.Run(tt.name, func(t *testing.T) {
+// 			m := setUpTokenManager(tt.algo)
+// 			got, err := m.Parse(tt.args.publicKey, []byte(tt.args.token))
+// 			if (err != nil) != tt.wantErr {
+// 				t.Errorf("TokenManager.Parse() error = %v, wantErr %v", err, tt.wantErr)
+// 				return
+// 			}
+// 			if !reflect.DeepEqual(got, tt.want) {
+// 				t.Errorf("TokenManager.Parse() = %v, want %v", got, tt.want)
+// 			}
+// 		})
+// 	}
+// }
 
 func TestTokenManager_Encode(t *testing.T) {
 	type args struct {
-		privateKey interface{}
+		privateKey entity.Key
 		token      entity.Token
 	}
 	tests := []struct {
@@ -61,7 +60,11 @@ func TestTokenManager_Encode(t *testing.T) {
 			name: "Test if correctly encodes and signes a token struct with HS256 algo",
 			algo: jwa.HS256,
 			args: args{
-				privateKey: []byte("key"),
+				privateKey: entity.Key{
+					Id:   "test",
+					Raw:  []byte("key"),
+					Type: "HS",
+				},
 				token: entity.Token{
 					Id:        "test",
 					UserId:    "test-id",
@@ -70,7 +73,7 @@ func TestTokenManager_Encode(t *testing.T) {
 					IssuedAt:  time.Unix(1680358945, 0),
 				},
 			},
-			want: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE2ODAzNTg5NDUsImlhdCI6MTY4MDM1ODk0NSwiaXNzIjoidGVzdCIsImp0aSI6InRlc3QiLCJzdWIiOiJ0ZXN0LWlkIn0.POi3q7JKM71nG49W-UMDo81pAO3AQ0O7KtbOxqZynD4",
+			want: "eyJhbGciOiJIUzI1NiIsImtpZCI6InRlc3QiLCJ0eXAiOiJKV1QifQ.eyJleHAiOjE2ODAzNTg5NDUsImlhdCI6MTY4MDM1ODk0NSwiaXNzIjoidGVzdCIsImp0aSI6InRlc3QiLCJzdWIiOiJ0ZXN0LWlkIn0.fD1h4o_fO6SU4jTzmhmj2BuDU0-MK_7JwPbiBpXiMyo",
 		},
 	}
 	for _, tt := range tests {
@@ -114,7 +117,7 @@ func TestTokenManager_GenerateOpaqueToken(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			m := setUpTokenManager(tt.algo)
 
-			got, gotTokenId, err := m.GenerateOpaqueToken(tt.args.prefixType)
+			got, gotTokenId, err := m.GenerateOpaque(tt.args.prefixType)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("TokenManager.GenerateOpaqueToken() error = %v, wantErr %v", err, tt.wantErr)
 				return
@@ -156,7 +159,7 @@ func TestTokenManager_DecodeOpaqueToken(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			m := setUpTokenManager(tt.algo)
-			got, err := m.DecodeOpaqueToken(tt.args.typ, tt.args.encodedOpaqueToken)
+			got, err := m.DecodeOpaque(tt.args.typ, tt.args.encodedOpaqueToken)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("TokenManager.DecodeOpaqueToken() error = %v, wantErr %v", err, tt.wantErr)
 				return
