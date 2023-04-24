@@ -31,10 +31,22 @@ func main() {
 
 	client, err := mongo.Connect(ctx, opts)
 	if err != nil {
-		log.Fatal(err)
+		log.Fatal(fmt.Errorf("failed to connect to mongodb: %w", err))
 	}
 
 	if err := client.Database(dbName).Collection("tokens").Drop(ctx); err != nil {
-		log.Fatal(err)
+		log.Fatal(fmt.Errorf("failed to drop tokens collection: %w", err))
 	}
+
+	// testData := map[string]interface{}{
+	// 	"_id":        "test-token",
+	// 	"user_id":    "test-user",
+	// 	"type":       entity.AccessToken,
+	// 	"expires_at": time.Now(),
+	// 	"issued_at":  time.Now(),
+	// }
+
+	// if _, err := client.Database(dbName).Collection("tokens").InsertOne(ctx, testData); err != nil {
+	// 	log.Fatal(fmt.Errorf("failed to insert testDoc: %w", err))
+	// }
 }

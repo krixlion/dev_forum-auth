@@ -22,6 +22,8 @@ type Vault interface {
 type Getter interface {
 	// Token's id is it's corresponding opaque token.
 	Get(ctx context.Context, id string) (entity.Token, error)
+	// Filter string according to the dev_forum-lib filter pkg.
+	GetMultiple(ctx context.Context, filter string) ([]entity.Token, error)
 }
 
 type Writer interface {

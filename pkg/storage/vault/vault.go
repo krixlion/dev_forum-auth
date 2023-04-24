@@ -153,7 +153,7 @@ func (db Vault) list(ctx context.Context, mountPath string) ([]string, error) {
 		return nil, nil
 	}
 
-	paths := make([]string, len(secret.Data))
+	paths := make([]string, 0, len(secret.Data))
 
 	for _, pathLists := range secret.Data {
 		pathList, ok := pathLists.([]interface{})
@@ -163,7 +163,7 @@ func (db Vault) list(ctx context.Context, mountPath string) ([]string, error) {
 			return nil, err
 		}
 
-		path, ok := pathList[0].(string)
+		path, ok := pathList[len(pathList)-1].(string)
 		if !ok {
 			err := errors.New("failed to parse key")
 			tracing.SetSpanErr(span, err)

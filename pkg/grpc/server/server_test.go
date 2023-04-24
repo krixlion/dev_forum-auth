@@ -132,7 +132,41 @@ func TestAuthServer_SignOut(t *testing.T) {
 		args    args
 		wantErr bool
 	}{
-		// TODO: Add test cases.
+		{
+			name: "Test if no unexpected errors are returned on valid flow",
+			deps: deps{
+				tokenManager: func() tokens.TokenManager {
+					manager := tokenmocks.NewTokenManager()
+					manager.On("DecodeOpaque", tokens.RefreshToken, "test-opaque").Return("test-opaque-seed", nil).Once()
+					return manager
+				}(),
+				storage: func() storage.Storage {
+					storage := dbmocks.NewStorage()
+					testToken := entity.Token{
+						Id:     "test-opaque-seed",
+						UserId: "test",
+						Type:   entity.RefreshToken,
+					}
+					testToken2 := entity.Token{
+						Id:     "test-opaque-seeded",
+						UserId: testToken.UserId,
+						Type:   entity.AccessToken,
+					}
+					testTokens := []entity.Token{testToken, testToken2}
+
+					storage.On("Get", mock.Anything, "test-opaque-seed").Return(testToken, nil).Once()
+					storage.On("GetMultiple", mock.Anything, "user_id[$eq]="+testToken.UserId).Return(testTokens, nil).Once()
+					storage.On("Delete", mock.Anything, "test-opaque-seed").Return(nil).Once()
+					storage.On("Delete", mock.Anything, "test-opaque-seeded").Return(nil).Once()
+					return storage
+				}(),
+			},
+			args: args{
+				req: &pb.SignOutRequest{
+					RefreshToken: "test-opaque",
+				},
+			},
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {

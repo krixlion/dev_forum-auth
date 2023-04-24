@@ -99,8 +99,7 @@ func TestVault_list(t *testing.T) {
 		{
 			name: "Test if retrieves beforehand seeded path",
 			args: args{path: "secret"},
-			// Empty string is considered the root path in Vault.
-			want: []string{"", "test"},
+			want: []string{"test"},
 		},
 	}
 	for _, tt := range tests {

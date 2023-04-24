@@ -4,6 +4,7 @@ import (
 	"context"
 
 	"github.com/krixlion/dev_forum-auth/pkg/entity"
+	"github.com/krixlion/dev_forum-lib/filter"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo/options"
 )
@@ -24,6 +25,40 @@ func (db DB) Get(ctx context.Context, opaqueToken string) (entity.Token, error) 
 	token := makeTokenFromDocument(tokenDoc)
 
 	return token, nil
+}
+
+func (db DB) GetMultiple(ctx context.Context, query string) ([]entity.Token, error) {
+	ctx, span := db.tracer.Start(ctx, "db.GetMultiple")
+	defer span.End()
+
+	params, err := filter.Parse(query)
+	if err != nil {
+		return nil, err
+	}
+
+	filterDoc, err := filterToBSON(params)
+	if err != nil {
+		return nil, err
+	}
+
+	result, err := db.tokens.Find(ctx, filterDoc)
+	if err != nil {
+		return nil, err
+	}
+
+	tokenDocs := []tokenDocument{}
+	if err := result.All(ctx, &tokenDocs); err != nil {
+		return nil, err
+	}
+
+	tokens := make([]entity.Token, 0, len(tokenDocs))
+
+	for _, tokenDoc := range tokenDocs {
+		token := makeTokenFromDocument(tokenDoc)
+		tokens = append(tokens, token)
+	}
+
+	return tokens, nil
 }
 
 func (db DB) Create(ctx context.Context, token entity.Token) error {

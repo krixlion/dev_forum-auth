@@ -23,6 +23,11 @@ func (m Storage) Get(ctx context.Context, id string) (entity.Token, error) {
 	return args.Get(0).(entity.Token), args.Error(1)
 }
 
+func (m Storage) GetMultiple(ctx context.Context, filter string) ([]entity.Token, error) {
+	args := m.Called(ctx, filter)
+	return args.Get(0).([]entity.Token), args.Error(1)
+}
+
 func (m Storage) Create(ctx context.Context, token entity.Token) error {
 	args := m.Called(ctx, token)
 	return args.Error(0)

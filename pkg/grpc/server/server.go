@@ -10,7 +10,6 @@ import (
 	pb "github.com/krixlion/dev_forum-auth/pkg/grpc/v1"
 	"github.com/krixlion/dev_forum-auth/pkg/storage"
 	"github.com/krixlion/dev_forum-auth/pkg/tokens"
-	"github.com/krixlion/dev_forum-lib/event"
 	"github.com/krixlion/dev_forum-lib/event/dispatcher"
 	"github.com/krixlion/dev_forum-lib/logging"
 	"github.com/krixlion/dev_forum-lib/tracing"
@@ -129,8 +128,20 @@ func (server AuthServer) SignOut(ctx context.Context, req *pb.SignOutRequest) (*
 		return nil, status.Error(codes.PermissionDenied, err.Error())
 	}
 
-	if err := server.storage.Delete(ctx, opaqueRefreshToken); err != nil {
-		return nil, status.Error(codes.Internal, err.Error())
+	token, err := server.storage.Get(ctx, opaqueRefreshToken)
+	if err != nil {
+		return nil, status.Error(codes.PermissionDenied, err.Error())
+	}
+
+	tokens, err := server.storage.GetMultiple(ctx, "user_id[$eq]="+token.UserId)
+	if err != nil {
+		return nil, status.Error(codes.PermissionDenied, err.Error())
+	}
+
+	for _, token := range tokens {
+		if err := server.storage.Delete(ctx, token.Id); err != nil {
+			return nil, status.Error(codes.Internal, err.Error())
+		}
 	}
 
 	return &empty.Empty{}, nil

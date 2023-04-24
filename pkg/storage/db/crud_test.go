@@ -48,7 +48,7 @@ func setUpDB() DB {
 	return storage
 }
 
-func Test_Create(t *testing.T) {
+func TestDB_Create(t *testing.T) {
 	if testing.Short() {
 		t.Skip("Skipping db.Create integration test...")
 	}
@@ -96,7 +96,7 @@ func Test_Create(t *testing.T) {
 	}
 }
 
-func Test_Get(t *testing.T) {
+func TestDB_Get(t *testing.T) {
 	if testing.Short() {
 		t.Skip("Skipping db.Get integration test...")
 	}
@@ -138,7 +138,49 @@ func Test_Get(t *testing.T) {
 	}
 }
 
-func Test_Delete(t *testing.T) {
+func TestDB_GetMultiple(t *testing.T) {
+	if testing.Short() {
+		t.Skip("Skipping db.GetMultiple integration test...")
+	}
+
+	type args struct {
+		filter string
+	}
+	tests := []struct {
+		name    string
+		args    args
+		want    []entity.Token
+		wantErr bool
+	}{
+		{
+			name: "Test if token is retrieved correctly",
+			args: args{
+				filter: "user_id[$eq]=" + testToken.UserId,
+			},
+			want: []entity.Token{testToken},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			ctx, cancel := context.WithTimeout(context.Background(), time.Second*2)
+			defer cancel()
+
+			db := setUpDB()
+
+			got, err := db.GetMultiple(ctx, tt.args.filter)
+			if (err != nil) != tt.wantErr {
+				t.Errorf("DB.GetMultiple() error = %v, wantErr = %v", err, tt.wantErr)
+				return
+			}
+
+			if !cmp.Equal(got, tt.want, cmpopts.EquateApproxTime(time.Second*5)) {
+				t.Errorf("DB.GetMultiple():\n got = %v\n want = %v\n %v", got, tt.want, cmp.Diff(got, tt.want))
+			}
+		})
+	}
+}
+
+func TestDB_Delete(t *testing.T) {
 	if testing.Short() {
 		t.Skip("Skipping db.Delete integration test...")
 	}

@@ -44,17 +44,12 @@ func main() {
 	kvv2 := client.KVv2(vaultMountPath)
 
 	for _, path := range paths {
-		// Skip root
-		if path == "" {
-			continue
-		}
-
 		metadataSlice, err := kvv2.GetVersionsAsList(ctx, path)
 		if err != nil {
 			log.Fatal(fmt.Errorf("failed to get versions: %w", err))
 		}
 
-		versions := make([]int, len(metadataSlice))
+		versions := make([]int, 0, len(metadataSlice))
 
 		for _, metadata := range metadataSlice {
 			versions = append(versions, metadata.Version)
@@ -85,7 +80,7 @@ func list(ctx context.Context, client *vault.Client, path string) ([]string, err
 		return nil, nil
 	}
 
-	paths := make([]string, len(secret.Data))
+	paths := make([]string, 0, len(secret.Data))
 
 	for _, pathLists := range secret.Data {
 		pathList, ok := pathLists.([]interface{})
