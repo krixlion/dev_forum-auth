@@ -1,7 +1,6 @@
 package tokens
 
 import (
-	"crypto/rand"
 	"encoding/base64"
 	"errors"
 	"hash/crc32"
@@ -9,6 +8,7 @@ import (
 	"strings"
 
 	"github.com/krixlion/dev_forum-auth/pkg/entity"
+	"github.com/krixlion/dev_forum-lib/str"
 	"github.com/lestrrat-go/jwx/jws"
 	"github.com/lestrrat-go/jwx/jwt"
 )
@@ -21,16 +21,16 @@ var ErrInvalidTokenType error = errors.New("invalid token type")
 // 	if err != nil {
 // 		return entity.Token{}, err
 // 	}
-
+//
 // 	if err := jwt.Validate(jwToken, jwt.WithIssuer(m.issuer)); err != nil {
 // 		return entity.Token{}, err
 // 	}
-
+//
 // 	tokenType, err := validateTokenType(jwToken)
 // 	if err != nil {
 // 		return entity.Token{}, err
 // 	}
-
+//
 // 	return entity.Token{
 // 		Id:        jwToken.JwtID(),
 // 		UserId:    jwToken.Subject(),
@@ -71,7 +71,7 @@ func (m StdTokenManager) Encode(privateKey entity.Key, token entity.Token) ([]by
 // GenerateOpaque generates an opaque token. It returns an
 // encoded token, a random string used as a token's base and an err.
 func (StdTokenManager) GenerateOpaque(typ OpaqueTokenPrefix) (string, string, error) {
-	randomString, err := randomAlphaString(16)
+	randomString, err := str.RandomAlphaString(16)
 	if err != nil {
 		return "", "", err
 	}
@@ -117,19 +117,19 @@ func (m StdTokenManager) DecodeOpaque(typ OpaqueTokenPrefix, encodedOpaqueToken 
 // 	if !ok {
 // 		return "", ErrInvalidTokenType
 // 	}
-
+//
 // 	tokenType, ok := typ.(entity.TokenType)
 // 	if !ok {
 // 		return "", ErrInvalidTokenType
 // 	}
-
+//
 // 	if tokenType != entity.RefreshToken && tokenType != entity.AccessToken {
 // 		return "", ErrInvalidTokenType
 // 	}
 // 	return tokenType, nil
 // }
 
-// decodeAndValidateOpaque takes a base64 encoded token without it's prefix, decodes it and returns it.
+// decodeAndValidateOpaque takes a base64 encoded token without it's prefix, decodes and returns it.
 // Returns ErrInvalidToken on invalid checksum or length or any errors during decoding.
 func (m StdTokenManager) decodeAndValidateOpaque(encodedToken string) (string, error) {
 	decodedToken, err := base64.URLEncoding.DecodeString(encodedToken)
@@ -152,29 +152,4 @@ func (m StdTokenManager) decodeAndValidateOpaque(encodedToken string) (string, e
 	}
 
 	return string(token), nil
-}
-
-func randomAlphaString(length int) (string, error) {
-	const (
-		letterBytes   = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ" // 52 possibilities
-		letterIdxBits = 6                                                      // 6 bits to represent 64 possibilities / indexes
-		letterIdxMask = 1<<letterIdxBits - 1                                   // All 1-bits, as many as letterIdxBits
-	)
-	result := make([]byte, length)
-	bufferSize := int(float64(length) * 1.3)
-
-	for i, j, randomBytes := 0, 0, []byte{}; i < length; j++ {
-		if j%bufferSize == 0 {
-			randomBytes = make([]byte, bufferSize)
-			if _, err := rand.Read(randomBytes); err != nil {
-				return "", err
-			}
-		}
-		if idx := int(randomBytes[j%length] & letterIdxMask); idx < len(letterBytes) {
-			result[i] = letterBytes[idx]
-			i++
-		}
-	}
-
-	return string(result), nil
 }

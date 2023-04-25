@@ -162,7 +162,7 @@ func getServiceDependencies() service.Dependencies {
 
 	// tlsCertPath := os.Getenv("TLS_CERT_PATH")
 	// tlsKeyPath := os.Getenv("TLS_KEY_PATH")
-	// credentials, err := loadTLSCredentials(tlsCertPath, tlsKeyPath)
+	// credentials, err := tls.LoadCredentials(tlsCertPath, tlsKeyPath)
 	// if err != nil {
 	// 	panic(err)
 	// }
@@ -171,24 +171,7 @@ func getServiceDependencies() service.Dependencies {
 		// grpc.Creds(credentials),
 		grpc.StreamInterceptor(otelgrpc.StreamServerInterceptor()),
 		grpc.ChainUnaryInterceptor(
-			// grpc_auth.UnaryServerInterceptor(func(ctx context.Context) (context.Context, error) {
-			// 	md, ok := metadata.FromIncomingContext(ctx)
-			// 	if !ok {
-			// 		return nil, status.Error(codes.InvalidArgument, "Invalid metadata")
-			// 	}
-
-			// 	tokens := md.Get("authorization")
-			// 	if len(tokens) == 0 {
-			// 		return nil, status.Error(codes.PermissionDenied, "missing authorization")
-			// 	}
-
-			// 	token := tokens[0]
-			// 	if token == "" {
-			// 		return nil, status.Error(codes.PermissionDenied, "missing authorization")
-			// 	}
-
-			// 	return context.WithValue(ctx, "authorization", token), nil
-			// }),
+			// grpc_auth.UnaryServerInterceptor(auth.Interceptor()),
 			// grpc_recovery.UnaryServerInterceptor(),
 			grpc_zap.UnaryServerInterceptor(zap.L()),
 			otelgrpc.UnaryServerInterceptor(),
