@@ -12,7 +12,7 @@ import (
 	"github.com/krixlion/dev_forum-auth/pkg/entity"
 	pb "github.com/krixlion/dev_forum-auth/pkg/grpc/v1"
 	"github.com/krixlion/dev_forum-auth/pkg/storage"
-	"github.com/krixlion/dev_forum-auth/pkg/storage/dbmocks"
+	"github.com/krixlion/dev_forum-auth/pkg/storage/storagemocks"
 	"github.com/krixlion/dev_forum-auth/pkg/tokens"
 	"github.com/krixlion/dev_forum-auth/pkg/tokens/tokenmocks"
 	"github.com/krixlion/dev_forum-lib/event"
@@ -141,7 +141,7 @@ func TestAuthServer_SignOut(t *testing.T) {
 					return manager
 				}(),
 				storage: func() storage.Storage {
-					storage := dbmocks.NewStorage()
+					storage := storagemocks.NewStorage()
 					testToken := entity.Token{
 						Id:     "test-opaque-seed",
 						UserId: "test",
@@ -205,7 +205,7 @@ func TestAuthServer_GetAccessToken(t *testing.T) {
 					return manager
 				}(),
 				storage: func() storage.Storage {
-					storage := dbmocks.NewStorage()
+					storage := storagemocks.NewStorage()
 					testToken := entity.Token{
 						Id:     "test-opaque-seed",
 						UserId: "test",
@@ -271,7 +271,7 @@ func TestAuthServer_TranslateAccessToken(t *testing.T) {
 					return manager
 				}(),
 				storage: func() storage.Storage {
-					storage := dbmocks.NewStorage()
+					storage := storagemocks.NewStorage()
 					testToken := entity.Token{
 						Id:     "test",
 						UserId: "test",
@@ -281,7 +281,7 @@ func TestAuthServer_TranslateAccessToken(t *testing.T) {
 					return storage
 				}(),
 				vault: func() storage.Vault {
-					vault := dbmocks.NewVault()
+					vault := storagemocks.NewVault()
 					testKey := entity.Key{
 						Id:   "test",
 						Type: "test",
