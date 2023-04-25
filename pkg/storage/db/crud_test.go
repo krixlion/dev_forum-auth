@@ -10,6 +10,7 @@ import (
 	"github.com/google/go-cmp/cmp/cmpopts"
 	"github.com/krixlion/dev_forum-auth/pkg/entity"
 	"github.com/krixlion/dev_forum-lib/env"
+	"github.com/krixlion/dev_forum-lib/filter"
 	"github.com/krixlion/dev_forum-lib/nulls"
 	"go.mongodb.org/mongo-driver/bson"
 )
@@ -155,7 +156,11 @@ func TestDB_GetMultiple(t *testing.T) {
 		{
 			name: "Test if token is retrieved correctly",
 			args: args{
-				filter: "user_id[$eq]=" + testToken.UserId,
+				filter: filter.Parameter{
+					Attribute: "user_id",
+					Operator:  filter.Equal,
+					Value:     testToken.UserId,
+				}.String(),
 			},
 			want: []entity.Token{testToken},
 		},

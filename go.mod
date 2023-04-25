@@ -1,13 +1,13 @@
 module github.com/krixlion/dev_forum-auth
 
-go 1.19
+go 1.20
 
 require (
 	github.com/gofrs/uuid v4.4.0+incompatible
 	github.com/google/go-cmp v0.5.9
 	github.com/grpc-ecosystem/go-grpc-middleware v1.4.0
 	github.com/hashicorp/vault/api v1.9.0
-	github.com/krixlion/dev_forum-lib v0.0.0-20230423144835-146cbc83fa66
+	github.com/krixlion/dev_forum-lib v0.0.0-20230425135442-93c025c50b98
 	github.com/krixlion/dev_forum-rabbitmq v0.0.0-20230321225335-aacfca540fbc
 	github.com/krixlion/dev_forum-user v0.0.0-20230323193418-8e6e611c0e10
 	github.com/lestrrat-go/jwx v1.2.25

@@ -11,6 +11,7 @@ import (
 	"github.com/krixlion/dev_forum-auth/pkg/storage"
 	"github.com/krixlion/dev_forum-auth/pkg/tokens"
 	"github.com/krixlion/dev_forum-lib/event/dispatcher"
+	"github.com/krixlion/dev_forum-lib/filter"
 	"github.com/krixlion/dev_forum-lib/logging"
 	"github.com/krixlion/dev_forum-lib/tracing"
 	userPb "github.com/krixlion/dev_forum-user/pkg/grpc/v1"
@@ -133,7 +134,11 @@ func (server AuthServer) SignOut(ctx context.Context, req *pb.SignOutRequest) (*
 		return nil, status.Error(codes.PermissionDenied, err.Error())
 	}
 
-	tokens, err := server.storage.GetMultiple(ctx, "user_id[$eq]="+token.UserId)
+	tokens, err := server.storage.GetMultiple(ctx, filter.Parameter{
+		Attribute: "user_id",
+		Operator:  filter.Equal,
+		Value:     token.UserId,
+	}.String())
 	if err != nil {
 		return nil, status.Error(codes.PermissionDenied, err.Error())
 	}

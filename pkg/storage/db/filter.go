@@ -5,7 +5,7 @@ import (
 	"go.mongodb.org/mongo-driver/bson"
 )
 
-func filterToBSON(params []filter.Parameter) (bson.D, error) {
+func filterToBSON(params filter.Filter) (bson.D, error) {
 	filterDoc := make(bson.D, 0, len(params))
 
 	for _, param := range params {

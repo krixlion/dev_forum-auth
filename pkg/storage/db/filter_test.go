@@ -11,7 +11,7 @@ import (
 
 func Test_filterToBSON(t *testing.T) {
 	type args struct {
-		params []filter.Parameter
+		params filter.Filter
 	}
 	tests := []struct {
 		name    string
@@ -22,7 +22,7 @@ func Test_filterToBSON(t *testing.T) {
 		{
 			name: "Test if does not return unexpected errors on valid filter",
 			args: args{
-				params: []filter.Parameter{
+				params: filter.Filter{
 					{
 						Attribute: "user_id",
 						Operator:  filter.Equal,
