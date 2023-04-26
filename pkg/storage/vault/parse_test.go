@@ -5,10 +5,11 @@ import (
 
 	"github.com/google/go-cmp/cmp"
 	vault "github.com/hashicorp/vault/api"
+	"github.com/krixlion/dev_forum-auth/pkg/entity"
 	"github.com/krixlion/dev_forum-auth/pkg/storage/vault/testdata"
 )
 
-func Test_validateSecret(t *testing.T) {
+func Test_parseSecret(t *testing.T) {
 	type args struct {
 		secret *vault.KVSecret
 	}
@@ -23,13 +24,15 @@ func Test_validateSecret(t *testing.T) {
 			args: args{
 				secret: &vault.KVSecret{
 					Data: map[string]interface{}{
-						"algorithm": "RSA",
+						"keyType":   string(entity.RSA),
+						"algorithm": string(entity.RS256),
 						"private":   testdata.RSAPem,
 					},
 				},
 			},
 			want: secretData{
-				algorithm:  RSA,
+				keyType:    entity.RSA,
+				algorithm:  entity.RS256,
 				encodedKey: testdata.RSAPem,
 			},
 		},
@@ -43,7 +46,31 @@ func Test_validateSecret(t *testing.T) {
 			args: args{
 				secret: &vault.KVSecret{
 					Data: map[string]interface{}{
-						"algorithm": RSA,
+						"algorithm": string(entity.RS256),
+					},
+				},
+			},
+			wantErr: true,
+		},
+		{
+			name: "Test if fails on missing 'keyType' field",
+			args: args{
+				secret: &vault.KVSecret{
+					Data: map[string]interface{}{
+						"algorithm": string(entity.RS256),
+						"private":   testdata.RSAPem,
+					},
+				},
+			},
+			wantErr: true,
+		},
+		{
+			name: "Test if fails on missing 'algorithm' field",
+			args: args{
+				secret: &vault.KVSecret{
+					Data: map[string]interface{}{
+						"keyType": string(entity.RSA),
+						"private": testdata.RSAPem,
 					},
 				},
 			},
@@ -57,7 +84,7 @@ func Test_validateSecret(t *testing.T) {
 				t.Errorf("parseSecret() error = %v, wantErr = %v", err, tt.wantErr)
 				return
 			}
-			if !cmp.Equal(got, tt.want, cmp.AllowUnexported(secretData{})) {
+			if got != tt.want {
 				t.Errorf("parseSecret(): got = %v\n want = %v\n %v", got, tt.want, cmp.Diff(got, tt.want))
 			}
 		})

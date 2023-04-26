@@ -14,30 +14,22 @@ import (
 	"google.golang.org/protobuf/proto"
 )
 
-type Algorithm string
-
-const (
-	RSA Algorithm = "RSA"
-	EC  Algorithm = "EC"
-	HS  Algorithm = "HS"
-)
-
 // Decode decodes provided key with specified algorithm and returns it along with a callback
 // that should be used to encode this key to proto message format.
 // If decode func for specified algorithm is not found it returns an ErrAlgorithmNotSupported.
 // If the algorithm is not recognized it returns an ErrInvalidAlgorithm.
-func Decode(algorithm Algorithm, encodedKey string) (interface{}, entity.KeyEncodeFunc, error) {
+func Decode(algorithm entity.Algorithm, encodedKey string) (interface{}, entity.KeyEncodeFunc, error) {
 	switch algorithm {
-	case RSA:
+	case entity.RS256:
 		v, err := DecodeRSA(encodedKey)
 		if err != nil {
 			return nil, nil, err
 		}
 
 		return v, EncodeRSA, nil
-	case EC:
+	case entity.ES256:
 		return nil, nil, ErrAlgorithmNotSupported
-	case HS:
+	case entity.HS256:
 		return nil, nil, ErrAlgorithmNotSupported
 	default:
 		return nil, nil, ErrInvalidAlgorithm

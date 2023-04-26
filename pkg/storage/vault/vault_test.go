@@ -47,8 +47,8 @@ func TestVault_GetKeySet(t *testing.T) {
 			name: "Test if retrieves beforehand seeded set",
 			want: []entity.Key{
 				{
-					Id:   "test",
-					Type: string(RSA),
+					Id:        "test",
+					Algorithm: entity.RS256,
 					Raw: func() *rsa.PrivateKey {
 						key, err := DecodeRSA(testdata.RSAPem)
 						if err != nil {

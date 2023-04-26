@@ -4,45 +4,22 @@ import (
 	"testing"
 	"time"
 
+	"github.com/google/go-cmp/cmp"
 	"github.com/krixlion/dev_forum-auth/pkg/entity"
+	"github.com/krixlion/dev_forum-auth/pkg/tokens/testdata"
 	"github.com/lestrrat-go/jwx/jwa"
+	"github.com/lestrrat-go/jwx/jwt"
 )
 
-func setUpTokenManager(algo jwa.SignatureAlgorithm) StdTokenManager {
-	m := MakeTokenManager("test", Config{
-		SignatureAlgorithm: algo,
+var clockFunc jwt.Clock = jwt.ClockFunc(time.Now)
+
+func setUpTokenManager() StdTokenManager {
+	m := MakeTokenManager(Config{
+		Issuer: testdata.TestIssuer,
+		Clock:  clockFunc,
 	})
 	return m
 }
-
-// func TestTokenManager_Parse(t *testing.T) {
-// 	type args struct {
-// 		publicKey interface{}
-// 		token     string
-// 	}
-// 	tests := []struct {
-// 		name    string
-// 		algo    jwa.SignatureAlgorithm
-// 		args    args
-// 		want    entity.Token
-// 		wantErr bool
-// 	}{
-// 		// TODO add cases.
-// 	}
-// 	for _, tt := range tests {
-// 		t.Run(tt.name, func(t *testing.T) {
-// 			m := setUpTokenManager(tt.algo)
-// 			got, err := m.Parse(tt.args.publicKey, []byte(tt.args.token))
-// 			if (err != nil) != tt.wantErr {
-// 				t.Errorf("TokenManager.Parse() error = %v, wantErr %v", err, tt.wantErr)
-// 				return
-// 			}
-// 			if !reflect.DeepEqual(got, tt.want) {
-// 				t.Errorf("TokenManager.Parse() = %v, want %v", got, tt.want)
-// 			}
-// 		})
-// 	}
-// }
 
 func TestTokenManager_Encode(t *testing.T) {
 	type args struct {
@@ -50,35 +27,23 @@ func TestTokenManager_Encode(t *testing.T) {
 		token      entity.Token
 	}
 	tests := []struct {
-		algo    jwa.SignatureAlgorithm
 		name    string
 		args    args
 		want    string
 		wantErr bool
 	}{
 		{
-			name: "Test if correctly encodes and signes a token struct with HS256 algo",
-			algo: jwa.HS256,
+			name: "Test if correctly encodes and signes a token struct",
 			args: args{
-				privateKey: entity.Key{
-					Id:   "test",
-					Raw:  []byte("key"),
-					Type: "HS",
-				},
-				token: entity.Token{
-					Id:        "test",
-					UserId:    "test-id",
-					Type:      entity.AccessToken,
-					ExpiresAt: time.Unix(1680358945, 0),
-					IssuedAt:  time.Unix(1680358945, 0),
-				},
+				privateKey: testdata.TestKey,
+				token:      testdata.TestToken,
 			},
-			want: "eyJhbGciOiJIUzI1NiIsImtpZCI6InRlc3QiLCJ0eXAiOiJKV1QifQ.eyJleHAiOjE2ODAzNTg5NDUsImlhdCI6MTY4MDM1ODk0NSwiaXNzIjoidGVzdCIsImp0aSI6InRlc3QiLCJzdWIiOiJ0ZXN0LWlkIn0.fD1h4o_fO6SU4jTzmhmj2BuDU0-MK_7JwPbiBpXiMyo",
+			want: testdata.SignedJWT,
 		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			m := setUpTokenManager(tt.algo)
+			m := setUpTokenManager()
 			got, err := m.Encode(tt.args.privateKey, tt.args.token)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("TokenManager.Encode() error = %v, wantErr %v", err, tt.wantErr)
@@ -92,12 +57,11 @@ func TestTokenManager_Encode(t *testing.T) {
 	}
 }
 
-func TestTokenManager_GenerateOpaqueToken(t *testing.T) {
+func TestTokenManager_GenerateOpaque(t *testing.T) {
 	type args struct {
 		prefixType OpaqueTokenPrefix
 	}
 	tests := []struct {
-		algo        jwa.SignatureAlgorithm
 		name        string
 		args        args
 		want        string
@@ -106,7 +70,6 @@ func TestTokenManager_GenerateOpaqueToken(t *testing.T) {
 	}{
 		{
 			name: "Test if raises an error on invalid prefix",
-			algo: jwa.HS256,
 			args: args{
 				prefixType: OpaqueTokenPrefix(999999999999),
 			},
@@ -115,7 +78,7 @@ func TestTokenManager_GenerateOpaqueToken(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			m := setUpTokenManager(tt.algo)
+			m := setUpTokenManager()
 
 			got, gotTokenId, err := m.GenerateOpaque(tt.args.prefixType)
 			if (err != nil) != tt.wantErr {
@@ -135,13 +98,12 @@ func TestTokenManager_GenerateOpaqueToken(t *testing.T) {
 	}
 }
 
-func TestTokenManager_DecodeOpaqueToken(t *testing.T) {
+func TestTokenManager_DecodeOpaque(t *testing.T) {
 	type args struct {
 		typ                OpaqueTokenPrefix
 		encodedOpaqueToken string
 	}
 	tests := []struct {
-		algo    jwa.SignatureAlgorithm
 		name    string
 		args    args
 		want    string
@@ -158,7 +120,7 @@ func TestTokenManager_DecodeOpaqueToken(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			m := setUpTokenManager(tt.algo)
+			m := setUpTokenManager()
 			got, err := m.DecodeOpaque(tt.args.typ, tt.args.encodedOpaqueToken)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("TokenManager.DecodeOpaqueToken() error = %v, wantErr %v", err, tt.wantErr)
@@ -171,7 +133,7 @@ func TestTokenManager_DecodeOpaqueToken(t *testing.T) {
 	}
 }
 
-func TestTokenManager_decodeAndValidateOpaque(t *testing.T) {
+func Test_decodeAndValidateOpaque(t *testing.T) {
 	type args struct {
 		rawToken string
 	}
@@ -193,14 +155,65 @@ func TestTokenManager_decodeAndValidateOpaque(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			m := setUpTokenManager(tt.algo)
-			got, err := m.decodeAndValidateOpaque(tt.args.rawToken)
+			got, err := decodeAndValidateOpaque(tt.args.rawToken)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("TokenManager.decodeAndValidateOpaque() error = %v, wantErr %v", err, tt.wantErr)
 				return
 			}
 			if got != tt.want {
 				t.Errorf("TokenManager.decodeAndValidateOpaque() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
+func Test_verifyAlgorithm(t *testing.T) {
+	type args struct {
+		algo entity.Algorithm
+	}
+	tests := []struct {
+		name    string
+		args    args
+		want    jwa.SignatureAlgorithm
+		wantErr bool
+	}{
+		{
+			name: "Test if fails on empty algorithm",
+			args: args{
+				algo: "",
+			},
+			wantErr: true,
+		},
+		{
+			name: "Test if recognizes RSA",
+			args: args{
+				algo: entity.RS256,
+			},
+			want: jwa.RS256,
+		},
+		{
+			name: "Test if recognizes HMAC",
+			args: args{
+				algo: entity.HS256,
+			},
+			want: jwa.HS256,
+		},
+		{
+			name: "Test if recognizes ECDSA",
+			args: args{
+				algo: entity.ES256,
+			},
+			want: jwa.ES256,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got, err := verifyAlgorithm(tt.args.algo)
+			if (err != nil) != tt.wantErr {
+				t.Errorf("verifyAlgorithm() error = %v, wantErr %v", err, tt.wantErr)
+				return
+			}
+			if !cmp.Equal(got, tt.want) {
+				t.Errorf("verifyAlgorithm() = %v, want %v", got, tt.want)
 			}
 		})
 	}

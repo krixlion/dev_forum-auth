@@ -6,6 +6,7 @@ import (
 
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/go-cmp/cmp/cmpopts"
+	"github.com/krixlion/dev_forum-auth/pkg/entity"
 	rsapb "github.com/krixlion/dev_forum-auth/pkg/grpc/v1/rsa"
 	"github.com/krixlion/dev_forum-auth/pkg/storage/vault/testdata"
 	"google.golang.org/protobuf/proto"
@@ -13,7 +14,7 @@ import (
 
 func TestDecode(t *testing.T) {
 	type args struct {
-		algorithm  Algorithm
+		algorithm  entity.Algorithm
 		encodedKey string
 	}
 	tests := []struct {
@@ -31,7 +32,7 @@ func TestDecode(t *testing.T) {
 		{
 			name: "Test if returns an error on unsupported algorithm",
 			args: args{
-				algorithm:  HS,
+				algorithm:  entity.HS256,
 				encodedKey: "test",
 			},
 			wantErr: true,

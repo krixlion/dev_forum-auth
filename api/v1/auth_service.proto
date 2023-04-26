@@ -56,6 +56,9 @@ message Jwk {
     string kid = 1;
     // Key Type
     string kty = 2;
+    
+    // Key Signature Algorithm
+    string alg = 3;
 
     // Field for key-specific data.
     // Eg. n, e for RSA or crv, x ,y for EC

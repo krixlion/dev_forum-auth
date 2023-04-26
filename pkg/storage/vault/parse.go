@@ -7,7 +7,8 @@ import (
 
 // secretData is a convenience struct used to contain parsed KVV2 keys.
 type secretData struct {
-	algorithm  Algorithm
+	algorithm  entity.Algorithm
+	keyType    entity.KeyType
 	encodedKey string
 }
 
@@ -26,6 +27,16 @@ func parseSecret(secret *vault.KVSecret) (secretData, error) {
 		return secretData{}, ErrInvalidAlgorithm
 	}
 
+	keyTyp, ok := secret.Data["keyType"]
+	if !ok {
+		return secretData{}, ErrInvalidKeyType
+	}
+
+	keyType, ok := keyTyp.(string)
+	if !ok {
+		return secretData{}, ErrInvalidKeyType
+	}
+
 	key, ok := secret.Data["private"]
 	if !ok {
 		return secretData{}, ErrKeyMissing
@@ -37,7 +48,8 @@ func parseSecret(secret *vault.KVSecret) (secretData, error) {
 	}
 
 	return secretData{
-		algorithm:  Algorithm(algorithm),
+		algorithm:  entity.Algorithm(algorithm),
+		keyType:    entity.KeyType(keyType),
 		encodedKey: encodedKey,
 	}, nil
 }
@@ -52,7 +64,7 @@ func makeKey(id string, validated secretData) (entity.Key, error) {
 
 	return entity.Key{
 		Id:         id,
-		Type:       string(validated.algorithm),
+		Algorithm:  validated.algorithm,
 		Raw:        privateKey,
 		EncodeFunc: encodeFunc,
 	}, nil

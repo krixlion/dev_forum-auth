@@ -9,13 +9,15 @@ import (
 	"time"
 
 	vault "github.com/hashicorp/vault/api"
+	"github.com/krixlion/dev_forum-auth/pkg/entity"
 	"github.com/krixlion/dev_forum-auth/pkg/storage/vault/testdata"
 	"github.com/krixlion/dev_forum-lib/env"
 )
 
 var testKeyData = map[string]interface{}{
 	"private":   testdata.RSAPem,
-	"algorithm": "RSA",
+	"algorithm": string(entity.RS256),
+	"keyType":   string(entity.RSA),
 }
 
 func main() {

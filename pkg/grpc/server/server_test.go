@@ -283,8 +283,9 @@ func TestAuthServer_TranslateAccessToken(t *testing.T) {
 				vault: func() storage.Vault {
 					vault := storagemocks.NewVault()
 					testKey := entity.Key{
-						Id:   "test",
-						Type: "test",
+						Id:        "test",
+						Type:      "test",
+						Algorithm: "test",
 					}
 					vault.On("GetRandom", mock.Anything).Return(testKey, nil).Once()
 					return vault

@@ -287,7 +287,8 @@ func (server AuthServer) GetValidationKeySet(_ *empty.Empty, stream pb.AuthServi
 
 		jwk := &pb.Jwk{
 			Kid: key.Id,
-			Kty: key.Type,
+			Kty: string(key.Type),
+			Alg: string(key.Algorithm),
 			Key: marshaledKey,
 		}
 

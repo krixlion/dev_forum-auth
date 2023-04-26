@@ -3,33 +3,147 @@
 
 ## Table of Contents
 
-- [ec.proto](#ec-proto)
-    - [EC](#auth-EC)
+- [auth_service.proto](#auth_service-proto)
+    - [GetAccessTokenRequest](#auth-GetAccessTokenRequest)
+    - [GetAccessTokenResponse](#auth-GetAccessTokenResponse)
+    - [Jwk](#auth-Jwk)
+    - [SignInRequest](#auth-SignInRequest)
+    - [SignInResponse](#auth-SignInResponse)
+    - [SignOutRequest](#auth-SignOutRequest)
+    - [TranslateAccessTokenRequest](#auth-TranslateAccessTokenRequest)
+    - [TranslateAccessTokenResponse](#auth-TranslateAccessTokenResponse)
   
-    - [ECType](#auth-ECType)
+    - [AuthService](#auth-AuthService)
   
 - [Scalar Value Types](#scalar-value-types)
 
 
 
-<a name="ec-proto"></a>
+<a name="auth_service-proto"></a>
 <p align="right"><a href="#top">Top</a></p>
 
-## ec.proto
+## auth_service.proto
 
 
 
-<a name="auth-EC"></a>
+<a name="auth-GetAccessTokenRequest"></a>
 
-### EC
+### GetAccessTokenRequest
 
 
 
 | Field | Type | Label | Description |
 | ----- | ---- | ----- | ----------- |
-| crv | [ECType](#auth-ECType) |  |  |
-| x | [string](#string) |  |  |
-| y | [string](#string) |  |  |
+| refresh_token | [string](#string) |  |  |
+
+
+
+
+
+
+<a name="auth-GetAccessTokenResponse"></a>
+
+### GetAccessTokenResponse
+
+
+
+| Field | Type | Label | Description |
+| ----- | ---- | ----- | ----------- |
+| access_token | [string](#string) |  |  |
+
+
+
+
+
+
+<a name="auth-Jwk"></a>
+
+### Jwk
+
+
+
+| Field | Type | Label | Description |
+| ----- | ---- | ----- | ----------- |
+| kid | [string](#string) |  | Key ID |
+| kty | [string](#string) |  | Key Type |
+| alg | [string](#string) |  | Key Signature Algorithm |
+| key | [google.protobuf.Any](#google-protobuf-Any) |  | Field for key-specific data. Eg. n, e for RSA or crv, x ,y for EC |
+
+
+
+
+
+
+<a name="auth-SignInRequest"></a>
+
+### SignInRequest
+
+
+
+| Field | Type | Label | Description |
+| ----- | ---- | ----- | ----------- |
+| password | [string](#string) |  |  |
+| email | [string](#string) |  |  |
+
+
+
+
+
+
+<a name="auth-SignInResponse"></a>
+
+### SignInResponse
+
+
+
+| Field | Type | Label | Description |
+| ----- | ---- | ----- | ----------- |
+| refresh_token | [string](#string) |  |  |
+
+
+
+
+
+
+<a name="auth-SignOutRequest"></a>
+
+### SignOutRequest
+
+
+
+| Field | Type | Label | Description |
+| ----- | ---- | ----- | ----------- |
+| refresh_token | [string](#string) |  |  |
+
+
+
+
+
+
+<a name="auth-TranslateAccessTokenRequest"></a>
+
+### TranslateAccessTokenRequest
+
+
+
+| Field | Type | Label | Description |
+| ----- | ---- | ----- | ----------- |
+| opaque_access_token | [string](#string) |  |  |
+
+
+
+
+
+
+<a name="auth-TranslateAccessTokenResponse"></a>
+
+### TranslateAccessTokenResponse
+
+
+
+| Field | Type | Label | Description |
+| ----- | ---- | ----- | ----------- |
+| access_token | [string](#string) |  |  |
 
 
 
@@ -37,23 +151,23 @@
 
  
 
-
-<a name="auth-ECType"></a>
-
-### ECType
-
-
-| Name | Number | Description |
-| ---- | ------ | ----------- |
-| UNDEFINED | 0 |  |
-| P256 | 1 |  |
-| P384 | 2 |  |
-| P521 | 3 |  |
-
-
  
 
  
+
+
+<a name="auth-AuthService"></a>
+
+### AuthService
+
+
+| Method Name | Request Type | Response Type | Description |
+| ----------- | ------------ | ------------- | ------------|
+| SignIn | [SignInRequest](#auth-SignInRequest) | [SignInResponse](#auth-SignInResponse) | Upon succesful login user receives a refresh_token. When it expires or is revoked user has to login again. |
+| SignOut | [SignOutRequest](#auth-SignOutRequest) | [.google.protobuf.Empty](#google-protobuf-Empty) | SignOut revokes user&#39;s active refresh_token. |
+| GetAccessToken | [GetAccessTokenRequest](#auth-GetAccessTokenRequest) | [GetAccessTokenResponse](#auth-GetAccessTokenResponse) |  |
+| GetValidationKeySet | [.google.protobuf.Empty](#google-protobuf-Empty) | [Jwk](#auth-Jwk) stream |  |
+| TranslateAccessToken | [TranslateAccessTokenRequest](#auth-TranslateAccessTokenRequest) stream | [TranslateAccessTokenResponse](#auth-TranslateAccessTokenResponse) stream |  |
 
  
 

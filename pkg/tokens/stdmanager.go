@@ -1,19 +1,18 @@
 package tokens
 
-import "github.com/lestrrat-go/jwx/jwa"
+import "github.com/lestrrat-go/jwx/jwt"
 
 type StdTokenManager struct {
-	issuer string
 	config Config
 }
 
 type Config struct {
-	SignatureAlgorithm jwa.SignatureAlgorithm
+	Issuer string
+	Clock  jwt.Clock
 }
 
-func MakeTokenManager(issuer string, config Config) StdTokenManager {
+func MakeTokenManager(config Config) StdTokenManager {
 	return StdTokenManager{
-		issuer: issuer,
 		config: config,
 	}
 }

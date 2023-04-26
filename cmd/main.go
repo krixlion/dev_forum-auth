@@ -22,7 +22,7 @@ import (
 	"github.com/krixlion/dev_forum-lib/tracing"
 	rabbitmq "github.com/krixlion/dev_forum-rabbitmq"
 	userPb "github.com/krixlion/dev_forum-user/pkg/grpc/v1"
-	"github.com/lestrrat-go/jwx/jwa"
+	"github.com/lestrrat-go/jwx/jwt"
 	"go.opentelemetry.io/contrib/instrumentation/google.golang.org/grpc/otelgrpc"
 	"go.opentelemetry.io/otel"
 	"go.uber.org/zap"
@@ -114,8 +114,9 @@ func getServiceDependencies() service.Dependencies {
 		dispatcher.Subscribe(eType, handlers...)
 	}
 
-	tokenManager := tokens.MakeTokenManager(issuer, tokens.Config{
-		SignatureAlgorithm: jwa.RS256,
+	tokenManager := tokens.MakeTokenManager(tokens.Config{
+		Issuer: issuer,
+		Clock:  jwt.ClockFunc(time.Now),
 	})
 
 	conn, err := grpc.Dial("user-service:50051",

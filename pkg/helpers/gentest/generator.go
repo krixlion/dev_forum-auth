@@ -8,7 +8,6 @@ import (
 	"github.com/gofrs/uuid"
 	"github.com/krixlion/dev_forum-auth/pkg/entity"
 	"github.com/krixlion/dev_forum-auth/pkg/tokens"
-	"github.com/lestrrat-go/jwx/jwa"
 )
 
 func RandomString(length int) string {
@@ -32,8 +31,8 @@ func RandomToken(tokenType entity.TokenType) entity.Token {
 		prefix = tokens.RefreshToken
 	}
 
-	_, id, err := tokens.MakeTokenManager("gentest", tokens.Config{
-		SignatureAlgorithm: jwa.RS256,
+	_, id, err := tokens.MakeTokenManager(tokens.Config{
+		Issuer: "gentest",
 	}).GenerateOpaque(prefix)
 	if err != nil {
 		panic(err)
