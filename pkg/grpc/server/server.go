@@ -28,7 +28,7 @@ type AuthServer struct {
 	services     Services
 	vault        storage.Vault
 	storage      storage.Storage
-	tokenManager tokens.TokenManager
+	tokenManager tokens.Manager
 	dispatcher   *dispatcher.Dispatcher
 	logger       logging.Logger
 	tracer       trace.Tracer
@@ -39,7 +39,7 @@ type Dependencies struct {
 	Services
 	Storage      storage.Storage
 	Vault        storage.Vault
-	TokenManager tokens.TokenManager
+	TokenManager tokens.Manager
 	Dispatcher   *dispatcher.Dispatcher
 	Logger       logging.Logger
 	Tracer       trace.Tracer

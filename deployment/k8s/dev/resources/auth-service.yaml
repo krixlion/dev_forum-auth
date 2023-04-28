@@ -57,7 +57,7 @@ spec:
       containers:
         - env:
             - name: TESTING
-              value: "true"
+              value: "false"
             - name: TEST_PATH
               value: github.com/krixlion/dev_forum-auth/pkg/tokens
             - name: BUILD_ARGS

@@ -4,7 +4,7 @@ import (
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
-	"github.com/krixlion/dev_forum-auth/pkg/helpers/gentest"
+	"github.com/krixlion/dev_forum-auth/internal/gentest"
 	"github.com/krixlion/dev_forum-lib/filter"
 	"go.mongodb.org/mongo-driver/bson"
 )

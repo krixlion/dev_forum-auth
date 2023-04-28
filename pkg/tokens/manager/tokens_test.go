@@ -1,22 +1,18 @@
-package tokens
+package manager
 
 import (
 	"testing"
-	"time"
 
 	"github.com/google/go-cmp/cmp"
 	"github.com/krixlion/dev_forum-auth/pkg/entity"
-	"github.com/krixlion/dev_forum-auth/pkg/tokens/testdata"
+	"github.com/krixlion/dev_forum-auth/pkg/tokens"
+	"github.com/krixlion/dev_forum-auth/pkg/tokens/manager/testdata"
 	"github.com/lestrrat-go/jwx/jwa"
-	"github.com/lestrrat-go/jwx/jwt"
 )
-
-var clockFunc jwt.Clock = jwt.ClockFunc(time.Now)
 
 func setUpTokenManager() StdTokenManager {
 	m := MakeTokenManager(Config{
 		Issuer: testdata.TestIssuer,
-		Clock:  clockFunc,
 	})
 	return m
 }
@@ -59,7 +55,7 @@ func TestTokenManager_Encode(t *testing.T) {
 
 func TestTokenManager_GenerateOpaque(t *testing.T) {
 	type args struct {
-		prefixType OpaqueTokenPrefix
+		prefixType tokens.OpaqueTokenPrefix
 	}
 	tests := []struct {
 		name        string
@@ -71,7 +67,7 @@ func TestTokenManager_GenerateOpaque(t *testing.T) {
 		{
 			name: "Test if raises an error on invalid prefix",
 			args: args{
-				prefixType: OpaqueTokenPrefix(999999999999),
+				prefixType: tokens.OpaqueTokenPrefix(999999999999),
 			},
 			wantErr: true,
 		},
@@ -100,7 +96,7 @@ func TestTokenManager_GenerateOpaque(t *testing.T) {
 
 func TestTokenManager_DecodeOpaque(t *testing.T) {
 	type args struct {
-		typ                OpaqueTokenPrefix
+		typ                tokens.OpaqueTokenPrefix
 		encodedOpaqueToken string
 	}
 	tests := []struct {
@@ -112,7 +108,7 @@ func TestTokenManager_DecodeOpaque(t *testing.T) {
 		{
 			name: "Test if correctly decodes a valid token",
 			args: args{
-				typ:                AccessToken,
+				typ:                tokens.AccessToken,
 				encodedOpaqueToken: "dfa_c2VHWmJVVWhKTWpVYnNlR19mYWJjNTJiYQ==",
 			},
 			want: "seGZbUUhJMjUbseG",

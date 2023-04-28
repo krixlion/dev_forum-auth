@@ -14,7 +14,7 @@ import (
 	"github.com/krixlion/dev_forum-auth/pkg/service"
 	"github.com/krixlion/dev_forum-auth/pkg/storage/db"
 	"github.com/krixlion/dev_forum-auth/pkg/storage/vault"
-	"github.com/krixlion/dev_forum-auth/pkg/tokens"
+	"github.com/krixlion/dev_forum-auth/pkg/tokens/manager"
 	"github.com/krixlion/dev_forum-lib/env"
 	"github.com/krixlion/dev_forum-lib/event/broker"
 	"github.com/krixlion/dev_forum-lib/event/dispatcher"
@@ -22,7 +22,6 @@ import (
 	"github.com/krixlion/dev_forum-lib/tracing"
 	rabbitmq "github.com/krixlion/dev_forum-rabbitmq"
 	userPb "github.com/krixlion/dev_forum-user/pkg/grpc/v1"
-	"github.com/lestrrat-go/jwx/jwt"
 	"go.opentelemetry.io/contrib/instrumentation/google.golang.org/grpc/otelgrpc"
 	"go.opentelemetry.io/otel"
 	"go.uber.org/zap"
@@ -114,9 +113,8 @@ func getServiceDependencies() service.Dependencies {
 		dispatcher.Subscribe(eType, handlers...)
 	}
 
-	tokenManager := tokens.MakeTokenManager(tokens.Config{
+	tokenManager := manager.MakeTokenManager(manager.Config{
 		Issuer: issuer,
-		Clock:  jwt.ClockFunc(time.Now),
 	})
 
 	conn, err := grpc.Dial("user-service:50051",

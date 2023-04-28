@@ -44,6 +44,7 @@ func NewAuthService(grpcPort int, d Dependencies) *AuthService {
 
 	return s
 }
+
 func (s *AuthService) Run(ctx context.Context) {
 	if err := ctx.Err(); err != nil {
 		return

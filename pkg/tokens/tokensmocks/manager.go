@@ -1,4 +1,4 @@
-package tokenmocks
+package tokensmocks
 
 import (
 	"github.com/krixlion/dev_forum-auth/pkg/entity"

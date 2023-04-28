@@ -8,6 +8,7 @@ import (
 	"github.com/gofrs/uuid"
 	"github.com/krixlion/dev_forum-auth/pkg/entity"
 	"github.com/krixlion/dev_forum-auth/pkg/tokens"
+	"github.com/krixlion/dev_forum-auth/pkg/tokens/manager"
 )
 
 func RandomString(length int) string {
@@ -31,7 +32,7 @@ func RandomToken(tokenType entity.TokenType) entity.Token {
 		prefix = tokens.RefreshToken
 	}
 
-	_, id, err := tokens.MakeTokenManager(tokens.Config{
+	_, id, err := manager.MakeTokenManager(manager.Config{
 		Issuer: "gentest",
 	}).GenerateOpaque(prefix)
 	if err != nil {

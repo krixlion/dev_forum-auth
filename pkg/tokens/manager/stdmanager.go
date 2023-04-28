@@ -1,6 +1,6 @@
-package tokens
-
-import "github.com/lestrrat-go/jwx/jwt"
+// Opaque Tokens are generated from a random string with appended 8 digit
+// crc32 hex checksum and encoded in base64 with a prefix depending on their type.
+package manager
 
 type StdTokenManager struct {
 	config Config
@@ -8,7 +8,6 @@ type StdTokenManager struct {
 
 type Config struct {
 	Issuer string
-	Clock  jwt.Clock
 }
 
 func MakeTokenManager(config Config) StdTokenManager {

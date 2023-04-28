@@ -14,7 +14,7 @@ import (
 	"github.com/krixlion/dev_forum-auth/pkg/storage"
 	"github.com/krixlion/dev_forum-auth/pkg/storage/storagemocks"
 	"github.com/krixlion/dev_forum-auth/pkg/tokens"
-	"github.com/krixlion/dev_forum-auth/pkg/tokens/tokenmocks"
+	"github.com/krixlion/dev_forum-auth/pkg/tokens/tokensmocks"
 	"github.com/krixlion/dev_forum-lib/event"
 	"github.com/krixlion/dev_forum-lib/event/dispatcher"
 	"github.com/krixlion/dev_forum-lib/nulls"
@@ -34,7 +34,7 @@ type deps struct {
 	vault        storage.Vault
 	userClient   userPb.UserServiceClient
 	broker       event.Broker
-	tokenManager tokens.TokenManager
+	tokenManager tokens.Manager
 }
 
 // setUpServer initializes and runs in the background a gRPC
@@ -135,8 +135,8 @@ func TestAuthServer_SignOut(t *testing.T) {
 		{
 			name: "Test if no unexpected errors are returned on valid flow",
 			deps: deps{
-				tokenManager: func() tokens.TokenManager {
-					manager := tokenmocks.NewTokenManager()
+				tokenManager: func() tokens.Manager {
+					manager := tokensmocks.NewTokenManager()
 					manager.On("DecodeOpaque", tokens.RefreshToken, "test-opaque").Return("test-opaque-seed", nil).Once()
 					return manager
 				}(),
@@ -198,8 +198,8 @@ func TestAuthServer_GetAccessToken(t *testing.T) {
 		{
 			name: "Test if no unexpected errors are returned on valid flow",
 			deps: deps{
-				tokenManager: func() tokens.TokenManager {
-					manager := tokenmocks.NewTokenManager()
+				tokenManager: func() tokens.Manager {
+					manager := tokensmocks.NewTokenManager()
 					manager.On("DecodeOpaque", tokens.RefreshToken, "test-opaque").Return("test-opaque-decoded", nil).Once()
 					manager.On("GenerateOpaque", tokens.AccessToken).Return("test-opaque-generated", "test-opaque-seed", nil).Once()
 					return manager
@@ -264,8 +264,8 @@ func TestAuthServer_TranslateAccessToken(t *testing.T) {
 		{
 			name: "Test if no unexpected errors are returned on valid flow",
 			deps: deps{
-				tokenManager: func() tokens.TokenManager {
-					manager := tokenmocks.NewTokenManager()
+				tokenManager: func() tokens.Manager {
+					manager := tokensmocks.NewTokenManager()
 					manager.On("DecodeOpaque", tokens.AccessToken, "test-opaque").Return("test-opaque-decoded", nil).Once()
 					manager.On("Encode", mock.AnythingOfType("entity.Key"), mock.AnythingOfType("entity.Token")).Return([]byte("test-jwt-encoded"), nil).Once()
 					return manager
