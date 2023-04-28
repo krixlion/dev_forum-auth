@@ -74,8 +74,8 @@ func EncodeRSA(key interface{}) (proto.Message, error) {
 	n := privateKey.PublicKey.N.Bytes()
 
 	message := &rsapb.RSA{
-		N: base64.URLEncoding.EncodeToString(n),
-		E: base64.URLEncoding.EncodeToString(e),
+		N: base64.RawURLEncoding.EncodeToString(n),
+		E: base64.RawURLEncoding.EncodeToString(e),
 	}
 
 	return message, nil
