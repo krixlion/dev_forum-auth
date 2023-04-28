@@ -32,7 +32,7 @@ func RandomToken(tokenType entity.TokenType) entity.Token {
 		prefix = tokens.RefreshToken
 	}
 
-	_, id, err := manager.MakeTokenManager(manager.Config{
+	_, id, err := manager.MakeManager(manager.Config{
 		Issuer: "gentest",
 	}).GenerateOpaque(prefix)
 	if err != nil {

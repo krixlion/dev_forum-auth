@@ -49,12 +49,12 @@ type Key struct {
 	Raw       interface{}
 }
 
-// MakeTokenValidator returns a new instance
+// MakeValidator returns a new instance
 // or a non-nil error if provided RefreshFunc is nil.
 // If no Clock is provided in the config time.Now() is used by default.
 //
 // Make sure to invoke Run() before verifying tokens to start fetching keysets.
-func MakeTokenValidator(config Config) (*JWTValidator, error) {
+func MakeValidator(config Config) (*JWTValidator, error) {
 	if config.RefreshFunc == nil {
 		return nil, ErrRefreshFuncNil
 	}

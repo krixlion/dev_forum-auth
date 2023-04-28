@@ -11,7 +11,7 @@ import (
 )
 
 func setUpTokenManager() StdTokenManager {
-	m := MakeTokenManager(Config{
+	m := MakeManager(Config{
 		Issuer: testdata.TestIssuer,
 	})
 	return m

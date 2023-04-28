@@ -10,7 +10,7 @@ type Config struct {
 	Issuer string
 }
 
-func MakeTokenManager(config Config) StdTokenManager {
+func MakeManager(config Config) StdTokenManager {
 	return StdTokenManager{
 		config: config,
 	}

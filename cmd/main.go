@@ -113,7 +113,7 @@ func getServiceDependencies() service.Dependencies {
 		dispatcher.Subscribe(eType, handlers...)
 	}
 
-	tokenManager := manager.MakeTokenManager(manager.Config{
+	tokenManager := manager.MakeManager(manager.Config{
 		Issuer: issuer,
 	})
 
