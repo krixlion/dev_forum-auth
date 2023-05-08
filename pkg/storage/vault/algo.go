@@ -1,6 +1,7 @@
 package vault
 
 import (
+	"crypto"
 	"crypto/rsa"
 	"crypto/x509"
 	"encoding/base64"
@@ -18,7 +19,7 @@ import (
 // that should be used to encode this key to proto message format.
 // If decode func for specified algorithm is not found it returns an ErrAlgorithmNotSupported.
 // If the algorithm is not recognized it returns an ErrInvalidAlgorithm.
-func Decode(algorithm entity.Algorithm, encodedKey string) (interface{}, entity.KeyEncodeFunc, error) {
+func Decode(algorithm entity.Algorithm, encodedKey string) (crypto.PrivateKey, entity.KeyEncodeFunc, error) {
 	switch algorithm {
 	case entity.RS256:
 		v, err := DecodeRSA(encodedKey)
@@ -56,7 +57,7 @@ func DecodeRSA(rsaPem string) (*rsa.PrivateKey, error) {
 	return privateKey, nil
 }
 
-func EncodeRSA(key interface{}) (proto.Message, error) {
+func EncodeRSA(key crypto.PrivateKey) (proto.Message, error) {
 	var privateKey *rsa.PrivateKey
 
 	switch k := key.(type) {

@@ -141,8 +141,8 @@ func getServiceDependencies() service.Dependencies {
 	}
 
 	authConfig := server.Config{
-		AccessTokenValidityTime:  time.Minute * 5,
-		RefreshTokenValidityTime: time.Minute * 5,
+		AccessTokenValidityTime:  time.Minute * 15,
+		RefreshTokenValidityTime: time.Hour * 24 * 7, // One week
 	}
 
 	authDependencies := server.Dependencies{

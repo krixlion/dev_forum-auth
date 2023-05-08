@@ -1,6 +1,7 @@
 package entity
 
 import (
+	"crypto"
 	"errors"
 
 	"google.golang.org/protobuf/proto"
@@ -10,11 +11,11 @@ type Key struct {
 	Id         string
 	Type       KeyType
 	Algorithm  Algorithm
-	Raw        interface{}
+	Raw        crypto.PrivateKey
 	EncodeFunc KeyEncodeFunc
 }
 
-type KeyEncodeFunc func(interface{}) (proto.Message, error)
+type KeyEncodeFunc func(crypto.PrivateKey) (proto.Message, error)
 
 type KeyType string
 

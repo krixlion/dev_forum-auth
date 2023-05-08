@@ -22,7 +22,7 @@ type JWTValidator struct {
 	// when the current keyset is outdated
 	keySetExpired chan struct{}
 
-	keySetMutex sync.Mutex
+	keySetMutex sync.RWMutex
 	keySet      jwk.Set
 }
 
@@ -42,6 +42,7 @@ type Config struct {
 
 type RefreshFunc func(ctx context.Context) ([]Key, error)
 
+// Key is a struct for data necessary to register a key in a keyset.
 type Key struct {
 	Id        string
 	Algorithm string
@@ -66,7 +67,7 @@ func MakeValidator(config Config) (*JWTValidator, error) {
 	v := &JWTValidator{
 		config:        config,
 		keySetExpired: make(chan struct{}, 16),
-		keySetMutex:   sync.Mutex{},
+		keySetMutex:   sync.RWMutex{},
 	}
 	return v, nil
 }
@@ -146,8 +147,8 @@ func (validator *JWTValidator) fetchKeySet(ctx context.Context) error {
 func (validator *JWTValidator) keySetProvider() jwt.KeySetProvider {
 	return jwt.KeySetProviderFunc(func(jwt.Token) (jwk.Set, error) {
 
-		validator.keySetMutex.Lock()
-		defer validator.keySetMutex.Unlock()
+		validator.keySetMutex.RLock()
+		defer validator.keySetMutex.RUnlock()
 
 		if validator.keySet == nil {
 			// Keyset hasn't been fetched yet.

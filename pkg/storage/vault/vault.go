@@ -111,10 +111,6 @@ func (db Vault) GetKeySet(ctx context.Context) ([]entity.Key, error) {
 	keys := []entity.Key{}
 
 	for _, path := range keyPaths {
-		if path == "" {
-			continue
-		}
-
 		secret, err := db.vault.Get(ctx, path)
 		if err != nil {
 			return nil, err

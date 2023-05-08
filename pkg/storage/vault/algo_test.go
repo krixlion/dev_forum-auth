@@ -1,6 +1,7 @@
 package vault
 
 import (
+	"crypto"
 	"crypto/rsa"
 	"testing"
 
@@ -95,7 +96,7 @@ func TestDecodeRSA(t *testing.T) {
 
 func TestEncodeRSA(t *testing.T) {
 	type args struct {
-		key interface{}
+		key crypto.PrivateKey
 	}
 	tests := []struct {
 		name    string

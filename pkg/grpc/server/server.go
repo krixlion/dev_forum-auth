@@ -56,6 +56,7 @@ type Config struct {
 
 func NewAuthServer(dependencies Dependencies, config Config) AuthServer {
 	return AuthServer{
+		config:       config,
 		services:     dependencies.Services,
 		storage:      dependencies.Storage,
 		vault:        dependencies.Vault,
@@ -170,8 +171,6 @@ func (server AuthServer) GetAccessToken(ctx context.Context, req *pb.GetAccessTo
 		return nil, status.Error(codes.Internal, err.Error())
 	}
 
-	now := time.Now()
-
 	opaqueAccessToken, accessTokenId, err := server.tokenManager.GenerateOpaque(tokens.AccessToken)
 	if err != nil {
 		tracing.SetSpanErr(span, err)
@@ -182,8 +181,8 @@ func (server AuthServer) GetAccessToken(ctx context.Context, req *pb.GetAccessTo
 		Id:        accessTokenId,
 		UserId:    refreshToken.UserId,
 		Type:      entity.AccessToken,
-		ExpiresAt: now.Add(server.config.AccessTokenValidityTime),
-		IssuedAt:  now,
+		ExpiresAt: time.Now().Add(server.config.AccessTokenValidityTime),
+		IssuedAt:  time.Now(),
 	}
 
 	if err := server.storage.Create(ctx, accessToken); err != nil {
