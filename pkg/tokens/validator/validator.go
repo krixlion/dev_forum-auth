@@ -12,9 +12,9 @@ import (
 )
 
 var (
-	KeysNotProvided   = errors.New("function did not receive any keys")
-	ErrKeySetNotFound = errors.New("key set not found")
-	ErrRefreshFuncNil = errors.New("RefreshFunc is nil")
+	ErrKeysNotProvided = errors.New("function did not receive any keys")
+	ErrKeySetNotFound  = errors.New("key set not found")
+	ErrRefreshFuncNil  = errors.New("RefreshFunc is nil")
 )
 
 type JWTValidator struct {
@@ -169,7 +169,7 @@ func keySetFromKeys(keys []Key) (jwk.Set, error) {
 	keySet := jwk.NewSet()
 
 	if keys == nil {
-		return nil, KeysNotProvided
+		return nil, ErrKeysNotProvided
 	}
 
 	for _, key := range keys {
