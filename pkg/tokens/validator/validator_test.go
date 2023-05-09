@@ -33,7 +33,7 @@ var (
 )
 
 func setUpTokenValidator(ctx context.Context, refresher RefreshFunc, clockFunc jwt.Clock) *JWTValidator {
-	v, err := MakeValidator(Config{
+	v, err := NewValidator(Config{
 		Issuer:      testIssuer,
 		Clock:       clockFunc,
 		RefreshFunc: refresher,
@@ -145,7 +145,7 @@ func TestTokenValidator_VerifyJWT(t *testing.T) {
 	}
 }
 
-func Test_MakeTokenValidator(t *testing.T) {
+func Test_NewTokenValidator(t *testing.T) {
 	type args struct {
 		config Config
 	}
@@ -175,8 +175,36 @@ func Test_MakeTokenValidator(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if _, err := MakeValidator(tt.args.config); (err != nil) != tt.wantErr {
+			if _, err := NewValidator(tt.args.config); (err != nil) != tt.wantErr {
 				t.Errorf("MakeTokenValidator() error = %v, wantErr %v", err, tt.wantErr)
+			}
+		})
+	}
+}
+
+func Test_keySetFromKeys(t *testing.T) {
+	type args struct {
+		keys []Key
+	}
+	tests := []struct {
+		name    string
+		args    args
+		wantErr bool
+	}{
+		{
+			name: "Test if returns an error on nil keys",
+			args: args{
+				keys: nil,
+			},
+			wantErr: true,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			_, err := keySetFromKeys(tt.args.keys)
+			if (err != nil) != tt.wantErr {
+				t.Errorf("keySetFromKeys() error = %v, wantErr = %v", err, tt.wantErr)
+				return
 			}
 		})
 	}

@@ -12,6 +12,7 @@ import (
 )
 
 var (
+	KeysNotProvided   = errors.New("function did not receive any keys")
 	ErrKeySetNotFound = errors.New("key set not found")
 	ErrRefreshFuncNil = errors.New("RefreshFunc is nil")
 )
@@ -50,12 +51,12 @@ type Key struct {
 	Raw       interface{}
 }
 
-// MakeValidator returns a new instance
+// NewValidator returns a new instance
 // or a non-nil error if provided RefreshFunc is nil.
 // If no Clock is provided in the config time.Now() is used by default.
 //
 // Make sure to invoke Run() before verifying tokens to start fetching keysets.
-func MakeValidator(config Config) (*JWTValidator, error) {
+func NewValidator(config Config) (*JWTValidator, error) {
 	if config.RefreshFunc == nil {
 		return nil, ErrRefreshFuncNil
 	}
@@ -166,6 +167,10 @@ func (validator *JWTValidator) keySetProvider() jwt.KeySetProvider {
 // keySetFromKeys copies provided keys to a new keyset and returns it.
 func keySetFromKeys(keys []Key) (jwk.Set, error) {
 	keySet := jwk.NewSet()
+
+	if keys == nil {
+		return nil, KeysNotProvided
+	}
 
 	for _, key := range keys {
 		jwKey, err := jwk.New(key.Raw)
