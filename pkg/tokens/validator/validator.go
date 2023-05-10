@@ -3,6 +3,7 @@ package validator
 import (
 	"context"
 	"errors"
+	"fmt"
 	"sync"
 	"time"
 
@@ -12,9 +13,9 @@ import (
 )
 
 var (
-	ErrKeysNotProvided = errors.New("function did not receive any keys")
-	ErrKeySetNotFound  = errors.New("key set not found")
-	ErrRefreshFuncNil  = errors.New("RefreshFunc is nil")
+	ErrKeysNotReceived        = errors.New("no keys were received")
+	ErrKeySetNotFound         = errors.New("key set not found")
+	ErrRefreshFuncNotProvided = errors.New("no refreshFunc was provided to refresh the keyset")
 )
 
 type JWTValidator struct {
@@ -22,9 +23,9 @@ type JWTValidator struct {
 	// keySetExpired is a channel which notifies
 	// when the current keyset is outdated
 	keySetExpired chan struct{}
-
-	keySetMutex sync.RWMutex
-	keySet      jwk.Set
+	lastRefreshed time.Time
+	keySetMutex   sync.RWMutex
+	keySet        jwk.Set
 }
 
 type Config struct {
@@ -38,7 +39,7 @@ type Config struct {
 	// RefreshFunc is used to retrieve a fresh keyset.
 	// It's used by TokenValidator to refresh the keyset used for JWT validation
 	// each time it fails to find an expected key.
-	RefreshFunc func(ctx context.Context) ([]Key, error)
+	RefreshFunc RefreshFunc
 }
 
 type RefreshFunc func(ctx context.Context) ([]Key, error)
@@ -58,7 +59,7 @@ type Key struct {
 // Make sure to invoke Run() before verifying tokens to start fetching keysets.
 func NewValidator(config Config) (*JWTValidator, error) {
 	if config.RefreshFunc == nil {
-		return nil, ErrRefreshFuncNil
+		return nil, ErrRefreshFuncNotProvided
 	}
 
 	if config.Clock == nil {
@@ -73,7 +74,7 @@ func NewValidator(config Config) (*JWTValidator, error) {
 	return v, nil
 }
 
-// Run starts validator to refresh keySet automatically using RefreshFunc.
+// Run starts up the validator to refresh the its keySet automatically using its RefreshFunc.
 // This function will block until provided context is cancelled or the validator
 // fails to fetch a new keyset.
 func (validator *JWTValidator) Run(ctx context.Context) error {
@@ -82,6 +83,13 @@ func (validator *JWTValidator) Run(ctx context.Context) error {
 	for {
 		select {
 		case <-validator.keySetExpired:
+			isTooEarly := validator.lastRefreshed.Sub(validator.config.Clock.Now()) < time.Second
+			isNotFirstInit := validator.lastRefreshed != time.Time{}
+
+			if isTooEarly && isNotFirstInit {
+				continue
+			}
+
 			if err := validator.fetchKeySet(ctx); err != nil {
 				return err
 			}
@@ -114,8 +122,7 @@ func (validator *JWTValidator) VerifyToken(token string) error {
 		return err
 	}
 
-	tokenType, ok := jwToken.Get("type")
-	if !ok || tokenType != "access-token" {
+	if tokenType, ok := jwToken.Get("type"); !ok || tokenType != "access-token" {
 		return tokens.ErrInvalidTokenType
 	}
 
@@ -132,13 +139,14 @@ func (validator *JWTValidator) fetchKeySet(ctx context.Context) error {
 
 	keySet, err := keySetFromKeys(keys)
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to fetch keyset: %w", err)
 	}
 
 	validator.keySetMutex.Lock()
 	defer validator.keySetMutex.Unlock()
 
 	validator.keySet = keySet
+	validator.lastRefreshed = validator.config.Clock.Now()
 
 	return nil
 }
@@ -147,7 +155,6 @@ func (validator *JWTValidator) fetchKeySet(ctx context.Context) error {
 // Safe for concurrent use.
 func (validator *JWTValidator) keySetProvider() jwt.KeySetProvider {
 	return jwt.KeySetProviderFunc(func(jwt.Token) (jwk.Set, error) {
-
 		validator.keySetMutex.RLock()
 		defer validator.keySetMutex.RUnlock()
 
@@ -169,7 +176,7 @@ func keySetFromKeys(keys []Key) (jwk.Set, error) {
 	keySet := jwk.NewSet()
 
 	if keys == nil {
-		return nil, ErrKeysNotProvided
+		return nil, ErrKeysNotReceived
 	}
 
 	for _, key := range keys {

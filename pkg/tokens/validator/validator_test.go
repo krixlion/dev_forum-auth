@@ -32,29 +32,30 @@ var (
 	}
 )
 
-func setUpTokenValidator(ctx context.Context, refresher RefreshFunc, clockFunc jwt.Clock) *JWTValidator {
+func setUpTokenValidator(ctx context.Context, refreshFunc RefreshFunc, clockFunc jwt.Clock) *JWTValidator {
 	v, err := NewValidator(Config{
 		Issuer:      testIssuer,
 		Clock:       clockFunc,
-		RefreshFunc: refresher,
+		RefreshFunc: refreshFunc,
 	})
 	if err != nil {
 		panic(err)
 	}
 
 	go func() {
-		if err := v.Run(ctx); err != nil && !(errors.Is(err, context.Canceled) || errors.Is(err, context.DeadlineExceeded)) {
+		err := v.Run(ctx)
+		if err != nil && !(errors.Is(err, context.Canceled) || errors.Is(err, context.DeadlineExceeded)) {
 			panic(err)
 		}
 	}()
 
 	// Wait for the goroutine to start up.
-	time.Sleep(time.Millisecond)
+	time.Sleep(time.Millisecond * 10)
 
 	return v
 }
 
-func TestTokenValidator_VerifyJWT(t *testing.T) {
+func TestJWTValidator_VerifyJWT(t *testing.T) {
 	type args struct {
 		token string
 	}
@@ -130,7 +131,6 @@ func TestTokenValidator_VerifyJWT(t *testing.T) {
 			wantErr: true,
 		},
 	}
-
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			ctx, cancel := context.WithTimeout(context.Background(), time.Second)
@@ -207,5 +207,32 @@ func Test_keySetFromKeys(t *testing.T) {
 				return
 			}
 		})
+	}
+}
+
+func TestJWTValidator_RunReturnsOnContextCancellation(t *testing.T) {
+	validator, err := NewValidator(Config{
+		Issuer:      "",
+		RefreshFunc: func(ctx context.Context) ([]Key, error) { return []Key{testKey}, nil },
+	})
+	if err != nil {
+		t.Errorf("JWTValidator.Run() unexpected error = %v", err)
+		return
+	}
+
+	ctx, cancel := context.WithCancel(context.Background())
+
+	done := make(chan struct{})
+
+	go func() {
+		err = validator.Run(ctx)
+		done <- struct{}{}
+	}()
+
+	cancel()
+	<-done
+
+	if err == nil || !errors.Is(err, context.Canceled) {
+		t.Errorf("JWTValidator.Run() invalid error:\n want = %v\n got = %v", context.Canceled, err)
 	}
 }
