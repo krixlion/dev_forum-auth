@@ -8,32 +8,16 @@ import (
 
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/go-cmp/cmp/cmpopts"
+	"github.com/krixlion/dev_forum-auth/internal/gentest"
 	"github.com/krixlion/dev_forum-auth/pkg/entity"
+	"github.com/krixlion/dev_forum-auth/pkg/storage/db/testdata"
 	"github.com/krixlion/dev_forum-lib/env"
 	"github.com/krixlion/dev_forum-lib/filter"
 	"github.com/krixlion/dev_forum-lib/nulls"
 	"go.mongodb.org/mongo-driver/bson"
 )
 
-var (
-	testToken = entity.Token{
-		Id:        "test",
-		UserId:    "test-user",
-		Type:      entity.AccessToken,
-		ExpiresAt: time.Now(),
-		IssuedAt:  time.Now(),
-	}
-
-	testTokenDoc = tokenDocument{
-		Id:        testToken.Id,
-		UserId:    testToken.UserId,
-		Type:      string(testToken.Type),
-		ExpiresAt: testToken.ExpiresAt,
-		IssuedAt:  testToken.IssuedAt,
-	}
-)
-
-func setUpDB() DB {
+func setUpDB(ctx context.Context) DB {
 	env.Load("app")
 
 	port := os.Getenv("DB_PORT")
@@ -45,6 +29,16 @@ func setUpDB() DB {
 	if err != nil {
 		panic(err)
 	}
+
+	// Prepare the database for each test.
+	if err := testdata.Seed(); err != nil {
+		panic(err)
+	}
+
+	go func() {
+		<-ctx.Done()
+		storage.Close()
+	}()
 
 	return storage
 }
@@ -65,7 +59,11 @@ func TestDB_Create(t *testing.T) {
 		{
 			name: "Test if random token is created correctly",
 			args: args{
-				token: testToken,
+				token: func() entity.Token {
+					test := testdata.TestToken
+					test.Id = gentest.RandomString(10)
+					return test
+				}(),
 			},
 		},
 	}
@@ -74,7 +72,7 @@ func TestDB_Create(t *testing.T) {
 			ctx, cancel := context.WithTimeout(context.Background(), time.Second*2)
 			defer cancel()
 
-			db := setUpDB()
+			db := setUpDB(ctx)
 
 			if err := db.Create(ctx, tt.args.token); (err != nil) != tt.wantErr {
 				t.Errorf("DB.Create() error = %v, wantErr %v", err, tt.wantErr)
@@ -114,9 +112,9 @@ func TestDB_Get(t *testing.T) {
 		{
 			name: "Test if token is retrieved correctly",
 			args: args{
-				id: testToken.Id,
+				id: testdata.TestToken.Id,
 			},
-			want: testToken,
+			want: testdata.TestToken,
 		},
 	}
 	for _, tt := range tests {
@@ -124,7 +122,7 @@ func TestDB_Get(t *testing.T) {
 			ctx, cancel := context.WithTimeout(context.Background(), time.Second*2)
 			defer cancel()
 
-			db := setUpDB()
+			db := setUpDB(ctx)
 
 			got, err := db.Get(ctx, tt.args.id)
 			if (err != nil) != tt.wantErr {
@@ -159,10 +157,10 @@ func TestDB_GetMultiple(t *testing.T) {
 				filter: filter.Parameter{
 					Attribute: "user_id",
 					Operator:  filter.Equal,
-					Value:     testToken.UserId,
+					Value:     testdata.TestToken.UserId,
 				}.String(),
 			},
-			want: []entity.Token{testToken},
+			want: []entity.Token{testdata.TestToken},
 		},
 	}
 	for _, tt := range tests {
@@ -170,7 +168,7 @@ func TestDB_GetMultiple(t *testing.T) {
 			ctx, cancel := context.WithTimeout(context.Background(), time.Second*2)
 			defer cancel()
 
-			db := setUpDB()
+			db := setUpDB(ctx)
 
 			got, err := db.GetMultiple(ctx, tt.args.filter)
 			if (err != nil) != tt.wantErr {
@@ -201,7 +199,7 @@ func TestDB_Delete(t *testing.T) {
 		{
 			name: "Test if token is deleted correctly.",
 			args: args{
-				id: testToken.Id,
+				id: testdata.TestToken.Id,
 			},
 		},
 	}
@@ -210,7 +208,7 @@ func TestDB_Delete(t *testing.T) {
 			ctx, cancel := context.WithTimeout(context.Background(), time.Second*2)
 			defer cancel()
 
-			db := setUpDB()
+			db := setUpDB(ctx)
 
 			if err := db.Delete(ctx, tt.args.id); (err != nil) != tt.wantErr {
 				t.Errorf("DB.Delete() error = %v, wantErr %v", err, tt.wantErr)

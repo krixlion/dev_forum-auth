@@ -33,11 +33,7 @@ var (
 )
 
 func setUpTokenValidator(ctx context.Context, refreshFunc RefreshFunc, clockFunc jwt.Clock) *JWTValidator {
-	v, err := NewValidator(Config{
-		Issuer:      testIssuer,
-		Clock:       clockFunc,
-		RefreshFunc: refreshFunc,
-	})
+	v, err := NewValidator(testIssuer, refreshFunc, WithClock(clockFunc))
 	if err != nil {
 		panic(err)
 	}
@@ -147,7 +143,9 @@ func TestJWTValidator_VerifyJWT(t *testing.T) {
 
 func Test_NewTokenValidator(t *testing.T) {
 	type args struct {
-		config Config
+		Issuer      string
+		RefreshFunc RefreshFunc
+		options     []Option
 	}
 	tests := []struct {
 		name    string
@@ -156,26 +154,26 @@ func Test_NewTokenValidator(t *testing.T) {
 	}{
 		{
 			name: "Test if returns an error on nil RefreshFunc",
-			args: args{config: Config{
+			args: args{
 				Issuer:      testIssuer,
-				Clock:       testClockFunc,
+				options:     []Option{WithClock(testClockFunc)},
 				RefreshFunc: nil,
-			}},
+			},
 			wantErr: true,
 		},
 		{
 			name: "Test if does not return an err on nil Clock",
-			args: args{config: Config{
+			args: args{
 				Issuer:      testIssuer,
-				Clock:       nil,
+				options:     []Option{WithClock(nil)},
 				RefreshFunc: func(ctx context.Context) ([]Key, error) { return nil, nil },
-			}},
+			},
 			wantErr: false,
 		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if _, err := NewValidator(tt.args.config); (err != nil) != tt.wantErr {
+			if _, err := NewValidator(tt.args.Issuer, tt.args.RefreshFunc, tt.args.options...); (err != nil) != tt.wantErr {
 				t.Errorf("MakeTokenValidator() error = %v, wantErr %v", err, tt.wantErr)
 			}
 		})
@@ -211,10 +209,7 @@ func Test_keySetFromKeys(t *testing.T) {
 }
 
 func TestJWTValidator_RunReturnsOnContextCancellation(t *testing.T) {
-	validator, err := NewValidator(Config{
-		Issuer:      "",
-		RefreshFunc: func(ctx context.Context) ([]Key, error) { return []Key{testKey}, nil },
-	})
+	validator, err := NewValidator("", func(ctx context.Context) ([]Key, error) { return []Key{testKey}, nil })
 	if err != nil {
 		t.Errorf("JWTValidator.Run() unexpected error = %v", err)
 		return

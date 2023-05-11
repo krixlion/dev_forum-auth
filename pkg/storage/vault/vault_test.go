@@ -17,15 +17,16 @@ import (
 
 func setUpVault() Vault {
 	env.Load("app")
-	vaultHost := os.Getenv("VAULT_HOST")
-	vaultPort := os.Getenv("VAULT_PORT")
-	vaultMountPath := os.Getenv("VAULT_MOUNT_PATH")
-	vaultToken := os.Getenv("VAULT_TOKEN")
-	vaultConfig := Config{
-		VaultPath: vaultMountPath,
+
+	host := os.Getenv("VAULT_HOST")
+	port := os.Getenv("VAULT_PORT")
+	mountPath := os.Getenv("VAULT_MOUNT_PATH")
+	token := os.Getenv("VAULT_TOKEN")
+	config := Config{
+		VaultPath: mountPath,
 	}
 
-	vault, err := Make(vaultHost, vaultPort, vaultToken, vaultConfig, nulls.NullTracer{}, nulls.NullLogger{})
+	vault, err := Make(host, port, token, config, nulls.NullTracer{}, nulls.NullLogger{})
 	if err != nil {
 		panic(err)
 	}

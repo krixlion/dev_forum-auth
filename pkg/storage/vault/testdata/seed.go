@@ -1,54 +1,47 @@
-package main
+package testdata
 
 import (
 	"context"
 	"errors"
 	"fmt"
-	"log"
 	"os"
 	"time"
 
 	vault "github.com/hashicorp/vault/api"
 	"github.com/krixlion/dev_forum-auth/pkg/entity"
-	"github.com/krixlion/dev_forum-auth/pkg/storage/vault/testdata"
 	"github.com/krixlion/dev_forum-lib/env"
 )
 
-var testKeyData = map[string]interface{}{
-	"private":   testdata.RSAPem,
-	"algorithm": string(entity.RS256),
-	"keyType":   string(entity.RSA),
-}
-
-func main() {
+func Seed() error {
 	env.Load("app")
-	vaultHost := os.Getenv("VAULT_HOST")
-	vaultPort := os.Getenv("VAULT_PORT")
-	vaultMountPath := os.Getenv("VAULT_MOUNT_PATH")
-	vaultToken := os.Getenv("VAULT_TOKEN")
+
+	host := os.Getenv("VAULT_HOST")
+	port := os.Getenv("VAULT_PORT")
+	mountPath := os.Getenv("VAULT_MOUNT_PATH")
+	token := os.Getenv("VAULT_TOKEN")
 
 	client, err := vault.NewClient(&vault.Config{
-		Address: fmt.Sprintf("http://%s:%s", vaultHost, vaultPort),
+		Address: fmt.Sprintf("http://%s:%s", host, port),
 	})
 	if err != nil {
-		log.Fatal(err)
+		return err
 	}
 
-	client.SetToken(vaultToken)
+	client.SetToken(token)
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second*10)
 	defer cancel()
 
-	paths, err := list(ctx, client, vaultMountPath)
+	paths, err := list(ctx, client, mountPath)
 	if err != nil {
-		log.Fatal(fmt.Errorf("failed to list: %w", err))
+		return fmt.Errorf("failed to list: %w", err)
 	}
 
-	kvv2 := client.KVv2(vaultMountPath)
+	kvv2 := client.KVv2(mountPath)
 
 	for _, path := range paths {
 		metadataSlice, err := kvv2.GetVersionsAsList(ctx, path)
 		if err != nil {
-			log.Fatal(fmt.Errorf("failed to get versions: %w", err))
+			return fmt.Errorf("failed to get versions: %w", err)
 		}
 
 		versions := make([]int, 0, len(metadataSlice))
@@ -58,17 +51,25 @@ func main() {
 		}
 
 		if err := kvv2.DeleteVersions(ctx, path, versions); err != nil {
-			log.Fatal(fmt.Errorf("failed to delete versions: %w", err))
+			return fmt.Errorf("failed to delete versions: %w", err)
 		}
 
 		if err := kvv2.Destroy(ctx, path, versions); err != nil {
-			log.Fatal(fmt.Errorf("failed to destroy: %w", err))
+			return fmt.Errorf("failed to destroy: %w", err)
 		}
 	}
 
-	if _, err := kvv2.Put(ctx, testdata.Id, testKeyData); err != nil {
-		log.Fatal(fmt.Errorf("failed to put key: %w", err))
+	testKeyData := map[string]interface{}{
+		"private":   RSAPem,
+		"algorithm": string(entity.RS256),
+		"keyType":   string(entity.RSA),
 	}
+
+	if _, err := kvv2.Put(ctx, Id, testKeyData); err != nil {
+		return fmt.Errorf("failed to put key: %w", err)
+	}
+
+	return nil
 }
 
 func list(ctx context.Context, client *vault.Client, path string) ([]string, error) {

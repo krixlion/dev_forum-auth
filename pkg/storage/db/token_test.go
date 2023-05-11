@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	"github.com/krixlion/dev_forum-auth/pkg/entity"
+	"github.com/krixlion/dev_forum-auth/pkg/storage/db/testdata"
 )
 
 func Test_makeDocumentFromToken(t *testing.T) {
@@ -19,9 +20,15 @@ func Test_makeDocumentFromToken(t *testing.T) {
 		{
 			name: "Test if correctly parses a test token",
 			args: args{
-				token: testToken,
+				token: testdata.TestToken,
 			},
-			want: testTokenDoc,
+			want: tokenDocument{
+				Id:        testdata.TestToken.Id,
+				UserId:    testdata.TestToken.UserId,
+				Type:      string(testdata.TestToken.Type),
+				ExpiresAt: testdata.TestToken.ExpiresAt,
+				IssuedAt:  testdata.TestToken.IssuedAt,
+			},
 		},
 	}
 	for _, tt := range tests {
@@ -45,9 +52,15 @@ func Test_makeTokenFromDocument(t *testing.T) {
 		{
 			name: "Test if correctly makes a token",
 			args: args{
-				v: testTokenDoc,
+				v: tokenDocument{
+					Id:        testdata.TestToken.Id,
+					UserId:    testdata.TestToken.UserId,
+					Type:      string(testdata.TestToken.Type),
+					ExpiresAt: testdata.TestToken.ExpiresAt,
+					IssuedAt:  testdata.TestToken.IssuedAt,
+				},
 			},
-			want: testToken,
+			want: testdata.TestToken,
 		},
 	}
 	for _, tt := range tests {
