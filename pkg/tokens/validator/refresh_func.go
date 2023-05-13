@@ -68,11 +68,11 @@ func DefaultRefreshFunc(authClient pb.AuthServiceClient) RefreshFunc {
 
 // keySetFromKeys copies provided keys to a new keyset and returns it.
 func keySetFromKeys(keys []Key) (jwk.Set, error) {
-	keySet := jwk.NewSet()
-
 	if keys == nil {
 		return nil, ErrKeysNotReceived
 	}
+
+	keySet := jwk.NewSet()
 
 	for _, key := range keys {
 		jwKey, err := jwk.New(key.Raw)

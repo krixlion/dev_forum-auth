@@ -1,4 +1,4 @@
-package db
+package mongo
 
 import (
 	"github.com/krixlion/dev_forum-lib/filter"

@@ -1,4 +1,4 @@
-package db
+package mongo
 
 import (
 	"context"
@@ -9,7 +9,7 @@ import (
 	"go.mongodb.org/mongo-driver/mongo/options"
 )
 
-func (db DB) Get(ctx context.Context, opaqueToken string) (entity.Token, error) {
+func (db Mongo) Get(ctx context.Context, opaqueToken string) (entity.Token, error) {
 	ctx, span := db.tracer.Start(ctx, "db.Get")
 	defer span.End()
 
@@ -27,7 +27,7 @@ func (db DB) Get(ctx context.Context, opaqueToken string) (entity.Token, error) 
 	return token, nil
 }
 
-func (db DB) GetMultiple(ctx context.Context, query string) ([]entity.Token, error) {
+func (db Mongo) GetMultiple(ctx context.Context, query string) ([]entity.Token, error) {
 	ctx, span := db.tracer.Start(ctx, "db.GetMultiple")
 	defer span.End()
 
@@ -61,7 +61,7 @@ func (db DB) GetMultiple(ctx context.Context, query string) ([]entity.Token, err
 	return tokens, nil
 }
 
-func (db DB) Create(ctx context.Context, token entity.Token) error {
+func (db Mongo) Create(ctx context.Context, token entity.Token) error {
 	ctx, span := db.tracer.Start(ctx, "db.Create")
 	defer span.End()
 
@@ -73,7 +73,7 @@ func (db DB) Create(ctx context.Context, token entity.Token) error {
 	return nil
 }
 
-func (db DB) Delete(ctx context.Context, id string) error {
+func (db Mongo) Delete(ctx context.Context, id string) error {
 	ctx, span := db.tracer.Start(ctx, "db.Delete")
 	defer span.End()
 

@@ -1,11 +1,11 @@
-package db
+package mongo
 
 import (
 	"reflect"
 	"testing"
 
 	"github.com/krixlion/dev_forum-auth/pkg/entity"
-	"github.com/krixlion/dev_forum-auth/pkg/storage/db/testdata"
+	"github.com/krixlion/dev_forum-auth/pkg/storage/mongo/testdata"
 )
 
 func Test_makeDocumentFromToken(t *testing.T) {
@@ -20,14 +20,14 @@ func Test_makeDocumentFromToken(t *testing.T) {
 		{
 			name: "Test if correctly parses a test token",
 			args: args{
-				token: testdata.TestToken,
+				token: testdata.Token,
 			},
 			want: tokenDocument{
-				Id:        testdata.TestToken.Id,
-				UserId:    testdata.TestToken.UserId,
-				Type:      string(testdata.TestToken.Type),
-				ExpiresAt: testdata.TestToken.ExpiresAt,
-				IssuedAt:  testdata.TestToken.IssuedAt,
+				Id:        testdata.Token.Id,
+				UserId:    testdata.Token.UserId,
+				Type:      string(testdata.Token.Type),
+				ExpiresAt: testdata.Token.ExpiresAt,
+				IssuedAt:  testdata.Token.IssuedAt,
 			},
 		},
 	}
@@ -53,14 +53,14 @@ func Test_makeTokenFromDocument(t *testing.T) {
 			name: "Test if correctly makes a token",
 			args: args{
 				v: tokenDocument{
-					Id:        testdata.TestToken.Id,
-					UserId:    testdata.TestToken.UserId,
-					Type:      string(testdata.TestToken.Type),
-					ExpiresAt: testdata.TestToken.ExpiresAt,
-					IssuedAt:  testdata.TestToken.IssuedAt,
+					Id:        testdata.Token.Id,
+					UserId:    testdata.Token.UserId,
+					Type:      string(testdata.Token.Type),
+					ExpiresAt: testdata.Token.ExpiresAt,
+					IssuedAt:  testdata.Token.IssuedAt,
 				},
 			},
-			want: testdata.TestToken,
+			want: testdata.Token,
 		},
 	}
 	for _, tt := range tests {

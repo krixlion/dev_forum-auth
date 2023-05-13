@@ -4,7 +4,7 @@ import (
 	"log"
 	"testing"
 
-	mongo "github.com/krixlion/dev_forum-auth/pkg/storage/db/testdata"
+	mongo "github.com/krixlion/dev_forum-auth/pkg/storage/mongo/testdata"
 	vault "github.com/krixlion/dev_forum-auth/pkg/storage/vault/testdata"
 	"go.uber.org/goleak"
 )

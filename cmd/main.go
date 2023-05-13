@@ -12,7 +12,7 @@ import (
 	"github.com/krixlion/dev_forum-auth/pkg/grpc/server"
 	pb "github.com/krixlion/dev_forum-auth/pkg/grpc/v1"
 	"github.com/krixlion/dev_forum-auth/pkg/service"
-	"github.com/krixlion/dev_forum-auth/pkg/storage/db"
+	"github.com/krixlion/dev_forum-auth/pkg/storage/mongo"
 	"github.com/krixlion/dev_forum-auth/pkg/storage/vault"
 	"github.com/krixlion/dev_forum-auth/pkg/tokens/manager"
 	"github.com/krixlion/dev_forum-lib/env"
@@ -86,7 +86,7 @@ func getServiceDependencies() service.Dependencies {
 	dbUser := os.Getenv("DB_USER")
 	dbPass := os.Getenv("DB_PASS")
 	dbName := os.Getenv("DB_NAME")
-	storage, err := db.Make(dbUser, dbPass, dbHost, dbPort, dbName, logger, tracer)
+	storage, err := mongo.Make(dbUser, dbPass, dbHost, dbPort, dbName, logger, tracer)
 	if err != nil {
 		panic(err)
 	}
@@ -107,7 +107,7 @@ func getServiceDependencies() service.Dependencies {
 
 	mq := rabbitmq.NewRabbitMQ(serviceName, mqUser, mqPass, mqHost, mqPort, mqConfig, rabbitmq.WithLogger(logger), rabbitmq.WithTracer(tracer))
 	broker := broker.NewBroker(mq, logger, tracer)
-	dispatcher := dispatcher.NewDispatcher(broker, 20)
+	dispatcher := dispatcher.NewDispatcher(20)
 
 	for eType, handlers := range storage.EventHandlers() {
 		dispatcher.Subscribe(eType, handlers...)
@@ -141,7 +141,8 @@ func getServiceDependencies() service.Dependencies {
 	}
 
 	authConfig := server.Config{
-		AccessTokenValidityTime:  time.Minute * 15,
+		// AccessTokenValidityTime:  time.Minute * 15,
+		AccessTokenValidityTime:  time.Hour * 24 * 7, // One week
 		RefreshTokenValidityTime: time.Hour * 24 * 7, // One week
 	}
 

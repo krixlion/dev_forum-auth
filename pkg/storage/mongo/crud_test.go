@@ -1,4 +1,4 @@
-package db
+package mongo
 
 import (
 	"context"
@@ -10,14 +10,14 @@ import (
 	"github.com/google/go-cmp/cmp/cmpopts"
 	"github.com/krixlion/dev_forum-auth/internal/gentest"
 	"github.com/krixlion/dev_forum-auth/pkg/entity"
-	"github.com/krixlion/dev_forum-auth/pkg/storage/db/testdata"
+	"github.com/krixlion/dev_forum-auth/pkg/storage/mongo/testdata"
 	"github.com/krixlion/dev_forum-lib/env"
 	"github.com/krixlion/dev_forum-lib/filter"
 	"github.com/krixlion/dev_forum-lib/nulls"
 	"go.mongodb.org/mongo-driver/bson"
 )
 
-func setUpDB(ctx context.Context) DB {
+func setUpDB(ctx context.Context) Mongo {
 	env.Load("app")
 
 	port := os.Getenv("DB_PORT")
@@ -60,7 +60,7 @@ func TestDB_Create(t *testing.T) {
 			name: "Test if random token is created correctly",
 			args: args{
 				token: func() entity.Token {
-					test := testdata.TestToken
+					test := testdata.Token
 					test.Id = gentest.RandomString(10)
 					return test
 				}(),
@@ -112,9 +112,9 @@ func TestDB_Get(t *testing.T) {
 		{
 			name: "Test if token is retrieved correctly",
 			args: args{
-				id: testdata.TestToken.Id,
+				id: testdata.Token.Id,
 			},
-			want: testdata.TestToken,
+			want: testdata.Token,
 		},
 	}
 	for _, tt := range tests {
@@ -157,10 +157,10 @@ func TestDB_GetMultiple(t *testing.T) {
 				filter: filter.Parameter{
 					Attribute: "user_id",
 					Operator:  filter.Equal,
-					Value:     testdata.TestToken.UserId,
+					Value:     testdata.Token.UserId,
 				}.String(),
 			},
-			want: []entity.Token{testdata.TestToken},
+			want: []entity.Token{testdata.Token},
 		},
 	}
 	for _, tt := range tests {
@@ -199,7 +199,7 @@ func TestDB_Delete(t *testing.T) {
 		{
 			name: "Test if token is deleted correctly.",
 			args: args{
-				id: testdata.TestToken.Id,
+				id: testdata.Token.Id,
 			},
 		},
 	}

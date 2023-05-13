@@ -1,4 +1,4 @@
-package db
+package mongo
 
 import (
 	"context"
@@ -16,20 +16,20 @@ import (
 
 const collectionName = "tokens"
 
-type DB struct {
+type Mongo struct {
 	client *mongo.Client
 	tokens *mongo.Collection
 	logger logging.Logger
 	tracer trace.Tracer
 }
 
-func Make(user, pass, host, port, dbName string, logger logging.Logger, tracer trace.Tracer) (DB, error) {
+func Make(user, pass, host, port, dbName string, logger logging.Logger, tracer trace.Tracer) (Mongo, error) {
 	// uri := fmt.Sprintf("mongodb://%s:%s@%s:%s/%s?retryWrites=true&w=majority&tls=false&authSource=admin", user, pass, host, port, dbName)
 	uri := fmt.Sprintf("mongodb://%s:%s/%s?retryWrites=true&w=majority&tls=false", host, port, dbName)
 	reg := bson.NewRegistryBuilder().Build()
 
-	serverAPI := options.ServerAPI(options.ServerAPIVersion1)
-	opts := options.Client().ApplyURI(uri).SetServerAPIOptions(serverAPI).SetRegistry(reg)
+	serverAPIopts := options.ServerAPI(options.ServerAPIVersion1)
+	opts := options.Client().ApplyURI(uri).SetServerAPIOptions(serverAPIopts).SetRegistry(reg)
 
 	// Add tracing and metrics.
 	opts.Monitor = otelmongo.NewMonitor()
@@ -39,12 +39,12 @@ func Make(user, pass, host, port, dbName string, logger logging.Logger, tracer t
 
 	client, err := mongo.Connect(ctx, opts)
 	if err != nil {
-		return DB{}, err
+		return Mongo{}, err
 	}
 
 	tokens := client.Database(dbName).Collection(collectionName)
 
-	return DB{
+	return Mongo{
 		client: client,
 		tokens: tokens,
 		logger: logger,
@@ -52,7 +52,7 @@ func Make(user, pass, host, port, dbName string, logger logging.Logger, tracer t
 	}, nil
 }
 
-func (db DB) Close() error {
+func (db Mongo) Close() error {
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second*2)
 	defer cancel()
 
@@ -63,6 +63,6 @@ func (db DB) Close() error {
 	return nil
 }
 
-func (db DB) EventHandlers() map[event.EventType][]event.Handler {
+func (db Mongo) EventHandlers() map[event.EventType][]event.Handler {
 	return nil
 }

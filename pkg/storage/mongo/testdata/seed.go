@@ -12,7 +12,7 @@ import (
 	"go.mongodb.org/mongo-driver/mongo/options"
 )
 
-var TestToken = entity.Token{
+var Token = entity.Token{
 	Id:        "test",
 	UserId:    "test-user",
 	Type:      entity.AccessToken,
@@ -39,11 +39,11 @@ func Seed() error {
 	}
 
 	testData := map[string]interface{}{
-		"_id":        TestToken.Id,
-		"user_id":    TestToken.UserId,
-		"type":       TestToken.Type,
-		"expires_at": TestToken.ExpiresAt,
-		"issued_at":  TestToken.IssuedAt,
+		"_id":        Token.Id,
+		"user_id":    Token.UserId,
+		"type":       Token.Type,
+		"expires_at": Token.ExpiresAt,
+		"issued_at":  Token.IssuedAt,
 	}
 
 	if _, err := client.Database(dbName).Collection("tokens").InsertOne(ctx, testData); err != nil {

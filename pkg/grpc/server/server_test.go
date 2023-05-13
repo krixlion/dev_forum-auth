@@ -15,7 +15,6 @@ import (
 	"github.com/krixlion/dev_forum-auth/pkg/storage/storagemocks"
 	"github.com/krixlion/dev_forum-auth/pkg/tokens"
 	"github.com/krixlion/dev_forum-auth/pkg/tokens/tokensmocks"
-	"github.com/krixlion/dev_forum-lib/event"
 	"github.com/krixlion/dev_forum-lib/event/dispatcher"
 	"github.com/krixlion/dev_forum-lib/nulls"
 	userPb "github.com/krixlion/dev_forum-user/pkg/grpc/v1"
@@ -33,7 +32,6 @@ type deps struct {
 	storage      storage.Storage
 	vault        storage.Vault
 	userClient   userPb.UserServiceClient
-	broker       event.Broker
 	tokenManager tokens.Manager
 }
 
@@ -62,7 +60,7 @@ func setUpServer(ctx context.Context, d deps) pb.AuthServiceClient {
 		Vault:        d.vault,
 		TokenManager: d.tokenManager,
 		Storage:      d.storage,
-		Dispatcher:   dispatcher.NewDispatcher(d.broker, 0),
+		Dispatcher:   dispatcher.NewDispatcher(0),
 		Logger:       nulls.NullLogger{},
 		Tracer:       nulls.NullTracer{},
 	}
