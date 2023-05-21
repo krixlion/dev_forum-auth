@@ -6,7 +6,7 @@ import (
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
-	"github.com/krixlion/dev_forum-auth/pkg/grpc/serialize"
+	"github.com/krixlion/dev_forum-auth/pkg/grpc/deserialize"
 	"github.com/krixlion/dev_forum-auth/pkg/storage/vault"
 )
 
@@ -23,7 +23,7 @@ func TestKeySerializationFlowCompatibilityForRSA(t *testing.T) {
 		return
 	}
 
-	pubKey, err := serialize.Key(serialized)
+	pubKey, err := deserialize.Key(serialized)
 	if err != nil {
 		t.Errorf("Failed to serialize RSA key: error = %v", err)
 		return

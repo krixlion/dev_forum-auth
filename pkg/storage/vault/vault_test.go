@@ -1,124 +1,48 @@
 package vault
 
 import (
-	"context"
-	"crypto/rsa"
-	"os"
 	"testing"
 	"time"
 
 	"github.com/google/go-cmp/cmp"
-	"github.com/google/go-cmp/cmp/cmpopts"
-	"github.com/krixlion/dev_forum-auth/pkg/entity"
-	"github.com/krixlion/dev_forum-auth/pkg/storage/vault/testdata"
-	"github.com/krixlion/dev_forum-lib/env"
 	"github.com/krixlion/dev_forum-lib/nulls"
 )
 
-func setUpVault() Vault {
-	env.Load("app")
+func Test_Make(t *testing.T) {
+	t.Run("Test default logger and tracer are correctly assigned when not provided", func(t *testing.T) {
+		got, err := Make("host", "8888", "token", Config{
+			MountPath: "path",
+		}, nil, nil)
+		if err != nil {
+			t.Errorf("Make() error = %v", err)
+			return
+		}
 
-	host := os.Getenv("VAULT_HOST")
-	port := os.Getenv("VAULT_PORT")
-	mountPath := os.Getenv("VAULT_MOUNT_PATH")
-	token := os.Getenv("VAULT_TOKEN")
-	config := Config{
-		VaultPath: mountPath,
-	}
+		if !cmp.Equal(got.logger, nulls.NullLogger{}) {
+			t.Errorf("Make(): default logger not assigned:\n = %+v, want %+v", got.logger, nulls.NullLogger{})
+		}
 
-	vault, err := Make(host, port, token, config, nulls.NullTracer{}, nulls.NullLogger{})
-	if err != nil {
-		panic(err)
-	}
+		if !cmp.Equal(got.tracer, nulls.NullTracer{}) {
+			t.Errorf("Make(): default tracer not assigned:\n = %+v, want %+v", got.tracer, nulls.NullTracer{})
+		}
+	})
 
-	return vault
-}
+	t.Run("Test config is assigned", func(t *testing.T) {
+		want := Config{
+			MountPath:          "path",
+			KeyCount:           50,
+			KeyRefreshInterval: time.Hour,
+		}
 
-func TestVault_GetKeySet(t *testing.T) {
-	if testing.Short() {
-		t.Skip("Skipping vault.GetKeySet integration test...")
-	}
+		got, err := Make("host", "8888", "token", want, nil, nil)
+		if err != nil {
+			t.Errorf("Make() error = %v", err)
+			return
+		}
 
-	tests := []struct {
-		name    string
-		want    []entity.Key
-		wantErr bool
-	}{
-		{
-			name: "Test if retrieves beforehand seeded set",
-			want: []entity.Key{
-				{
-					Id:        "test",
-					Algorithm: entity.RS256,
-					Raw: func() *rsa.PrivateKey {
-						key, err := DecodeRSA(testdata.RSAPem)
-						if err != nil {
-							panic(err)
-						}
-						return key
-					}(),
-					EncodeFunc: EncodeRSA,
-				},
-			},
-		},
-	}
+		if !cmp.Equal(got.config, want) {
+			t.Errorf("Make() = %v, want %v", got, want)
+		}
 
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			db := setUpVault()
-
-			ctx, cancel := context.WithTimeout(context.Background(), time.Second*2)
-			defer cancel()
-
-			got, err := db.GetKeySet(ctx)
-			if (err != nil) != tt.wantErr {
-				t.Errorf("Vault.GetKeySet() error = %v, wantErr %v", err, tt.wantErr)
-				return
-			}
-
-			if !cmp.Equal(got, tt.want, cmpopts.IgnoreFields(entity.Key{}, "EncodeFunc")) {
-				t.Errorf("Vault.GetKeySet():\n got = %v\n want = %v\n %v", got, tt.want, cmp.Diff(got, tt.want))
-			}
-		})
-	}
-}
-
-func TestVault_list(t *testing.T) {
-	if testing.Short() {
-		t.Skip("Skipping vault.list integration test...")
-	}
-
-	type args struct {
-		path string
-	}
-	tests := []struct {
-		name    string
-		args    args
-		want    []string
-		wantErr bool
-	}{
-		{
-			name: "Test if retrieves beforehand seeded path",
-			args: args{path: "secret"},
-			want: []string{"test"},
-		},
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			db := setUpVault()
-
-			ctx, cancel := context.WithTimeout(context.Background(), time.Second*2)
-			defer cancel()
-
-			got, err := db.list(ctx, tt.args.path)
-			if (err != nil) != tt.wantErr {
-				t.Errorf("Vault.list() error = %v, wantErr %v", err, tt.wantErr)
-				return
-			}
-
-			if !cmp.Equal(got, tt.want) {
-				t.Errorf("Vault.list():\n got = %v\n want = %v\n %v", got, tt.want, cmp.Diff(got, tt.want))
-			}
-		})
-	}
+	})
 }

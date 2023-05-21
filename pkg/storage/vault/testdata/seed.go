@@ -12,6 +12,13 @@ import (
 	"github.com/krixlion/dev_forum-lib/env"
 )
 
+var ErrFailedToParseKey = errors.New("failed to parse key")
+
+func init() {
+	initRSA()
+	initECDSA()
+}
+
 func Seed() error {
 	env.Load("app")
 
@@ -39,23 +46,8 @@ func Seed() error {
 	kvv2 := client.KVv2(mountPath)
 
 	for _, path := range paths {
-		metadataSlice, err := kvv2.GetVersionsAsList(ctx, path)
-		if err != nil {
-			return fmt.Errorf("failed to get versions: %w", err)
-		}
-
-		versions := make([]int, 0, len(metadataSlice))
-
-		for _, metadata := range metadataSlice {
-			versions = append(versions, metadata.Version)
-		}
-
-		if err := kvv2.DeleteVersions(ctx, path, versions); err != nil {
+		if err := kvv2.DeleteMetadata(ctx, path); err != nil {
 			return fmt.Errorf("failed to delete versions: %w", err)
-		}
-
-		if err := kvv2.Destroy(ctx, path, versions); err != nil {
-			return fmt.Errorf("failed to destroy: %w", err)
 		}
 	}
 
@@ -65,7 +57,17 @@ func Seed() error {
 		"keyType":   string(entity.RSA),
 	}
 
-	if _, err := kvv2.Put(ctx, Id, testKeyData); err != nil {
+	if _, err := kvv2.Put(ctx, RSAId, testKeyData); err != nil {
+		return fmt.Errorf("failed to put key: %w", err)
+	}
+
+	testKeyData = map[string]interface{}{
+		"private":   ECDSAPem,
+		"algorithm": string(entity.ES256),
+		"keyType":   string(entity.ECDSA),
+	}
+
+	if _, err := kvv2.Put(ctx, ECDSAId, testKeyData); err != nil {
 		return fmt.Errorf("failed to put key: %w", err)
 	}
 
@@ -88,15 +90,19 @@ func list(ctx context.Context, client *vault.Client, path string) ([]string, err
 	for _, pathLists := range secret.Data {
 		pathList, ok := pathLists.([]interface{})
 		if !ok {
-			return nil, errors.New("failed to parse key")
+			err := ErrFailedToParseKey
+			return nil, err
 		}
 
-		path, ok := pathList[0].(string)
-		if !ok {
-			return nil, errors.New("failed to parse key")
-		}
+		for _, path := range pathList {
+			path, ok := path.(string)
+			if !ok {
+				err := ErrFailedToParseKey
+				return nil, err
+			}
 
-		paths = append(paths, path)
+			paths = append(paths, path)
+		}
 	}
 
 	return paths, nil

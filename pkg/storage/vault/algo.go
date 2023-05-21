@@ -2,6 +2,8 @@ package vault
 
 import (
 	"crypto"
+	"crypto/ecdsa"
+	"crypto/elliptic"
 	"crypto/rsa"
 	"crypto/x509"
 	"encoding/base64"
@@ -11,7 +13,8 @@ import (
 	"fmt"
 
 	"github.com/krixlion/dev_forum-auth/pkg/entity"
-	rsapb "github.com/krixlion/dev_forum-auth/pkg/grpc/v1/rsa"
+	ecPb "github.com/krixlion/dev_forum-auth/pkg/grpc/v1/ec"
+	rsaPb "github.com/krixlion/dev_forum-auth/pkg/grpc/v1/rsa"
 	"google.golang.org/protobuf/proto"
 )
 
@@ -26,10 +29,13 @@ func Decode(algorithm entity.Algorithm, encodedKey string) (crypto.PrivateKey, e
 		if err != nil {
 			return nil, nil, err
 		}
-
 		return v, EncodeRSA, nil
 	case entity.ES256:
-		return nil, nil, ErrAlgorithmNotSupported
+		v, err := DecodeECDSA(encodedKey)
+		if err != nil {
+			return nil, nil, err
+		}
+		return v, EncodeECDSA, nil
 	case entity.HS256:
 		return nil, nil, ErrAlgorithmNotSupported
 	default:
@@ -74,9 +80,65 @@ func EncodeRSA(key crypto.PrivateKey) (proto.Message, error) {
 
 	n := privateKey.PublicKey.N.Bytes()
 
-	message := &rsapb.RSA{
+	message := &rsaPb.RSA{
 		N: base64.RawURLEncoding.EncodeToString(n),
 		E: base64.RawURLEncoding.EncodeToString(e),
+	}
+
+	return message, nil
+}
+
+func DecodeECDSA(ecdsaPem string) (*ecdsa.PrivateKey, error) {
+	block, _ := pem.Decode([]byte(ecdsaPem))
+
+	if block == nil {
+		return nil, errors.New("failed to decode ecdsa pem block")
+	}
+
+	if block.Type != "EC PRIVATE KEY" {
+		return nil, ErrInvalidKeyType
+	}
+
+	privateKey, err := x509.ParseECPrivateKey(block.Bytes)
+	if err != nil {
+		return nil, err
+	}
+
+	return privateKey, nil
+}
+
+func EncodeECDSA(key crypto.PrivateKey) (proto.Message, error) {
+	if key == nil {
+		return nil, errors.New("received nil key")
+	}
+
+	var privateKey *ecdsa.PrivateKey
+	switch k := key.(type) {
+	case *ecdsa.PrivateKey:
+		privateKey = k
+	case ecdsa.PrivateKey:
+		privateKey = &k
+	default:
+		return nil, fmt.Errorf("received invalid key type, expected *ecdsa.PrivateKey, received %T", key)
+	}
+
+	x := privateKey.PublicKey.X.Bytes()
+	y := privateKey.PublicKey.Y.Bytes()
+
+	var crv ecPb.ECType
+	switch privateKey.PublicKey.Curve {
+	case elliptic.P256():
+		crv = ecPb.ECType_P256
+	case elliptic.P384():
+		crv = ecPb.ECType_P384
+	case elliptic.P521():
+		crv = ecPb.ECType_P521
+	}
+
+	message := &ecPb.EC{
+		Crv: crv,
+		X:   base64.RawURLEncoding.EncodeToString(x),
+		Y:   base64.RawURLEncoding.EncodeToString(y),
 	}
 
 	return message, nil

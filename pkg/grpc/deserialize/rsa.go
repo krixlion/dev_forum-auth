@@ -1,4 +1,4 @@
-package serialize
+package deserialize
 
 import (
 	"crypto/rsa"
@@ -16,7 +16,7 @@ var (
 	ErrKeyNil             = errors.New("key is nil")
 )
 
-// Key detects a gRPC format of key and de-serializes it using the corresponding function.
+// Key detects a gRPC format of key and deserializes it using the corresponding function.
 func Key(input proto.Message) (interface{}, error) {
 	switch msg := input.(type) {
 	case *rsapb.RSA:
@@ -26,6 +26,7 @@ func Key(input proto.Message) (interface{}, error) {
 	}
 }
 
+// Unserializes an RSA message.
 func RSA(input *rsapb.RSA) (*rsa.PublicKey, error) {
 	if input == nil {
 		return nil, ErrKeyNil

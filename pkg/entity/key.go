@@ -20,7 +20,7 @@ type KeyEncodeFunc func(crypto.PrivateKey) (proto.Message, error)
 type KeyType string
 
 const (
-	RSA   KeyType = "RS"
+	RSA   KeyType = "RSA"
 	ECDSA KeyType = "ECDSA"
 	HMAC  KeyType = "HMAC"
 )

@@ -53,7 +53,7 @@ func main() {
 		logging.Log("Failed to initialize tracing", "err", err)
 	}
 
-	service := service.NewAuthService(port, getServiceDependencies())
+	service := service.NewAuthService(port, getServiceDependencies(ctx))
 	service.Run(ctx)
 
 	<-ctx.Done()
@@ -73,7 +73,7 @@ func main() {
 
 // getServiceDependencies is the composition root.
 // Panics on any non-nil error.
-func getServiceDependencies() service.Dependencies {
+func getServiceDependencies(ctx context.Context) service.Dependencies {
 	tracer := otel.Tracer(serviceName)
 
 	logger, err := logging.NewLogger()
@@ -133,12 +133,16 @@ func getServiceDependencies() service.Dependencies {
 	vaultMountPath := os.Getenv("VAULT_MOUNT_PATH")
 	vaultToken := os.Getenv("VAULT_TOKEN")
 	vaultConfig := vault.Config{
-		VaultPath: vaultMountPath,
+		MountPath:          vaultMountPath,
+		KeyCount:           10,
+		KeyRefreshInterval: time.Hour * 24, // Daily
 	}
 	vault, err := vault.Make(vaultHost, vaultPort, vaultToken, vaultConfig, tracer, logger)
 	if err != nil {
 		panic(err)
 	}
+
+	go vault.Run(ctx)
 
 	authConfig := server.Config{
 		// AccessTokenValidityTime:  time.Minute * 15,

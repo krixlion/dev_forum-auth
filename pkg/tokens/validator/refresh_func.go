@@ -4,7 +4,7 @@ import (
 	"context"
 	"io"
 
-	"github.com/krixlion/dev_forum-auth/pkg/grpc/serialize"
+	"github.com/krixlion/dev_forum-auth/pkg/grpc/deserialize"
 	pb "github.com/krixlion/dev_forum-auth/pkg/grpc/v1"
 	"github.com/lestrrat-go/jwx/jwk"
 	"google.golang.org/protobuf/types/known/emptypb"
@@ -49,7 +49,7 @@ func DefaultRefreshFunc(authClient pb.AuthServiceClient) RefreshFunc {
 				return nil, err
 			}
 
-			raw, err := serialize.Key(rawMessage)
+			raw, err := deserialize.Key(rawMessage)
 			if err != nil {
 				return nil, err
 			}

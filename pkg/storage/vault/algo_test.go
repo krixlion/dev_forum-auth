@@ -2,13 +2,15 @@ package vault
 
 import (
 	"crypto"
+	"crypto/ecdsa"
 	"crypto/rsa"
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/go-cmp/cmp/cmpopts"
 	"github.com/krixlion/dev_forum-auth/pkg/entity"
-	rsapb "github.com/krixlion/dev_forum-auth/pkg/grpc/v1/rsa"
+	ecPb "github.com/krixlion/dev_forum-auth/pkg/grpc/v1/ec"
+	rsaPb "github.com/krixlion/dev_forum-auth/pkg/grpc/v1/rsa"
 	"github.com/krixlion/dev_forum-auth/pkg/storage/vault/testdata"
 	"google.golang.org/protobuf/proto"
 )
@@ -109,7 +111,7 @@ func TestEncodeRSA(t *testing.T) {
 			args: args{
 				key: testdata.PrivateRSAKey,
 			},
-			want: &rsapb.RSA{
+			want: &rsaPb.RSA{
 				N: testdata.N,
 				E: testdata.E,
 			},
@@ -123,8 +125,87 @@ func TestEncodeRSA(t *testing.T) {
 				t.Errorf("EncodeRSA() error = %v, wantErr %v", err, tt.wantErr)
 				return
 			}
-			if !cmp.Equal(got, tt.want, cmpopts.IgnoreUnexported(rsapb.RSA{})) {
+			if !cmp.Equal(got, tt.want, cmpopts.IgnoreUnexported(rsaPb.RSA{})) {
 				t.Errorf("EncodeRSA() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
+func TestDecodeECDSA(t *testing.T) {
+	type args struct {
+		encodedKey string
+	}
+	tests := []struct {
+		name    string
+		args    args
+		want    ecdsa.PrivateKey
+		wantErr bool
+	}{
+		{
+			name: "Test if returns an error on invalid key",
+			args: args{
+				encodedKey: "",
+			},
+			wantErr: true,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got, err := DecodeECDSA(tt.args.encodedKey)
+			if (err != nil) != tt.wantErr {
+				t.Errorf("DecodeECDSA() error = %v, wantErr %v", err, tt.wantErr)
+				return
+			}
+
+			if tt.wantErr {
+				return
+			}
+
+			public, ok := got.Public().(*ecdsa.PublicKey)
+			if !ok {
+				t.Errorf("DecodeECDSA(): public key is not *ecdsa.PublicKey")
+				return
+			}
+
+			if !got.Equal(tt.want) || !public.Equal(tt.want.Public()) {
+				t.Errorf("DecodeECDSA(): keys are not equal\n got = %v\n want = %v\n %v", got, tt.want, cmp.Diff(got, tt.want))
+			}
+		})
+	}
+}
+
+func TestEncodeECDSA(t *testing.T) {
+	type args struct {
+		key crypto.PrivateKey
+	}
+	tests := []struct {
+		name    string
+		args    args
+		want    proto.Message
+		wantErr bool
+	}{
+		{
+			name: "Test if valid ECDSA private key is marshaled into correct public key",
+			args: args{
+				key: testdata.PrivateECDSAKey,
+			},
+			want: &ecPb.EC{
+				Crv: testdata.Crv,
+				X:   testdata.X,
+				Y:   testdata.Y,
+			},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got, err := EncodeECDSA(tt.args.key)
+			if (err != nil) != tt.wantErr {
+				t.Errorf("EncodeECDSA() error = %v, wantErr %v", err, tt.wantErr)
+				return
+			}
+			if !cmp.Equal(got, tt.want, cmpopts.IgnoreUnexported(ecPb.EC{})) {
+				t.Errorf("EncodeECDSA():\n got = %v\n want = %v", got, tt.want)
 			}
 		})
 	}

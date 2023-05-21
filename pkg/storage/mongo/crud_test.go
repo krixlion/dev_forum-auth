@@ -61,10 +61,11 @@ func TestDB_Create(t *testing.T) {
 			args: args{
 				token: func() entity.Token {
 					test := testdata.Token
-					test.Id = gentest.RandomString(10)
+					test.Id = gentest.RandomString(50)
 					return test
 				}(),
 			},
+			wantErr: false,
 		},
 	}
 	for _, tt := range tests {

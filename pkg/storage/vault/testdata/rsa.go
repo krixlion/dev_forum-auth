@@ -7,8 +7,9 @@ import (
 	"errors"
 )
 
-const Id = "test"
+const RSAId = "testRSA"
 
+// Base64URL encoded Big-Endian value.
 const (
 	N = `qXgUjKWFhoLyUW3KjOiQS7NDie04cF1jHBOGp6ltPfBzx7R_Q7S_WY0Omdh8zquybj-_FAvCbklGV9Gx0YUzFT9RJv6gGC9UPS5aJF2nj-3JwkJh79hTa6fJG8gytD4U79VQP4_51Wo46gkP2wwn-KEfYUGFwoYQk10BxYDWRhU`
 	E = `AAEAAQ`
@@ -33,7 +34,7 @@ g9oFHdubikYTy8VTA2zmwZcw6GRK7wjqtlVqjABlJA==
 var PrivateRSAKey *rsa.PrivateKey
 var PublicRSAKey *rsa.PublicKey
 
-func init() {
+func initRSA() {
 	block, _ := pem.Decode([]byte(RSAPem))
 
 	if block == nil {
