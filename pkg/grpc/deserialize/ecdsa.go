@@ -10,6 +10,7 @@ import (
 	ecPb "github.com/krixlion/dev_forum-auth/pkg/grpc/v1/ec"
 )
 
+// Unserializes an ECDSA message.
 func ECDSA(input *ecPb.EC) (*ecdsa.PublicKey, error) {
 	if input == nil {
 		return nil, ErrKeyNil

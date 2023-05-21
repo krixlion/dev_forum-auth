@@ -13,10 +13,10 @@ const ECDSAId = "testECDSA"
 
 const (
 	ECDSAPem = `-----BEGIN EC PRIVATE KEY-----
-	MHcCAQEEIPvaD0k0SRg9JD/grK0adgk0uP4a2ruhJi5qBUBQ95qLoAoGCCqGSM49
-	AwEHoUQDQgAEKONQckRXFo/XksZgsl+5ESQ2/If7MJgaAcqfT16h0bo96XaM59qC
-	RcjHeoAygjyzwqVdOjqLzIsC7WEtuMl3lw==
-	-----END EC PRIVATE KEY-----`
+MHcCAQEEIPvaD0k0SRg9JD/grK0adgk0uP4a2ruhJi5qBUBQ95qLoAoGCCqGSM49
+AwEHoUQDQgAEKONQckRXFo/XksZgsl+5ESQ2/If7MJgaAcqfT16h0bo96XaM59qC
+RcjHeoAygjyzwqVdOjqLzIsC7WEtuMl3lw==
+-----END EC PRIVATE KEY-----`
 )
 
 // Base64URL encoded Big-Endian value.

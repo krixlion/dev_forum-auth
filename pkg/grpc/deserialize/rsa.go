@@ -3,28 +3,11 @@ package deserialize
 import (
 	"crypto/rsa"
 	"encoding/base64"
-	"errors"
 	"math/big"
 	"strconv"
 
 	rsapb "github.com/krixlion/dev_forum-auth/pkg/grpc/v1/rsa"
-	"google.golang.org/protobuf/proto"
 )
-
-var (
-	ErrUnknownMessageType = errors.New("unknown message type")
-	ErrKeyNil             = errors.New("key is nil")
-)
-
-// Key detects a gRPC format of key and deserializes it using the corresponding function.
-func Key(input proto.Message) (interface{}, error) {
-	switch msg := input.(type) {
-	case *rsapb.RSA:
-		return RSA(msg)
-	default:
-		return nil, ErrUnknownMessageType
-	}
-}
 
 // Unserializes an RSA message.
 func RSA(input *rsapb.RSA) (*rsa.PublicKey, error) {
