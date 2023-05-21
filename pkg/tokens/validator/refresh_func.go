@@ -6,7 +6,10 @@ import (
 
 	"github.com/krixlion/dev_forum-auth/pkg/grpc/deserialize"
 	pb "github.com/krixlion/dev_forum-auth/pkg/grpc/v1"
+	"github.com/krixlion/dev_forum-lib/nulls"
+	"github.com/krixlion/dev_forum-lib/tracing"
 	"github.com/lestrrat-go/jwx/jwk"
+	"go.opentelemetry.io/otel/trace"
 	"google.golang.org/protobuf/types/known/emptypb"
 )
 
@@ -22,10 +25,19 @@ type Key struct {
 
 // DefaultRefreshFunc returns a callback that uses the auth service as the
 // keyset source and fetches the keyset using provided gRPC client.
-func DefaultRefreshFunc(authClient pb.AuthServiceClient) RefreshFunc {
+// Tracing is disabled if no tracer is provided.
+func DefaultRefreshFunc(authClient pb.AuthServiceClient, tracer trace.Tracer) RefreshFunc {
+	if tracer == nil {
+		tracer = nulls.NullTracer{}
+	}
+
 	return func(ctx context.Context) ([]Key, error) {
+		ctx, span := tracer.Start(ctx, "refreshFunc")
+		defer span.End()
+
 		stream, err := authClient.GetValidationKeySet(ctx, &emptypb.Empty{})
 		if err != nil {
+			tracing.SetSpanErr(span, err)
 			return nil, err
 		}
 
@@ -33,6 +45,7 @@ func DefaultRefreshFunc(authClient pb.AuthServiceClient) RefreshFunc {
 
 		for {
 			if err := ctx.Err(); err != nil {
+				tracing.SetSpanErr(span, err)
 				return nil, err
 			}
 
@@ -41,25 +54,30 @@ func DefaultRefreshFunc(authClient pb.AuthServiceClient) RefreshFunc {
 				if err == io.EOF {
 					break
 				}
+				tracing.SetSpanErr(span, err)
 				return nil, err
 			}
 
 			rawMessage, err := jwk.Key.UnmarshalNew()
 			if err != nil {
+				tracing.SetSpanErr(span, err)
 				return nil, err
 			}
 
 			raw, err := deserialize.Key(rawMessage)
 			if err != nil {
+				tracing.SetSpanErr(span, err)
 				return nil, err
 			}
 
-			keyset = append(keyset, Key{
+			key := Key{
 				Id:        jwk.GetKid(),
 				Algorithm: jwk.GetAlg(),
 				Type:      jwk.GetKty(),
 				Raw:       raw,
-			})
+			}
+
+			keyset = append(keyset, key)
 		}
 
 		return keyset, nil
