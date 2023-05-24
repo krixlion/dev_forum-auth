@@ -2,7 +2,6 @@ package validator
 
 import (
 	"context"
-	"errors"
 	"testing"
 	"time"
 
@@ -39,10 +38,7 @@ func setUpTokenValidator(ctx context.Context, refreshFunc RefreshFunc, clockFunc
 	}
 
 	go func() {
-		err := v.Run(ctx)
-		if err != nil && !(errors.Is(err, context.Canceled) || errors.Is(err, context.DeadlineExceeded)) {
-			panic(err)
-		}
+		v.Run(ctx)
 	}()
 
 	// Wait for the goroutine to start up.
@@ -220,14 +216,18 @@ func TestJWTValidator_RunReturnsOnContextCancellation(t *testing.T) {
 	done := make(chan struct{})
 
 	go func() {
-		err = validator.Run(ctx)
+		validator.Run(ctx)
 		done <- struct{}{}
 	}()
-
 	cancel()
-	<-done
 
-	if err == nil || !errors.Is(err, context.Canceled) {
-		t.Errorf("JWTValidator.Run() invalid error:\n want = %v\n got = %v", context.Canceled, err)
+	ctxT, cancelT := context.WithTimeout(context.Background(), time.Millisecond)
+	defer cancelT()
+
+	select {
+	case <-ctxT.Done():
+		t.Errorf("JWTValidator.Run() did not return on context cancellation")
+	case <-done:
+		return
 	}
 }

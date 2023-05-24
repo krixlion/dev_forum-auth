@@ -83,7 +83,7 @@ func NewValidator(issuer string, refreshFunc RefreshFunc, options ...Option) (*J
 // Run starts up the validator to refresh the its keySet automatically using its RefreshFunc.
 // This function will block until provided context is cancelled or the validator
 // fails to fetch a new keyset.
-func (validator *JWTValidator) Run(ctx context.Context) error {
+func (validator *JWTValidator) Run(ctx context.Context) {
 	validator.keySetExpired <- struct{}{}
 
 	for {
@@ -101,9 +101,8 @@ func (validator *JWTValidator) Run(ctx context.Context) error {
 			}
 
 		case <-ctx.Done():
-			err := ctx.Err()
-			validator.logger.Log(ctx, "Shutting down", "cause", err)
-			return err
+			validator.logger.Log(ctx, "Shutting down")
+			return
 		}
 	}
 }
