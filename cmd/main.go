@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"errors"
 	"flag"
 	"os"
 	"os/signal"
@@ -19,6 +20,7 @@ import (
 	"github.com/krixlion/dev_forum-lib/event/broker"
 	"github.com/krixlion/dev_forum-lib/event/dispatcher"
 	"github.com/krixlion/dev_forum-lib/logging"
+	"github.com/krixlion/dev_forum-lib/tls"
 	"github.com/krixlion/dev_forum-lib/tracing"
 	rabbitmq "github.com/krixlion/dev_forum-rabbitmq"
 	userPb "github.com/krixlion/dev_forum-user/pkg/grpc/v1"
@@ -26,7 +28,6 @@ import (
 	"go.opentelemetry.io/otel"
 	"go.uber.org/zap"
 	"google.golang.org/grpc"
-	"google.golang.org/grpc/credentials/insecure"
 	"google.golang.org/grpc/reflection"
 )
 
@@ -117,8 +118,14 @@ func getServiceDependencies(ctx context.Context) service.Dependencies {
 		Issuer: issuer,
 	})
 
-	conn, err := grpc.Dial("user-service:50051",
-		grpc.WithTransportCredentials(insecure.NewCredentials()),
+	tlsCaPath := os.Getenv("TLS_CA_PATH")
+	clientCredentials, err := tls.LoadCA(tlsCaPath)
+	if err != nil {
+		panic(err)
+	}
+
+	userConn, err := grpc.Dial("user-service:50051",
+		grpc.WithTransportCredentials(clientCredentials),
 		grpc.WithChainUnaryInterceptor(
 			otelgrpc.UnaryClientInterceptor(),
 		),
@@ -126,7 +133,7 @@ func getServiceDependencies(ctx context.Context) service.Dependencies {
 	if err != nil {
 		panic(err)
 	}
-	userClient := userPb.NewUserServiceClient(conn)
+	userClient := userPb.NewUserServiceClient(userConn)
 
 	vaultHost := os.Getenv("VAULT_HOST")
 	vaultPort := os.Getenv("VAULT_PORT")
@@ -164,15 +171,15 @@ func getServiceDependencies(ctx context.Context) service.Dependencies {
 
 	authServer := server.MakeAuthServer(authDependencies, authConfig)
 
-	// tlsCertPath := os.Getenv("TLS_CERT_PATH")
-	// tlsKeyPath := os.Getenv("TLS_KEY_PATH")
-	// credentials, err := tls.LoadCredentials(tlsCertPath, tlsKeyPath)
-	// if err != nil {
-	// 	panic(err)
-	// }
+	tlsCertPath := os.Getenv("TLS_CERT_PATH")
+	tlsKeyPath := os.Getenv("TLS_KEY_PATH")
+	credentials, err := tls.LoadServerCredentials(tlsCertPath, tlsKeyPath)
+	if err != nil {
+		panic(err)
+	}
 
 	grpcServer := grpc.NewServer(
-		// grpc.Creds(credentials),
+		grpc.Creds(credentials),
 		grpc.StreamInterceptor(otelgrpc.StreamServerInterceptor()),
 		grpc.ChainUnaryInterceptor(
 			// grpc_auth.UnaryServerInterceptor(auth.Interceptor()),
@@ -194,7 +201,11 @@ func getServiceDependencies(ctx context.Context) service.Dependencies {
 		Dispatcher: dispatcher,
 		ShutdownFunc: func() error {
 			grpcServer.GracefulStop()
-			return authServer.Close()
+
+			return errors.Join(
+				userConn.Close(),
+				authServer.Close(),
+			)
 		},
 	}
 }

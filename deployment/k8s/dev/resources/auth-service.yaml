@@ -14,18 +14,18 @@ spec:
     aggregate: auth
     version: v0.1.0
   ports:
-  - name: grpc
-    protocol: TCP
-    port: 50053
-    targetPort: 50051
-  - name: delve
-    protocol: TCP
-    port: 2347
-    targetPort: 2345
-  - name: metrics
-    protocol: TCP
-    port: 2225
-    targetPort: 2223
+    - name: grpc
+      protocol: TCP
+      port: 50053
+      targetPort: 50051
+    - name: delve
+      protocol: TCP
+      port: 2347
+      targetPort: 2345
+    - name: metrics
+      protocol: TCP
+      port: 2225
+      targetPort: 2223
 ---
 apiVersion: apps/v1
 kind: Deployment
@@ -66,7 +66,7 @@ spec:
               value: "2345"
             - name: RUN_ARGS
               value: -p 50051
-          image: 'krixlion/go-reflex-dlv:1.20.3'
+          image: "krixlion/go-reflex-dlv:1.20.3"
           name: debug
           ports:
             - name: grpc
@@ -83,18 +83,18 @@ spec:
               cpu: 250m
               memory: 50Mi
           volumeMounts:
-            # - name: tls-certs
-            #   mountPath: /tls
-            #   readOnly: true
+            - name: tls-certs
+              mountPath: /tls
+              readOnly: true
             - name: hot-reload
               mountPath: /app
-      volumes: 
+      volumes:
         - name: hot-reload
           persistentVolumeClaim:
             claimName: hot-reload-pvc-auth
-        # - name: tls-certs
-        #   secret:
-        #     secretName: tls-secret-auth
+        - name: tls-certs
+          secret:
+            secretName: tls-secret-auth
 ---
 apiVersion: v1
 kind: PersistentVolumeClaim
@@ -131,7 +131,7 @@ spec:
     # Wsl is mounted in Docker desktop VM under /run/desktop/mnt/host/wsl
     # Locally in WSL it's /mnt/wsl
     # You should bind your project with k8s-mount for the time of development. Eg:
-    #     mkdir /mnt/wsl/k8s-mount && sudo mount --bind your_project_dir /mnt/wsl/k8s-mount 
+    #     mkdir /mnt/wsl/k8s-mount && sudo mount --bind your_project_dir /mnt/wsl/k8s-mount
     path: /run/desktop/mnt/host/wsl/k8s-mount/auth
   persistentVolumeReclaimPolicy: Delete
   nodeAffinity:
@@ -146,12 +146,22 @@ spec:
 apiVersion: cert-manager.io/v1
 kind: Certificate
 metadata:
+  namespace: dev
   name: tls-certificate-auth
   labels:
     app: auth
 spec:
   secretName: tls-secret-auth
+  privateKey:
+    algorithm: RSA
+    encoding: PKCS8
+    size: 4096
+  usages:
+    - server auth
+    - key encipherment
+    - digital signature
   dnsNames:
-  - "*"
+    - "*"
   issuerRef:
-    name: selfsigned-issuer
+    name: root-issuer
+    kind: Issuer
