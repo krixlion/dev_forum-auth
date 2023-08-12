@@ -162,7 +162,7 @@ func getServiceDependencies(ctx context.Context) service.Dependencies {
 		Dispatcher:   dispatcher,
 	}
 
-	authServer := server.NewAuthServer(authDependencies, authConfig)
+	authServer := server.MakeAuthServer(authDependencies, authConfig)
 
 	// tlsCertPath := os.Getenv("TLS_CERT_PATH")
 	// tlsKeyPath := os.Getenv("TLS_KEY_PATH")

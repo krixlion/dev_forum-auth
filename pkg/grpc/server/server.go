@@ -54,7 +54,7 @@ type Config struct {
 	RefreshTokenValidityTime time.Duration
 }
 
-func NewAuthServer(dependencies Dependencies, config Config) AuthServer {
+func MakeAuthServer(dependencies Dependencies, config Config) AuthServer {
 	return AuthServer{
 		config:       config,
 		services:     dependencies.Services,

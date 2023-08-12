@@ -66,7 +66,7 @@ func setUpServer(ctx context.Context, d deps) pb.AuthServiceClient {
 	}
 
 	s := grpc.NewServer()
-	server := NewAuthServer(deps, config)
+	server := MakeAuthServer(deps, config)
 	pb.RegisterAuthServiceServer(s, server)
 	go func() {
 		if err := s.Serve(lis); err != nil {
