@@ -124,7 +124,7 @@ func getServiceDependencies(ctx context.Context) service.Dependencies {
 		panic(err)
 	}
 
-	userConn, err := grpc.Dial("user-service:50051",
+	userConn, err := grpc.DialContext(ctx, "user-service:50051",
 		grpc.WithTransportCredentials(clientCredentials),
 		grpc.WithChainUnaryInterceptor(
 			otelgrpc.UnaryClientInterceptor(),
