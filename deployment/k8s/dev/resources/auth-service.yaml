@@ -86,6 +86,9 @@ spec:
             - name: tls-certs
               mountPath: /tls
               readOnly: true
+            - name: tls-client-certs
+              mountPath: /tls/client
+              readOnly: true
             - name: hot-reload
               mountPath: /app
       volumes:
@@ -95,6 +98,9 @@ spec:
         - name: tls-certs
           secret:
             secretName: tls-secret-auth
+        - name: tls-client-certs
+          secret:
+            secretName: tls-secret-auth-client-user
 ---
 apiVersion: v1
 kind: PersistentVolumeClaim
@@ -153,15 +159,36 @@ metadata:
 spec:
   secretName: tls-secret-auth
   privateKey:
-    algorithm: RSA
-    encoding: PKCS8
-    size: 4096
+    algorithm: ECDSA
+    size: 256
   usages:
     - server auth
     - key encipherment
     - digital signature
   dnsNames:
-    - "*"
+    - "auth-service"
+  issuerRef:
+    name: root-issuer
+    kind: Issuer
+---
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  namespace: dev
+  name: tls-certificate-auth-client-user
+  labels:
+    app: auth
+spec:
+  secretName: tls-secret-auth-client-user
+  privateKey:
+    algorithm: ECDSA
+    size: 256
+  usages:
+    - client auth
+    - key encipherment
+    - digital signature
+  dnsNames:
+    - "auth-service"
   issuerRef:
     name: root-issuer
     kind: Issuer
