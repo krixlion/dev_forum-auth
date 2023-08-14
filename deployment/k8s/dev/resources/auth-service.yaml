@@ -111,6 +111,7 @@ metadata:
     app: auth
 spec:
   storageClassName: local-storage
+  volumeName: hot-reload-pv-auth
   accessModes:
     - ReadWriteOnce
   resources:
