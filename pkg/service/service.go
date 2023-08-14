@@ -2,9 +2,9 @@ package service
 
 import (
 	"context"
+	"net"
 
 	"fmt"
-	"net"
 
 	"github.com/krixlion/dev_forum-auth/pkg/storage"
 	"github.com/krixlion/dev_forum-lib/event"
@@ -53,6 +53,7 @@ func (s *AuthService) Run(ctx context.Context) {
 	lis, err := net.Listen("tcp", fmt.Sprintf("0.0.0.0:%d", s.grpcPort))
 	if err != nil {
 		s.logger.Log(ctx, "failed to create a listener", "transport", "grpc", "err", err)
+		return
 	}
 
 	go s.dispatcher.Run(ctx)
