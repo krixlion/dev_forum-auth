@@ -7,7 +7,7 @@ require (
 	github.com/google/go-cmp v0.5.9
 	github.com/grpc-ecosystem/go-grpc-middleware v1.4.0
 	github.com/hashicorp/vault/api v1.9.0
-	github.com/krixlion/dev_forum-lib v0.0.0-20230812164714-9b9bed680453
+	github.com/krixlion/dev_forum-lib v0.0.0-20230814132013-5801ca521e8d
 	github.com/krixlion/dev_forum-rabbitmq v0.0.0-20230321225335-aacfca540fbc
 	github.com/krixlion/dev_forum-user v0.0.0-20230323193418-8e6e611c0e10
 	github.com/lestrrat-go/jwx v1.2.26
@@ -66,6 +66,7 @@ require (
 	github.com/rabbitmq/amqp091-go v1.8.0 // indirect
 	github.com/ryanuber/go-glob v1.0.0 // indirect
 	github.com/sony/gobreaker v0.5.0 // indirect
+	github.com/spf13/afero v1.9.5 // indirect
 	github.com/stretchr/objx v0.5.0 // indirect
 	github.com/uptrace/opentelemetry-go-extra/otelutil v0.1.21 // indirect
 	github.com/uptrace/opentelemetry-go-extra/otelzap v0.1.21 // indirect

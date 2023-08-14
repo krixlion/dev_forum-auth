@@ -10,6 +10,7 @@ import (
 	pb "github.com/krixlion/dev_forum-auth/pkg/grpc/v1"
 	"github.com/krixlion/dev_forum-auth/pkg/storage"
 	"github.com/krixlion/dev_forum-auth/pkg/tokens"
+	"github.com/krixlion/dev_forum-lib/cert"
 	"github.com/krixlion/dev_forum-lib/event/dispatcher"
 	"github.com/krixlion/dev_forum-lib/filter"
 	"github.com/krixlion/dev_forum-lib/logging"
@@ -196,6 +197,10 @@ func (server AuthServer) GetAccessToken(ctx context.Context, req *pb.GetAccessTo
 
 func (server AuthServer) TranslateAccessToken(stream pb.AuthService_TranslateAccessTokenServer) error {
 	ctx := stream.Context()
+
+	if err := cert.VerifyClientTLS(ctx, "gateway"); err != nil {
+		return err
+	}
 
 	for {
 		if err := ctx.Err(); err != nil {

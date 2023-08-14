@@ -16,11 +16,11 @@ import (
 	"github.com/krixlion/dev_forum-auth/pkg/storage/mongo"
 	"github.com/krixlion/dev_forum-auth/pkg/storage/vault"
 	"github.com/krixlion/dev_forum-auth/pkg/tokens/manager"
+	"github.com/krixlion/dev_forum-lib/cert"
 	"github.com/krixlion/dev_forum-lib/env"
 	"github.com/krixlion/dev_forum-lib/event/broker"
 	"github.com/krixlion/dev_forum-lib/event/dispatcher"
 	"github.com/krixlion/dev_forum-lib/logging"
-	"github.com/krixlion/dev_forum-lib/tls"
 	"github.com/krixlion/dev_forum-lib/tracing"
 	rabbitmq "github.com/krixlion/dev_forum-rabbitmq"
 	userPb "github.com/krixlion/dev_forum-user/pkg/grpc/v1"
@@ -119,13 +119,22 @@ func getServiceDependencies(ctx context.Context) service.Dependencies {
 	})
 
 	tlsCaPath := os.Getenv("TLS_CA_PATH")
-	clientCredentials, err := tls.LoadCA(tlsCaPath)
+	caCertPool, err := cert.LoadCaPool(tlsCaPath)
 	if err != nil {
 		panic(err)
 	}
 
+	tlsUserServiceCertPath := os.Getenv("TLS_USER_SERVICE_CLIENT_CERT_PATH")
+	tlsUserServiceKeyPath := os.Getenv("TLS_USER_SERVICE_CLIENT_KEY_PATH")
+	userServiceClientCert, err := cert.LoadX509KeyPair(tlsUserServiceCertPath, tlsUserServiceKeyPath)
+	if err != nil {
+		panic(err)
+	}
+
+	userClientCreds := cert.NewClientMTLSCreds(caCertPool, userServiceClientCert)
+
 	userConn, err := grpc.DialContext(ctx, "user-service:50051",
-		grpc.WithTransportCredentials(clientCredentials),
+		grpc.WithTransportCredentials(userClientCreds),
 		grpc.WithChainUnaryInterceptor(
 			otelgrpc.UnaryClientInterceptor(),
 		),
@@ -173,13 +182,15 @@ func getServiceDependencies(ctx context.Context) service.Dependencies {
 
 	tlsCertPath := os.Getenv("TLS_CERT_PATH")
 	tlsKeyPath := os.Getenv("TLS_KEY_PATH")
-	credentials, err := tls.LoadServerCredentials(tlsCertPath, tlsKeyPath)
+	serverCert, err := cert.LoadX509KeyPair(tlsCertPath, tlsKeyPath)
 	if err != nil {
 		panic(err)
 	}
 
+	creds := cert.NewServerOptionalMTLSCreds(caCertPool, serverCert)
+
 	grpcServer := grpc.NewServer(
-		grpc.Creds(credentials),
+		grpc.Creds(creds),
 		grpc.StreamInterceptor(otelgrpc.StreamServerInterceptor()),
 		grpc.ChainUnaryInterceptor(
 			// grpc_auth.UnaryServerInterceptor(auth.Interceptor()),
