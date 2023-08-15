@@ -5,7 +5,6 @@ import (
 	"crypto/ecdsa"
 	"crypto/elliptic"
 	"crypto/rand"
-	"crypto/rsa"
 	"crypto/x509"
 	"encoding/pem"
 	"errors"
@@ -145,7 +144,7 @@ func (db Vault) refreshKeys(ctx context.Context) (err error) {
 		return err
 	}
 
-	for i := 0; i < db.config.KeyCount/2; i++ {
+	for i := 0; i < db.config.KeyCount; i++ {
 		ECPem, err := generateECDSAPem()
 		if err != nil {
 			tracing.SetSpanErr(span, err)
@@ -158,27 +157,27 @@ func (db Vault) refreshKeys(ctx context.Context) (err error) {
 			encodedKey: ECPem,
 		}
 
-		RSAPem, err := generateRSAPem()
-		if err != nil {
-			tracing.SetSpanErr(span, err)
-			return err
-		}
-
-		secretRSA := secretData{
-			algorithm:  entity.RS256,
-			keyType:    entity.RSA,
-			encodedKey: RSAPem,
-		}
-
 		if err := db.create(ctx, secretECDSA); err != nil {
 			tracing.SetSpanErr(span, err)
 			return err
 		}
 
-		if err := db.create(ctx, secretRSA); err != nil {
-			tracing.SetSpanErr(span, err)
-			return err
-		}
+		// RSAPem, err := generateRSAPem()
+		// if err != nil {
+		// 	tracing.SetSpanErr(span, err)
+		// 	return err
+		// }
+
+		// secretRSA := secretData{
+		// 	algorithm:  entity.RS256,
+		// 	keyType:    entity.RSA,
+		// 	encodedKey: RSAPem,
+		// }
+
+		// if err := db.create(ctx, secretRSA); err != nil {
+		// 	tracing.SetSpanErr(span, err)
+		// 	return err
+		// }
 	}
 
 	return nil
@@ -232,19 +231,19 @@ func (db Vault) create(ctx context.Context, secret secretData) error {
 	return nil
 }
 
-func generateRSAPem() (string, error) {
-	key, err := rsa.GenerateKey(rand.Reader, 4096)
-	if err != nil {
-		return "", err
-	}
+// func generateRSAPem() (string, error) {
+// 	key, err := rsa.GenerateKey(rand.Reader, 4096)
+// 	if err != nil {
+// 		return "", err
+// 	}
 
-	pemData := pem.EncodeToMemory(&pem.Block{
-		Type:  "RSA PRIVATE KEY",
-		Bytes: x509.MarshalPKCS1PrivateKey(key),
-	})
+// 	pemData := pem.EncodeToMemory(&pem.Block{
+// 		Type:  "RSA PRIVATE KEY",
+// 		Bytes: x509.MarshalPKCS1PrivateKey(key),
+// 	})
 
-	return string(pemData), nil
-}
+// 	return string(pemData), nil
+// }
 
 func generateECDSAPem() (string, error) {
 	key, err := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
