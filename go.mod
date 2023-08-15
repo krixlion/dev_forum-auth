@@ -1,6 +1,6 @@
 module github.com/krixlion/dev_forum-auth
 
-go 1.20
+go 1.21
 
 require (
 	github.com/gofrs/uuid v4.4.0+incompatible
