@@ -4,6 +4,7 @@ import (
 	"context"
 
 	"github.com/krixlion/dev_forum-auth/pkg/entity"
+	"github.com/krixlion/dev_forum-lib/filter"
 	"github.com/stretchr/testify/mock"
 )
 
@@ -23,8 +24,8 @@ func (m Storage) Get(ctx context.Context, id string) (entity.Token, error) {
 	return args.Get(0).(entity.Token), args.Error(1)
 }
 
-func (m Storage) GetMultiple(ctx context.Context, filter string) ([]entity.Token, error) {
-	args := m.Called(ctx, filter)
+func (m Storage) GetMultiple(ctx context.Context, query filter.Filter) ([]entity.Token, error) {
+	args := m.Called(ctx, query)
 	return args.Get(0).([]entity.Token), args.Error(1)
 }
 

@@ -136,11 +136,11 @@ func (server AuthServer) SignOut(ctx context.Context, req *pb.SignOutRequest) (*
 		return nil, status.Error(codes.PermissionDenied, err.Error())
 	}
 
-	tokens, err := server.storage.GetMultiple(ctx, filter.Parameter{
+	tokens, err := server.storage.GetMultiple(ctx, filter.Filter{{
 		Attribute: "user_id",
 		Operator:  filter.Equal,
 		Value:     token.UserId,
-	}.String())
+	}})
 	if err != nil {
 		return nil, status.Error(codes.PermissionDenied, err.Error())
 	}

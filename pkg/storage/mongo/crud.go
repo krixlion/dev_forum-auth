@@ -27,16 +27,11 @@ func (db Mongo) Get(ctx context.Context, opaqueToken string) (entity.Token, erro
 	return token, nil
 }
 
-func (db Mongo) GetMultiple(ctx context.Context, query string) ([]entity.Token, error) {
+func (db Mongo) GetMultiple(ctx context.Context, query filter.Filter) ([]entity.Token, error) {
 	ctx, span := db.tracer.Start(ctx, "db.GetMultiple")
 	defer span.End()
 
-	params, err := filter.Parse(query)
-	if err != nil {
-		return nil, err
-	}
-
-	filterDoc, err := filterToBSON(params)
+	filterDoc, err := filterToBSON(query)
 	if err != nil {
 		return nil, err
 	}

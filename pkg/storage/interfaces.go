@@ -5,6 +5,7 @@ import (
 	"io"
 
 	"github.com/krixlion/dev_forum-auth/pkg/entity"
+	"github.com/krixlion/dev_forum-lib/filter"
 )
 
 type Storage interface {
@@ -23,7 +24,7 @@ type Getter interface {
 	// Token's id is it's corresponding opaque token.
 	Get(ctx context.Context, id string) (entity.Token, error)
 	// Filter string according to the dev_forum-lib filter pkg.
-	GetMultiple(ctx context.Context, filter string) ([]entity.Token, error)
+	GetMultiple(ctx context.Context, filter filter.Filter) ([]entity.Token, error)
 }
 
 type Writer interface {

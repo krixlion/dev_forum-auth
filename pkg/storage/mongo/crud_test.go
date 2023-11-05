@@ -144,7 +144,7 @@ func TestDB_GetMultiple(t *testing.T) {
 	}
 
 	type args struct {
-		filter string
+		filter filter.Filter
 	}
 	tests := []struct {
 		name    string
@@ -155,11 +155,11 @@ func TestDB_GetMultiple(t *testing.T) {
 		{
 			name: "Test if token is retrieved correctly",
 			args: args{
-				filter: filter.Parameter{
+				filter: filter.Filter{{
 					Attribute: "user_id",
 					Operator:  filter.Equal,
 					Value:     testdata.Token.UserId,
-				}.String(),
+				}},
 			},
 			want: []entity.Token{testdata.Token},
 		},

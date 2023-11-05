@@ -16,6 +16,7 @@ import (
 	"github.com/krixlion/dev_forum-auth/pkg/tokens"
 	"github.com/krixlion/dev_forum-auth/pkg/tokens/tokensmocks"
 	"github.com/krixlion/dev_forum-lib/event/dispatcher"
+	"github.com/krixlion/dev_forum-lib/filter"
 	"github.com/krixlion/dev_forum-lib/nulls"
 	userPb "github.com/krixlion/dev_forum-user/pkg/grpc/v1"
 	"github.com/stretchr/testify/mock"
@@ -151,9 +152,14 @@ func TestAuthServer_SignOut(t *testing.T) {
 						Type:   entity.AccessToken,
 					}
 					testTokens := []entity.Token{testToken, testToken2}
+					query := filter.Filter{{
+						Attribute: "user_id",
+						Operator:  filter.Equal,
+						Value:     testToken.UserId,
+					}}
 
 					storage.On("Get", mock.Anything, "test-opaque-seed").Return(testToken, nil).Once()
-					storage.On("GetMultiple", mock.Anything, "user_id[$eq]="+testToken.UserId).Return(testTokens, nil).Once()
+					storage.On("GetMultiple", mock.Anything, query).Return(testTokens, nil).Once()
 					storage.On("Delete", mock.Anything, "test-opaque-seed").Return(nil).Once()
 					storage.On("Delete", mock.Anything, "test-opaque-seeded").Return(nil).Once()
 					return storage
