@@ -41,7 +41,7 @@ func setUpVault() Vault {
 
 func TestVault_GetKeySet(t *testing.T) {
 	if testing.Short() {
-		t.Skip("Skipping vault.GetKeySet integration test...")
+		t.Skip("Skipping Vault.GetKeySet integration test...")
 	}
 
 	tests := []struct {
@@ -103,7 +103,7 @@ func TestVault_GetKeySet(t *testing.T) {
 
 func TestVault_list(t *testing.T) {
 	if testing.Short() {
-		t.Skip("Skipping vault.list integration test...")
+		t.Skip("Skipping Vault.list integration test...")
 	}
 
 	type args struct {
@@ -143,6 +143,10 @@ func TestVault_list(t *testing.T) {
 }
 
 func TestVault_purge(t *testing.T) {
+	if testing.Short() {
+		t.Skip("Skipping Vault.purge integration test...")
+	}
+
 	t.Run("Test if Vault.list() returns an empty slice after purge", func(t *testing.T) {
 		db := setUpVault()
 
@@ -167,6 +171,10 @@ func TestVault_purge(t *testing.T) {
 }
 
 func TestVault_create(t *testing.T) {
+	if testing.Short() {
+		t.Skip("Skipping Vault.create integration test...")
+	}
+
 	type args struct {
 		secret secretData
 	}
