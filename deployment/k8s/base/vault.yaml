@@ -90,6 +90,8 @@ metadata:
   name: vault-service-ui
 spec:
   type: LoadBalancer
+  selector:
+    statefulset.kubernetes.io/pod-name: vault-cluster-0
   ports:
     - name: http
       port: 8200
