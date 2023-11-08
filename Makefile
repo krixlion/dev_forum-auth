@@ -3,7 +3,6 @@ include .env
 export $(shell sed 's/=.*//' .env)
 
 kubernetes = kubectl -n dev
-docker-compose = docker compose -f docker-compose.dev.yml --env-file .env
 overlays-path = deployment/k8s/overlays
 
 mod-init:
