@@ -1,40 +1,19 @@
 apiVersion: apps/v1
 kind: StatefulSet
 metadata:
-  namespace: dev
-  labels:
-    aggregate: auth
-    database: vault
-    version: v0.1.0
   name: vault-cluster
 spec:
   serviceName: vault-service
   replicas: 1
-  selector:
-    matchLabels:
-      aggregate: auth
-      database: vault
-      version: v0.1.0
   volumeClaimTemplates:
     - metadata:
         name: vault-data
-        namespace: dev
-        labels:
-          version: v0.1.0
-          database: vault
-          aggregate: auth
       spec:
         accessModes: ["ReadWriteOnce"]
         resources:
           requests:
             storage: 300Mi
   template:
-    metadata:
-      namespace: dev
-      labels:
-        aggregate: auth
-        database: vault
-        version: v0.1.0
     spec:
       containers:
         - name: vault-cluster
@@ -69,14 +48,9 @@ spec:
 apiVersion: v1
 kind: Service
 metadata:
-  namespace: dev
   name: vault-service
 spec:
   clusterIP: None
-  selector:
-    aggregate: auth
-    database: vault
-    version: v0.1.0
   ports:
     - port: 8200
       targetPort: 8200
@@ -85,7 +59,6 @@ spec:
 # kind: ConfigMap
 # metadata:
 #   name: vault-config
-#   namespace: dev
 # data:
 #   vault.json: |
 #     {
@@ -114,18 +87,10 @@ spec:
 apiVersion: v1
 kind: Service
 metadata:
-  namespace: dev
   name: vault-service-ui
-  labels:
-    version: v0.1.0
-    database: vault
 spec:
   type: LoadBalancer
   ports:
     - name: http
       port: 8200
       targetPort: 8200
-  selector:
-    statefulset.kubernetes.io/pod-name: vault-cluster-0
-    version: v0.1.0
-    database: vault

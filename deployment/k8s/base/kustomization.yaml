@@ -1,0 +1,9 @@
+resources:
+- auth-service.yaml
+- mongodb.yaml
+- vault.yaml
+
+commonLabels:
+  app: auth
+  aggregate: auth
+  version: v0.1.0
