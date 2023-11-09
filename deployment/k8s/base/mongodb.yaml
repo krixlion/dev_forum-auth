@@ -14,6 +14,9 @@ spec:
           requests:
             storage: 300Mi
   template:
+    metadata:
+      labels:
+        database: mongodb
     spec:
       containers:
         - name: mongodb-cluster
@@ -87,6 +90,8 @@ kind: Service
 metadata:
   name: mongodb-service
 spec:
+  selector:
+    database: mongodb
   clusterIP: None
   ports:
     - port: 27017
@@ -120,6 +125,7 @@ data:
         }
       ]
     });
+
 # ---
 # apiVersion: v1
 # kind: Secret

@@ -1,4 +1,32 @@
 resources:
-- ../../base
+  - ../../base
+  - dev-volume.yaml
 
 namespace: dev
+
+replicas:
+  - name: auth-d
+    count: 1
+
+images:
+  - name: krixlion/dev_forum-auth
+    newName: krixlion/go-reflex-dlv
+    newTag: latest
+
+patches:
+  - path: deployment-patches.yaml
+    target:
+      group: apps
+      version: v1
+      kind: Deployment
+      name: auth-d
+
+  - path: service-patches.yaml
+    target:
+      version: v1
+      kind: Service
+      name: auth-service
+
+configMapGenerator:
+  - name: auth-env
+    env: auth.properties

@@ -14,6 +14,9 @@ spec:
           requests:
             storage: 300Mi
   template:
+    metadata:
+      labels:
+        database: vault
     spec:
       containers:
         - name: vault-cluster
@@ -50,6 +53,8 @@ kind: Service
 metadata:
   name: vault-service
 spec:
+  selector:
+    database: vault
   clusterIP: None
   ports:
     - port: 8200
@@ -91,6 +96,7 @@ metadata:
 spec:
   type: LoadBalancer
   selector:
+    database: vault
     statefulset.kubernetes.io/pod-name: vault-cluster-0
   ports:
     - name: http

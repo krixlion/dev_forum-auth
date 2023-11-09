@@ -1,0 +1,11 @@
+resources:
+  - ../../base
+
+namespace: stage
+
+replicas:
+  - name: auth-d
+    count: 3
+
+configMapGenerator:
+  - name: auth-env
