@@ -6,3 +6,9 @@ resources:
 commonLabels:
   aggregate: auth
   version: v0.1.0
+
+configMapGenerator:
+  - name: mongodb-config
+    files:
+      - config/mongo.conf
+      - config/ensure-users.js
