@@ -51,7 +51,7 @@ func RandomToken(tokenType entity.TokenType) entity.Token {
 // Randomauth returns a random auth marshaled
 // to JSON and panics on error.
 // It should be used ONLY for testing.
-func RandomJSONauth(tokenType entity.TokenType) []byte {
+func RandomJSONAuth(tokenType entity.TokenType) []byte {
 	auth := RandomToken(tokenType)
 	json, err := json.Marshal(auth)
 	if err != nil {
