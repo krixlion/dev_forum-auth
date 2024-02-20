@@ -17,7 +17,6 @@ func NewVault() Vault {
 	}
 }
 
-// Get(ctx context.Context, id string) (entity.Key, error)
 func (m Vault) GetRandom(ctx context.Context) (entity.Key, error) {
 	args := m.Called(ctx)
 	return args.Get(0).(entity.Key), args.Error(1)

@@ -15,7 +15,6 @@ type Storage interface {
 }
 
 type Vault interface {
-	// Get(ctx context.Context, id string) (entity.Key, error)
 	GetRandom(ctx context.Context) (entity.Key, error)
 	GetKeySet(ctx context.Context) ([]entity.Key, error)
 }
