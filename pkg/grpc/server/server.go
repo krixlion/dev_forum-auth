@@ -3,6 +3,7 @@ package server
 import (
 	"context"
 	"errors"
+	"fmt"
 	"io"
 	"time"
 
@@ -199,7 +200,7 @@ func (server AuthServer) TranslateAccessToken(stream pb.AuthService_TranslateAcc
 	ctx := stream.Context()
 
 	if err := cert.VerifyClientTLS(ctx, "gateway"); err != nil {
-		return err
+		return fmt.Errorf("failed to verify client cert: %w", err)
 	}
 
 	for {
