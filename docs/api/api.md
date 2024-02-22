@@ -163,7 +163,7 @@
 
 | Method Name | Request Type | Response Type | Description |
 | ----------- | ------------ | ------------- | ------------|
-| SignIn | [SignInRequest](#auth-SignInRequest) | [SignInResponse](#auth-SignInResponse) | Upon succesful login user receives a refresh_token. When it expires or is revoked user has to login again. |
+| SignIn | [SignInRequest](#auth-SignInRequest) | [SignInResponse](#auth-SignInResponse) | Upon successful login user receives a refresh_token. When it expires or is revoked user has to login again. |
 | SignOut | [SignOutRequest](#auth-SignOutRequest) | [.google.protobuf.Empty](#google-protobuf-Empty) | SignOut revokes user&#39;s active refresh_token. |
 | GetAccessToken | [GetAccessTokenRequest](#auth-GetAccessTokenRequest) | [GetAccessTokenResponse](#auth-GetAccessTokenResponse) |  |
 | GetValidationKeySet | [.google.protobuf.Empty](#google-protobuf-Empty) | [Jwk](#auth-Jwk) stream |  |

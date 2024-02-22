@@ -8,7 +8,7 @@ import "google/protobuf/empty.proto";
 import "google/protobuf/any.proto";
 
 service AuthService {
-    // Upon succesful login user receives a refresh_token.
+    // Upon successful login user receives a refresh_token.
     // When it expires or is revoked user has to login again.
     rpc SignIn(SignInRequest) returns (SignInResponse) {}
 

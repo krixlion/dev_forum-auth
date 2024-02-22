@@ -113,7 +113,7 @@ func (validator *JWTValidator) Run(ctx context.Context) {
 //
 // Note that if the keyset expires, this method will not wait for a new keyset to be fetched
 // and instead it will return an error and will continue to do so until
-// an updated keyset is succesfully retrieved.
+// an updated keyset is successfully retrieved.
 func (validator *JWTValidator) VerifyToken(token string) error {
 	jwToken, err := jwt.ParseString(token, jwt.WithKeySetProvider(validator.keySetProvider()))
 	if err != nil {

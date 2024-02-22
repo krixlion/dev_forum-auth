@@ -19,7 +19,7 @@ func NewAuthClient() AuthClient {
 	}
 }
 
-// Upon succesful login user receives a refresh_token.
+// Upon successful login user receives a refresh_token.
 // When it expires or is revoked user has to login again.
 func (m AuthClient) SignIn(ctx context.Context, in *pb.SignInRequest, opts ...grpc.CallOption) (*pb.SignInResponse, error) {
 	args := m.Called(ctx, in, opts)

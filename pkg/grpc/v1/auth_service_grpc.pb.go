@@ -31,7 +31,7 @@ const (
 //
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
 type AuthServiceClient interface {
-	// Upon succesful login user receives a refresh_token.
+	// Upon successful login user receives a refresh_token.
 	// When it expires or is revoked user has to login again.
 	SignIn(ctx context.Context, in *SignInRequest, opts ...grpc.CallOption) (*SignInResponse, error)
 	// SignOut revokes user's active refresh_token.
@@ -143,7 +143,7 @@ func (x *authServiceTranslateAccessTokenClient) Recv() (*TranslateAccessTokenRes
 // All implementations must embed UnimplementedAuthServiceServer
 // for forward compatibility
 type AuthServiceServer interface {
-	// Upon succesful login user receives a refresh_token.
+	// Upon successful login user receives a refresh_token.
 	// When it expires or is revoked user has to login again.
 	SignIn(context.Context, *SignInRequest) (*SignInResponse, error)
 	// SignOut revokes user's active refresh_token.
