@@ -110,9 +110,7 @@ func getServiceDependencies(ctx context.Context) service.Dependencies {
 	broker := broker.NewBroker(mq, logger, tracer)
 	dispatcher := dispatcher.NewDispatcher(20)
 
-	for eType, handlers := range storage.EventHandlers() {
-		dispatcher.Subscribe(eType, handlers...)
-	}
+	dispatcher.Register(storage)
 
 	tokenManager := manager.MakeManager(manager.Config{
 		Issuer: issuer,
