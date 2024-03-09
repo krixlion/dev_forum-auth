@@ -39,6 +39,8 @@ func ECDSA(input *ecPb.EC) (*ecdsa.PublicKey, error) {
 		crv = elliptic.P521()
 	case ecPb.ECType_UNDEFINED:
 		return nil, errors.New("failed to parse ECDSA key: curve undefined")
+	default:
+		return nil, errors.New("failed to parse ECDSA key: unexpected curve")
 	}
 
 	return &ecdsa.PublicKey{
