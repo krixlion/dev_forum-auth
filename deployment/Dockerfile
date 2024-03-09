@@ -9,7 +9,7 @@ ENV CGO_ENABLED=0
 WORKDIR /go/src/dev_forum-auth
 
 # Make sure you run `docker build` from the project root or set the context accordingly.
-ADD . .
+COPY . .
 
 # RUN go mod tidy
 # RUN go mod vendor
