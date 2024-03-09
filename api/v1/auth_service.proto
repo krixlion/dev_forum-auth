@@ -61,6 +61,6 @@ message Jwk {
     string alg = 3;
 
     // Field for key-specific data.
-    // Eg. n, e for RSA or crv, x ,y for EC
+    // Eg. n, e for RSA or crv, x, y for EC
     google.protobuf.Any key = 4;
 }
