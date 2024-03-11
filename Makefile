@@ -14,7 +14,7 @@ grpc-gen:
 	docker run --rm -v $(shell pwd):/app --env-file .env krixlion/go-grpc-gen:${GO_VERSION}
 
 build-image: # param: version
-	# OTEL_EXPORTER_OTLP_ENDPOINT variable imported from '.env' file triggers tracing in docker and causes issues.
+	# OTEL_EXPORTER_OTLP_ENDPOINT when imported from '.env' file triggers tracing in docker and causes issues.
 	OTEL_EXPORTER_OTLP_ENDPOINT="" docker build . -f deployment/Dockerfile -t krixlion/$(PROJECT_NAME)-$(AGGREGATE_ID):$(version)
 
 push-image: build-image # param: version
