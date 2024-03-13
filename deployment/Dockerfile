@@ -8,6 +8,9 @@ ENV CGO_ENABLED=0
 
 WORKDIR /go/src/dev_forum-auth
 
+# Make a user to import to scratch image
+RUN useradd -u 10001 app
+
 # Make sure you run `docker build` from the project root or set the context accordingly.
 COPY . .
 
@@ -20,6 +23,10 @@ WORKDIR /app
 
 COPY --from=builder /go/src/dev_forum-auth/main /app/main
 COPY --from=builder /go/src/dev_forum-auth/.env /app/.env
+
+# Need a user to allow Go os/user calls without CGO enabled
+COPY --from=builder /etc/passwd /etc/passwd
+USER app
 
 EXPOSE 50051
 EXPOSE 2223
