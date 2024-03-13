@@ -24,7 +24,7 @@ Make sure to place the executable in the same directory as the `.env` file.
 ### On Docker
 You need a working [Docker environment](https://docs.docker.com/engine).
 
-You can also use the Dockerfile to build and run the service on a docker container. \
+You can also use the Dockerfile to build and run the service on a docker container.
 
 ```shell
 make build-image version=latest` 
@@ -35,7 +35,7 @@ You need a working [Kubernetes environment](https://kubernetes.io/docs/setup) wi
 
 Use `make` to apply manifests for dev_forum-auth and needed DBs for either dev or stage environment.
 ```shell
-make k8s-run version=<dev/stage>
+make k8s-run overlay=<dev/stage>
 ```
 
 ## Testing
