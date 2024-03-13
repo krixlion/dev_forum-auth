@@ -80,12 +80,6 @@ func main() {
 // getServiceDependencies is the composition root.
 // Panics on any non-nil error.
 func getServiceDependencies(ctx context.Context, serviceName string, isTLS bool) (service.Dependencies, error) {
-	shutdownTracing, err := tracing.InitProvider(ctx, serviceName)
-	if err != nil {
-		return service.Dependencies{}, err
-	}
-	tracer := otel.Tracer(serviceName)
-
 	userClientCreds := insecure.NewCredentials()
 	serverCreds := insecure.NewCredentials()
 	if isTLS {
@@ -108,6 +102,13 @@ func getServiceDependencies(ctx context.Context, serviceName string, isTLS bool)
 
 		userClientCreds = cert.NewClientMTLSCreds(caCertPool, userServiceClientCert)
 	}
+
+	shutdownTracing, err := tracing.InitProvider(ctx, serviceName)
+	if err != nil {
+		return service.Dependencies{}, err
+	}
+
+	tracer := otel.Tracer(serviceName)
 
 	logger, err := logging.NewLogger()
 	if err != nil {
