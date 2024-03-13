@@ -52,6 +52,7 @@ type Services struct {
 }
 
 type Config struct {
+	VerifyClientCert         bool
 	AccessTokenValidityTime  time.Duration
 	RefreshTokenValidityTime time.Duration
 }
@@ -199,8 +200,10 @@ func (server AuthServer) GetAccessToken(ctx context.Context, req *pb.GetAccessTo
 func (server AuthServer) TranslateAccessToken(stream pb.AuthService_TranslateAccessTokenServer) error {
 	ctx := stream.Context()
 
-	if err := cert.VerifyClientTLS(ctx, "gateway"); err != nil {
-		return fmt.Errorf("failed to verify client cert: %w", err)
+	if server.config.VerifyClientCert {
+		if err := cert.VerifyClientTLS(ctx, "gateway"); err != nil {
+			return fmt.Errorf("failed to verify client cert: %w", err)
+		}
 	}
 
 	for {

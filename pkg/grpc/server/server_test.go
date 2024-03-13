@@ -30,10 +30,11 @@ import (
 
 // Struct for server mock dependencies.
 type deps struct {
-	storage      storage.Storage
-	vault        storage.Vault
-	userClient   userPb.UserServiceClient
-	tokenManager tokens.Manager
+	verifyClientCert bool
+	storage          storage.Storage
+	vault            storage.Vault
+	userClient       userPb.UserServiceClient
+	tokenManager     tokens.Manager
 }
 
 // setUpServer initializes and runs in the background a gRPC
@@ -50,6 +51,7 @@ func setUpServer(ctx context.Context, d deps) pb.AuthServiceClient {
 	}
 
 	config := Config{
+		VerifyClientCert:         d.verifyClientCert,
 		AccessTokenValidityTime:  time.Minute,
 		RefreshTokenValidityTime: time.Minute,
 	}
@@ -303,6 +305,18 @@ func TestAuthServer_TranslateAccessToken(t *testing.T) {
 			want: &pb.TranslateAccessTokenResponse{
 				AccessToken: "test-jwt-encoded",
 			},
+		},
+		{
+			name: "Test if returns an error on missing client cert",
+			deps: deps{
+				verifyClientCert: true,
+			},
+			args: args{
+				req: &pb.TranslateAccessTokenRequest{
+					OpaqueAccessToken: "test-opaque",
+				},
+			},
+			wantErr: true,
 		},
 	}
 	for _, tt := range tests {

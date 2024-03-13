@@ -28,6 +28,7 @@ import (
 	"go.opentelemetry.io/otel"
 	"go.uber.org/zap"
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/credentials/insecure"
 	"google.golang.org/grpc/reflection"
 )
 
@@ -37,11 +38,14 @@ const serviceName = "auth-service"
 const issuer = "http://auth-service"
 
 var port int
+var isTLS bool
 
 func init() {
 	portFlag := flag.Int("p", 50051, "The gRPC server port")
+	insecureFlag := flag.Bool("insecure", false, "Whether to not use TLS over gRPC")
 	flag.Parse()
 	port = *portFlag
+	isTLS = !(*insecureFlag)
 }
 
 func main() {
@@ -52,9 +56,16 @@ func main() {
 	shutdownTracing, err := tracing.InitProvider(ctx, serviceName)
 	if err != nil {
 		logging.Log("Failed to initialize tracing", "err", err)
+		return
 	}
 
-	service := service.NewAuthService(port, getServiceDependencies(ctx))
+	deps, err := getServiceDependencies(ctx, isTLS)
+	if err != nil {
+		logging.Log("Failed to initialize service dependencies", "err", err)
+		return
+	}
+
+	service := service.NewAuthService(port, deps)
 	service.Run(ctx)
 
 	<-ctx.Done()
@@ -74,28 +85,41 @@ func main() {
 
 // getServiceDependencies is the composition root.
 // Panics on any non-nil error.
-func getServiceDependencies(ctx context.Context) service.Dependencies {
+func getServiceDependencies(ctx context.Context, isTLS bool) (service.Dependencies, error) {
 	tracer := otel.Tracer(serviceName)
+
+	userClientCreds := insecure.NewCredentials()
+	serverCreds := insecure.NewCredentials()
+	if isTLS {
+		caCertPool, err := cert.LoadCaPool(os.Getenv("TLS_CA_PATH"))
+		if err != nil {
+			return service.Dependencies{}, err
+		}
+
+		serverCert, err := cert.LoadX509KeyPair(os.Getenv("TLS_CERT_PATH"), os.Getenv("TLS_KEY_PATH"))
+		if err != nil {
+			return service.Dependencies{}, err
+		}
+
+		serverCreds = cert.NewServerOptionalMTLSCreds(caCertPool, serverCert)
+
+		userServiceClientCert, err := cert.LoadX509KeyPair(os.Getenv("TLS_USER_SERVICE_CLIENT_CERT_PATH"), os.Getenv("TLS_USER_SERVICE_CLIENT_KEY_PATH"))
+		if err != nil {
+			return service.Dependencies{}, err
+		}
+
+		userClientCreds = cert.NewClientMTLSCreds(caCertPool, userServiceClientCert)
+	}
 
 	logger, err := logging.NewLogger()
 	if err != nil {
-		panic(err)
+		return service.Dependencies{}, err
 	}
 
-	dbPort := os.Getenv("DB_PORT")
-	dbHost := os.Getenv("DB_HOST")
-	dbUser := os.Getenv("DB_USER")
-	dbPass := os.Getenv("DB_PASS")
-	dbName := os.Getenv("DB_NAME")
-	storage, err := mongo.Make(dbUser, dbPass, dbHost, dbPort, dbName, logger, tracer)
+	storage, err := mongo.Make(os.Getenv("DB_USER"), os.Getenv("DB_PASS"), os.Getenv("DB_HOST"), os.Getenv("DB_PORT"), os.Getenv("DB_NAME"), logger, tracer)
 	if err != nil {
-		panic(err)
+		return service.Dependencies{}, err
 	}
-
-	mqPort := os.Getenv("MQ_PORT")
-	mqHost := os.Getenv("MQ_HOST")
-	mqUser := os.Getenv("MQ_USER")
-	mqPass := os.Getenv("MQ_PASS")
 
 	mqConfig := rabbitmq.Config{
 		QueueSize:         100,
@@ -106,30 +130,16 @@ func getServiceDependencies(ctx context.Context) service.Dependencies {
 		ClosedTimeout:     time.Second * 15,
 	}
 
-	mq := rabbitmq.NewRabbitMQ(serviceName, mqUser, mqPass, mqHost, mqPort, mqConfig, rabbitmq.WithLogger(logger), rabbitmq.WithTracer(tracer))
+	mq := rabbitmq.NewRabbitMQ(serviceName, os.Getenv("MQ_USER"), os.Getenv("MQ_PASS"), os.Getenv("MQ_HOST"), os.Getenv("MQ_PORT"), mqConfig,
+		rabbitmq.WithLogger(logger),
+		rabbitmq.WithTracer(tracer),
+	)
 	broker := broker.NewBroker(mq, logger, tracer)
 	dispatcher := dispatcher.NewDispatcher(20)
 
 	dispatcher.Register(storage)
 
-	tokenManager := manager.MakeManager(manager.Config{
-		Issuer: issuer,
-	})
-
-	tlsCaPath := os.Getenv("TLS_CA_PATH")
-	caCertPool, err := cert.LoadCaPool(tlsCaPath)
-	if err != nil {
-		panic(err)
-	}
-
-	tlsUserServiceCertPath := os.Getenv("TLS_USER_SERVICE_CLIENT_CERT_PATH")
-	tlsUserServiceKeyPath := os.Getenv("TLS_USER_SERVICE_CLIENT_KEY_PATH")
-	userServiceClientCert, err := cert.LoadX509KeyPair(tlsUserServiceCertPath, tlsUserServiceKeyPath)
-	if err != nil {
-		panic(err)
-	}
-
-	userClientCreds := cert.NewClientMTLSCreds(caCertPool, userServiceClientCert)
+	tokenManager := manager.MakeManager(manager.Config{Issuer: issuer})
 
 	userConn, err := grpc.DialContext(ctx, "user-service:50051",
 		grpc.WithTransportCredentials(userClientCreds),
@@ -138,28 +148,25 @@ func getServiceDependencies(ctx context.Context) service.Dependencies {
 		),
 	)
 	if err != nil {
-		panic(err)
+		return service.Dependencies{}, err
 	}
 	userClient := userPb.NewUserServiceClient(userConn)
 
-	vaultHost := os.Getenv("VAULT_HOST")
-	vaultPort := os.Getenv("VAULT_PORT")
-	vaultMountPath := os.Getenv("VAULT_MOUNT_PATH")
-	vaultToken := os.Getenv("VAULT_TOKEN")
 	vaultConfig := vault.Config{
-		MountPath:          vaultMountPath,
+		MountPath:          os.Getenv("VAULT_MOUNT_PATH"),
 		KeyCount:           10,
 		KeyRefreshInterval: time.Hour * 24, // Daily
 	}
-	vault, err := vault.Make(vaultHost, vaultPort, vaultToken, vaultConfig, tracer, logger)
+	vault, err := vault.Make(os.Getenv("VAULT_HOST"), os.Getenv("VAULT_PORT"), os.Getenv("VAULT_TOKEN"), vaultConfig, tracer, logger)
 	if err != nil {
-		panic(err)
+		return service.Dependencies{}, err
 	}
 
 	go vault.Run(ctx)
 
 	authConfig := server.Config{
 		// AccessTokenValidityTime:  time.Minute * 15,
+		VerifyClientCert:         isTLS,
 		AccessTokenValidityTime:  time.Hour * 24 * 7, // One week
 		RefreshTokenValidityTime: time.Hour * 24 * 7, // One week
 	}
@@ -178,17 +185,8 @@ func getServiceDependencies(ctx context.Context) service.Dependencies {
 
 	authServer := server.MakeAuthServer(authDependencies, authConfig)
 
-	tlsCertPath := os.Getenv("TLS_CERT_PATH")
-	tlsKeyPath := os.Getenv("TLS_KEY_PATH")
-	serverCert, err := cert.LoadX509KeyPair(tlsCertPath, tlsKeyPath)
-	if err != nil {
-		panic(err)
-	}
-
-	creds := cert.NewServerOptionalMTLSCreds(caCertPool, serverCert)
-
 	grpcServer := grpc.NewServer(
-		grpc.Creds(creds),
+		grpc.Creds(serverCreds),
 		grpc.StreamInterceptor(otelgrpc.StreamServerInterceptor()),
 		grpc.ChainUnaryInterceptor(
 			// grpc_auth.UnaryServerInterceptor(auth.Interceptor()),
@@ -211,10 +209,7 @@ func getServiceDependencies(ctx context.Context) service.Dependencies {
 		ShutdownFunc: func() error {
 			grpcServer.GracefulStop()
 
-			return errors.Join(
-				userConn.Close(),
-				authServer.Close(),
-			)
+			return errors.Join(userConn.Close(), authServer.Close())
 		},
-	}
+	}, nil
 }
