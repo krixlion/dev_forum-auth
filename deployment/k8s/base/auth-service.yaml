@@ -36,6 +36,7 @@ spec:
           image: krixlion/dev_forum-auth:0.1.0
           imagePullPolicy: IfNotPresent
           name: server
+          args: []
           ports:
             - name: grpc
               containerPort: 50051
@@ -48,55 +49,3 @@ spec:
             requests:
               cpu: 5m
               memory: 80Mi
-          volumeMounts:
-            - name: tls-certs
-              mountPath: /tls
-              readOnly: true
-            - name: tls-client-certs
-              mountPath: /tls/client
-              readOnly: true
-      volumes:
-        - name: tls-certs
-          secret:
-            secretName: tls-secret-auth
-        - name: tls-client-certs
-          secret:
-            secretName: tls-secret-auth-client-user
----
-apiVersion: cert-manager.io/v1
-kind: Certificate
-metadata:
-  name: tls-certificate-auth
-spec:
-  secretName: tls-secret-auth
-  privateKey:
-    algorithm: ECDSA
-    size: 256
-  usages:
-    - server auth
-    - key encipherment
-    - digital signature
-  dnsNames:
-    - "auth-service"
-  issuerRef:
-    name: root-issuer
-    kind: Issuer
----
-apiVersion: cert-manager.io/v1
-kind: Certificate
-metadata:
-  name: tls-certificate-auth-client-user
-spec:
-  secretName: tls-secret-auth-client-user
-  privateKey:
-    algorithm: ECDSA
-    size: 256
-  usages:
-    - client auth
-    - key encipherment
-    - digital signature
-  dnsNames:
-    - "auth-service"
-  issuerRef:
-    name: root-issuer
-    kind: Issuer
