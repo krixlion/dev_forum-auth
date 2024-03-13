@@ -53,13 +53,7 @@ func main() {
 
 	ctx, cancel := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGINT, syscall.SIGTERM, syscall.SIGQUIT)
 
-	shutdownTracing, err := tracing.InitProvider(ctx, serviceName)
-	if err != nil {
-		logging.Log("Failed to initialize tracing", "err", err)
-		return
-	}
-
-	deps, err := getServiceDependencies(ctx, isTLS)
+	deps, err := getServiceDependencies(ctx, serviceName, isTLS)
 	if err != nil {
 		logging.Log("Failed to initialize service dependencies", "err", err)
 		return
@@ -73,9 +67,8 @@ func main() {
 
 	defer func() {
 		cancel()
-		shutdownTracing()
-		err := service.Close()
-		if err != nil {
+
+		if err := service.Close(); err != nil {
 			logging.Log("Failed to shutdown service", "err", err)
 		} else {
 			logging.Log("Service shutdown properly")
@@ -85,7 +78,11 @@ func main() {
 
 // getServiceDependencies is the composition root.
 // Panics on any non-nil error.
-func getServiceDependencies(ctx context.Context, isTLS bool) (service.Dependencies, error) {
+func getServiceDependencies(ctx context.Context, serviceName string, isTLS bool) (service.Dependencies, error) {
+	shutdownTracing, err := tracing.InitProvider(ctx, serviceName)
+	if err != nil {
+		return service.Dependencies{}, err
+	}
 	tracer := otel.Tracer(serviceName)
 
 	userClientCreds := insecure.NewCredentials()
@@ -208,6 +205,7 @@ func getServiceDependencies(ctx context.Context, isTLS bool) (service.Dependenci
 		Dispatcher: dispatcher,
 		ShutdownFunc: func() error {
 			grpcServer.GracefulStop()
+			shutdownTracing()
 
 			return errors.Join(userConn.Close(), authServer.Close())
 		},
