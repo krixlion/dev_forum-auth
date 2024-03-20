@@ -35,8 +35,7 @@ type JWTValidator struct {
 
 	logger logging.Logger
 
-	// keySetExpired is a channel which notifies
-	// when the current keyset is outdated
+	// keySetExpired is a channel which notifies when the current keyset is outdated
 	keySetExpired chan struct{}
 
 	keySetMutex   sync.RWMutex
@@ -84,6 +83,7 @@ func NewValidator(issuer string, refreshFunc RefreshFunc, options ...Option) (*J
 // This function will block until provided context is cancelled or the validator
 // fails to fetch a new keyset.
 func (validator *JWTValidator) Run(ctx context.Context) {
+	// Set keySet on start.
 	validator.keySetExpired <- struct{}{}
 
 	for {
