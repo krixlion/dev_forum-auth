@@ -92,13 +92,6 @@ func (StdTokenManager) DecodeOpaque(typ tokens.OpaqueTokenPrefix, encodedOpaqueT
 	return decodeAndValidateOpaque(encodedOpaqueToken[4:])
 }
 
-// func verifyTokenType(tokenType string) (entity.TokenType, error) {
-// 	if tokenType != string(entity.RefreshToken) && tokenType != string(entity.AccessToken) {
-// 		return "", tokens.ErrInvalidTokenType
-// 	}
-// 	return entity.TokenType(tokenType), nil
-// }
-
 func verifyAlgorithm(algo entity.Algorithm) (jwa.SignatureAlgorithm, error) {
 	switch algo {
 	case entity.RS256:
