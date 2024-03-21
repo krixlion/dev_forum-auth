@@ -4,33 +4,35 @@ The authorization and authentication service that dev_forum relies on to provide
 
 ## Set up
 
-Before any further steps copy and rename `.env.example` to `.env`. \
-Fill in the missing values as needed.
+Rename `.env.example` to `.env` and fill in missing values.
 
 ### Locally
 You need a working [Go environment](https://go.dev/doc/install).
 
-To build the executable simply download dependencies with and compile using Go command.
+To build the executable simply download dependencies with and compile using the Go command.
 
-Run from project root:
 ```shell
-go mod tidy 
+go mod tidy
+
 go mod vendor
 
-go build cmd/main.go
+go build cmd/main.go 
 ```
-Make sure to place the executable in the same directory as the `.env` file.
 
 ### On Docker
 You need a working [Docker environment](https://docs.docker.com/engine).
 
-You can also use the Dockerfile to build and run the service on a docker container.
+You can use the Dockerfile located in `deployment/` to build and run the service on a docker container.
 
 ```shell
 make build-image version=latest` 
 ``` 
 
-### On Kubernetes
+```shell
+docker run -p 50051:50051 -p 2223:2223 krixlion/dev_forum-auth:0.1.0
+```
+
+### On Kubernetes (recommended)
 You need a working [Kubernetes environment](https://kubernetes.io/docs/setup) with [kustomize](https://kubernetes.io/docs/tasks/manage-kubernetes-objects/kustomization).
 
 Use `make` to apply manifests for dev_forum-auth and needed DBs for either dev or stage environment.
