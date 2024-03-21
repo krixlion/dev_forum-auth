@@ -48,3 +48,7 @@ Run unit and integration tests using Go command.
 go test ./... -race
 ```
 Include `-short` flag to skip integration tests.
+
+## Documentation 
+
+For in-detail documentation refer to the [Wiki](https://github.com/krixlion/dev_forum-auth/wiki)
