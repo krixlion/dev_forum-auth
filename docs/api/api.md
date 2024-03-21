@@ -67,7 +67,7 @@
 | kid | [string](#string) |  | Key ID |
 | kty | [string](#string) |  | Key Type |
 | alg | [string](#string) |  | Key Signature Algorithm |
-| key | [google.protobuf.Any](#google-protobuf-Any) |  | Field for key-specific data. Eg. n, e for RSA or crv, x ,y for EC |
+| key | [google.protobuf.Any](#google-protobuf-Any) |  | Field for key-specific data. Eg. {n, e} for RSA or {crv, x, y} for EC. |
 
 
 
@@ -165,9 +165,9 @@
 | ----------- | ------------ | ------------- | ------------|
 | SignIn | [SignInRequest](#auth-SignInRequest) | [SignInResponse](#auth-SignInResponse) | Upon successful login user receives a refresh_token. When it expires or is revoked user has to login again. |
 | SignOut | [SignOutRequest](#auth-SignOutRequest) | [.google.protobuf.Empty](#google-protobuf-Empty) | SignOut revokes user&#39;s active refresh_token. |
-| GetAccessToken | [GetAccessTokenRequest](#auth-GetAccessTokenRequest) | [GetAccessTokenResponse](#auth-GetAccessTokenResponse) |  |
-| GetValidationKeySet | [.google.protobuf.Empty](#google-protobuf-Empty) | [Jwk](#auth-Jwk) stream |  |
-| TranslateAccessToken | [TranslateAccessTokenRequest](#auth-TranslateAccessTokenRequest) stream | [TranslateAccessTokenResponse](#auth-TranslateAccessTokenResponse) stream |  |
+| GetAccessToken | [GetAccessTokenRequest](#auth-GetAccessTokenRequest) | [GetAccessTokenResponse](#auth-GetAccessTokenResponse) | Creates a new access token from a given refresh token. |
+| GetValidationKeySet | [.google.protobuf.Empty](#google-protobuf-Empty) | [Jwk](#auth-Jwk) stream | Returns a list of public JWKs to use to verify incoming JWTs. |
+| TranslateAccessToken | [TranslateAccessTokenRequest](#auth-TranslateAccessTokenRequest) stream | [TranslateAccessTokenResponse](#auth-TranslateAccessTokenResponse) stream | Requires mTLS client cert to be provided. Responds with a JWT related to given opaque token. |
 
  
 

@@ -15,10 +15,14 @@ service AuthService {
     // SignOut revokes user's active refresh_token.
     rpc SignOut(SignOutRequest) returns (google.protobuf.Empty) {}
 
+    // Creates a new access token from a given refresh token.
     rpc GetAccessToken(GetAccessTokenRequest) returns (GetAccessTokenResponse);
     
+    // Returns a list of public JWKs to use to verify incoming JWTs.
     rpc GetValidationKeySet(google.protobuf.Empty) returns (stream Jwk);
     
+    // Requires mTLS client cert to be provided.
+    // Responds with a JWT related to given opaque token.
     rpc TranslateAccessToken(stream TranslateAccessTokenRequest) returns (stream TranslateAccessTokenResponse);
 }
 
@@ -61,6 +65,6 @@ message Jwk {
     string alg = 3;
 
     // Field for key-specific data.
-    // Eg. n, e for RSA or crv, x, y for EC
+    // Eg. {n, e} for RSA or {crv, x, y} for EC.
     google.protobuf.Any key = 4;
 }

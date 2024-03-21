@@ -36,8 +36,12 @@ type AuthServiceClient interface {
 	SignIn(ctx context.Context, in *SignInRequest, opts ...grpc.CallOption) (*SignInResponse, error)
 	// SignOut revokes user's active refresh_token.
 	SignOut(ctx context.Context, in *SignOutRequest, opts ...grpc.CallOption) (*emptypb.Empty, error)
+	// Creates a new access token from a given refresh token.
 	GetAccessToken(ctx context.Context, in *GetAccessTokenRequest, opts ...grpc.CallOption) (*GetAccessTokenResponse, error)
+	// Returns a list of public JWKs to use to verify incoming JWTs.
 	GetValidationKeySet(ctx context.Context, in *emptypb.Empty, opts ...grpc.CallOption) (AuthService_GetValidationKeySetClient, error)
+	// Requires mTLS client cert to be provided.
+	// Responds with a JWT related to given opaque token.
 	TranslateAccessToken(ctx context.Context, opts ...grpc.CallOption) (AuthService_TranslateAccessTokenClient, error)
 }
 
@@ -148,8 +152,12 @@ type AuthServiceServer interface {
 	SignIn(context.Context, *SignInRequest) (*SignInResponse, error)
 	// SignOut revokes user's active refresh_token.
 	SignOut(context.Context, *SignOutRequest) (*emptypb.Empty, error)
+	// Creates a new access token from a given refresh token.
 	GetAccessToken(context.Context, *GetAccessTokenRequest) (*GetAccessTokenResponse, error)
+	// Returns a list of public JWKs to use to verify incoming JWTs.
 	GetValidationKeySet(*emptypb.Empty, AuthService_GetValidationKeySetServer) error
+	// Requires mTLS client cert to be provided.
+	// Responds with a JWT related to given opaque token.
 	TranslateAccessToken(AuthService_TranslateAccessTokenServer) error
 	mustEmbedUnimplementedAuthServiceServer()
 }
