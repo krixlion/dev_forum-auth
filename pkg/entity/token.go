@@ -5,7 +5,7 @@ import (
 )
 
 type Token struct {
-	Id        string
+	Id        string // Token's ID is it's related decoded opaque token.
 	UserId    string
 	Type      TokenType
 	ExpiresAt time.Time
