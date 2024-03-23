@@ -5,7 +5,7 @@ Auth service was designed for the [phantom token](https://curity.io/resources/le
 Opaque tokens on their own contain no information about the owner's identity, roles or any other information.
 
 Tokens are generated from random 16 char long strings generated from this charset: `abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ`.
-Each token's random string is used to lookup token's related JWT and is effectively it's `jti` (JWT ID).
+Each token's random string is used to lookup token's related JWT and is effectively its `jti` (JWT ID).
 
 Each token contains a CRC32 checksum to reject poorly forged fakes without making additional DB lookups.
 The checksum is appended to the source string and the result is encoded using unpadded Base64URL.

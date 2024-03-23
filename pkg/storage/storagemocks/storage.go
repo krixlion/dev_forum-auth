@@ -18,7 +18,7 @@ func NewStorage() Storage {
 	}
 }
 
-// Token's id is it's corresponding opaque token.
+// Token's id is its corresponding opaque token.
 func (m Storage) Get(ctx context.Context, id string) (entity.Token, error) {
 	args := m.Called(ctx, id)
 	return args.Get(0).(entity.Token), args.Error(1)

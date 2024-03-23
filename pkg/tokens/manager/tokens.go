@@ -88,7 +88,7 @@ func (StdTokenManager) DecodeOpaque(typ tokens.OpaqueTokenPrefix, encodedOpaqueT
 		return "", tokens.ErrMalformedToken
 	}
 
-	// Decode token part without it's prefix.
+	// Decode token part without its prefix.
 	return decodeAndValidateOpaque(encodedOpaqueToken[4:])
 }
 
