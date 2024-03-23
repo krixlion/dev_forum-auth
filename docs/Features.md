@@ -8,6 +8,9 @@ Tokens are generated from random 16 char long strings generated from this charse
 Each token's random string is used to lookup token's related JWT and is effectively it's `jti` (JWT ID).
 
 Each token contains a CRC32 checksum to reject poorly forged fakes without making additional DB lookups.
+The checksum is appended to the source string and the result is encoded using unpadded Base64URL.
+
+A prefix is added for readability. `df` stands for dev_forum.
 
 #### Opaque token generation example:
 a token ID of `aaaaaaaaaaaa` will result in:
