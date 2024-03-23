@@ -16,6 +16,7 @@ A prefix is added for readability. `df` stands for dev_forum.
 A token ID of `aaaaaaaaaaaa` will result in:
 ```shell
 dfa_YWFhYWFhYWFhYWFhXzlhNWVhMWZh # access token
+# or
 dfr_YWFhYWFhYWFhYWFhXzlhNWVhMWZh # refresh token
 ```
 
