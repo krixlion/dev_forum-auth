@@ -5,3 +5,5 @@ Welcome to the dev_forum-auth Wiki!
 [Features Overview](Features)
 
 [API](api)
+
+[Storage](Storage)
