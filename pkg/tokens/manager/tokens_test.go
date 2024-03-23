@@ -162,7 +162,7 @@ func Test_decodeAndValidateOpaque(t *testing.T) {
 		})
 	}
 }
-func Test_verifyAlgorithm(t *testing.T) {
+func Test_toJwaAlgorithm(t *testing.T) {
 	type args struct {
 		algo entity.Algorithm
 	}
@@ -203,7 +203,7 @@ func Test_verifyAlgorithm(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got, err := verifyAlgorithm(tt.args.algo)
+			got, err := toJwaAlgorithm(tt.args.algo)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("verifyAlgorithm() error = %v, wantErr %v", err, tt.wantErr)
 				return

@@ -35,7 +35,7 @@ func (m StdTokenManager) Encode(privateKey entity.Key, token entity.Token) ([]by
 		return nil, err
 	}
 
-	algo, err := verifyAlgorithm(privateKey.Algorithm)
+	algo, err := toJwaAlgorithm(privateKey.Algorithm)
 	if err != nil {
 		return nil, err
 	}
@@ -92,7 +92,7 @@ func (StdTokenManager) DecodeOpaque(typ tokens.OpaqueTokenPrefix, encodedOpaqueT
 	return decodeAndValidateOpaque(encodedOpaqueToken[4:])
 }
 
-func verifyAlgorithm(algo entity.Algorithm) (jwa.SignatureAlgorithm, error) {
+func toJwaAlgorithm(algo entity.Algorithm) (jwa.SignatureAlgorithm, error) {
 	switch algo {
 	case entity.RS256:
 		return jwa.RS256, nil
