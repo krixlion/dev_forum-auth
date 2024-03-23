@@ -1,7 +1,6 @@
 # Token distribution
 Auth service was designed for the [phantom token](https://curity.io/resources/learn/phantom-token-pattern/) approach. The service can generate opaque tokens for the clients and translate them to JWTs for the backend.
 
-
 ## Opaque tokens 
 Opaque tokens on their own contain no information about the owner's identity, roles or any other information.
 
@@ -26,3 +25,28 @@ Every translated JWT is also given:
 - a `kid` which points to the private key used to sign the token. It's used to retrieve a correct public JWK from the JWKS (JWK Set) to verify the token with,
 - a `jti` which is set to the opaque token source,
 - a `type` claim which describes whether a JWT is an access token or a refresh token.
+
+# Token Validator package written in Go
+A `JWTValidator` compatible with the auth-service is available under import path `github.com/krixlion/dev_forum-auth/pkg/tokens/validator`.
+
+Example:
+```Go
+// refreshFunc is used to retrieve a fresh keyset for the
+// validator to search for keys with given `kid`.
+func refreshFunc(ctx context.Context) (validator.[]Key, error) {
+    // You can implement your own or use `DefaultRefreshFunc` included in the package.
+    panic("not implemented")
+}
+
+func example(encodedJWT string) {
+    validator := validator.NewValidator("auth-service", refreshFunc)
+    
+    // Run starts up the validator to refresh the keySet automatically using its `refreshFunc`.
+    go validator.Run()
+
+    // JWTValidator implements `github.com/krixlion/dev_forum-auth/pkg/tokens.Validator`.
+    if err := validator.VerifyToken(encodedJWT); err != nil {
+        panic(fmt.Sprintf("JWT validation failed: %s", err))
+    }
+}
+```
