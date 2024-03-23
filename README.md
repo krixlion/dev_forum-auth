@@ -44,6 +44,10 @@ Use `make` to apply manifests for dev_forum-auth and needed DBs for either dev o
 ```shell
 make k8s-run overlay=<dev/stage>
 ```
+```shell
+# To delete
+make k8s-stop overlay=dev
+```
 
 ## Testing
 All tests are written as Go tests.
@@ -52,6 +56,21 @@ Run unit and integration tests using Go command.
 ```shell
 # Include `-short` flag to skip integration tests.
 go test ./... -race
+```
+
+Generate coverage report using `go tool cover`.
+```
+go test -coverprofile  cover.out ./...
+go tool cover -html cover.out -o cover.html
+```
+
+If the service is deployed on kubernetes you can use `make`.
+```shell
+make k8s-integration-test
+```
+or
+```shell
+make k8s-unit-test
 ```
 
 ## Documentation 
