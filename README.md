@@ -55,7 +55,7 @@ go test ./... -race
 ```
 
 ## Documentation 
-For in-detail documentation refer to the [Wiki](https://github.com/krixlion/dev_forum-auth/wiki)
+For in-detail documentation refer to the [Wiki](https://github.com/krixlion/dev_forum-auth/wiki).
 
 ## API
 Service is exposing [gRPC](https://grpc.io/docs/what-is-grpc/introduction) API.
