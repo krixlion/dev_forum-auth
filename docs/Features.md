@@ -30,7 +30,7 @@ Every translated JWT is also given:
 - a `type` claim which describes whether a JWT is an access token or a refresh token.
 
 # Token Validator package written in Go
-A `JWTValidator` compatible with the auth-service is available under import path `github.com/krixlion/dev_forum-auth/pkg/tokens/validator`.
+A `JWTValidator` compatible with the auth-service is available in package `github.com/krixlion/dev_forum-auth/pkg/tokens/validator`.
 
 Example:
 ```Go
@@ -53,3 +53,10 @@ func example(encodedJWT string) {
     }
 }
 ```
+
+# Signing keys rotation
+JWK Set used to sign and verify JWTs is regularly rotated to mitigate the risk of any of the keys being compromised and used to perform unauthorized operations. Once the keyset is rotated it needs to be fetched by each service in the backend again.\
+If the `JWTValidator` is used then the keyset will be refetched automatically.
+
+It's planned to eventually add option to configure the duration between rotation cycles. 
+Currently it's set to 24 hours.
