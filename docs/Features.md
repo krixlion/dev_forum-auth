@@ -2,7 +2,7 @@
 Auth service was designed for the [phantom token](https://curity.io/resources/learn/phantom-token-pattern/) approach. The service can generate opaque tokens for the clients and translate them to JWTs for the backend.
 
 ## Opaque tokens 
-Opaque tokens on their own contain no information about the owner's identity, roles or any other information.
+Opaque tokens on their own contain no information about the owner's identity, roles or any other sensitive information.
 
 Tokens are generated from random 16 char long strings generated from this charset: `abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ`.
 Each token's random string is used to lookup token's related JWT and is effectively its `jti` (JWT ID).
