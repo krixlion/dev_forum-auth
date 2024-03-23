@@ -60,3 +60,9 @@ If the `JWTValidator` is used then the keyset will be refetched automatically.
 
 It's planned to eventually add option to configure the duration between rotation cycles. 
 Currently it's set to 24 hours.
+
+# Telemetry
+Auth service is exposing a HTTP `/metrics` endpoint for Prometheus to scrap.
+
+It's also sending traces to an [OpenTelemetry-Collector](https://opentelemetry.io/docs/collector/). OpenTelemetry-Collector URL is configurable through `OTEL_EXPORTER_OTLP_ENDPOINT` env variable.\
+You can integrate OtelCollector with any backend supported by it, e.g [Jaeger](https://www.jaegertracing.io/docs/).
