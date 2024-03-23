@@ -13,7 +13,7 @@ The checksum is appended to the source string and the result is encoded using un
 A prefix is added for readability. `df` stands for dev_forum.
 
 #### Opaque token generation example:
-a token ID of `aaaaaaaaaaaa` will result in:
+A token ID of `aaaaaaaaaaaa` will result in:
 ```shell
 dfa_YWFhYWFhYWFhYWFhXzlhNWVhMWZh # access token
 dfr_YWFhYWFhYWFhYWFhXzlhNWVhMWZh # refresh token
@@ -22,11 +22,11 @@ dfr_YWFhYWFhYWFhYWFhXzlhNWVhMWZh # refresh token
 ## JWTs
 Each opaque token has to be translated to a JWT before it can be used by any of the backend services.
 
-Data needed to recreate a JWT is stored in MongoDB in an unencrypted form.
+Data needed to recreate a JWT from a token ID is stored in MongoDB in an unencrypted form.
 
 Every translated JWT is also given:
 - a `kid` which points to the private key used to sign the token. It's used to retrieve a correct public JWK from the JWKS (JWK Set) to verify the token with,
-- a `jti` which is set to the opaque token source,
+- a `jti` which is set to the opaque token source string,
 - a `type` claim which describes whether a JWT is an access token or a refresh token.
 
 # Token Validator package written in Go
