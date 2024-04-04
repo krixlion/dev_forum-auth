@@ -27,11 +27,11 @@ You need a working [Docker environment](https://docs.docker.com/engine).
 You can use the Dockerfile located in `deployment/` to build and run the service on a docker container.
 
 ```shell
-make build-image version=latest
+make build-image version=<version>
 ``` 
 
 ```shell
-docker run -p 50051:50051 -p 2223:2223 krixlion/dev_forum-auth:0.1.0
+docker run -p 50051:50051 -p 2223:2223 krixlion/dev_forum-auth:<version>
 ```
 
 ### On Kubernetes (recommended)
@@ -46,7 +46,7 @@ make k8s-run overlay=<dev/stage>
 ```
 ```shell
 # To delete
-make k8s-stop overlay=dev
+make k8s-stop overlay=<dev/stage>
 ```
 
 ## Testing
