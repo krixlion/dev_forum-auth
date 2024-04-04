@@ -1,8 +1,7 @@
 resources:
-  - ../../base
-  - server-cert.yaml
-  - user-client-cert.yaml
   - dev-volume.yaml
+  - ../tls
+
 namespace: dev
 
 replicas:
