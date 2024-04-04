@@ -20,6 +20,9 @@ kind: Deployment
 metadata:
   name: auth-d
 spec:
+  selector:
+    matchLabels:
+      app: auth
   revisionHistoryLimit: 0
   strategy:
     type: Recreate
