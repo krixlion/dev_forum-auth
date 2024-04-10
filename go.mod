@@ -11,6 +11,7 @@ require (
 	github.com/krixlion/dev_forum-rabbitmq v0.0.0-20230321225335-aacfca540fbc
 	github.com/krixlion/dev_forum-user v0.0.0-20230323193418-8e6e611c0e10
 	github.com/lestrrat-go/jwx v1.2.28
+	github.com/sasha-s/go-deadlock v0.3.1
 	github.com/stretchr/testify v1.8.4
 	go.mongodb.org/mongo-driver v1.11.3
 	go.opentelemetry.io/contrib/instrumentation/go.mongodb.org/mongo-driver/mongo/otelmongo v0.40.0
@@ -58,6 +59,7 @@ require (
 	github.com/mitchellh/go-homedir v1.1.0 // indirect
 	github.com/mitchellh/mapstructure v1.5.0 // indirect
 	github.com/montanaflynn/stats v0.7.0 // indirect
+	github.com/petermattis/goid v0.0.0-20180202154549-b0b1615b78e5 // indirect
 	github.com/pkg/errors v0.9.1 // indirect
 	github.com/pmezard/go-difflib v1.0.0 // indirect
 	github.com/prometheus/client_golang v1.14.0 // indirect
