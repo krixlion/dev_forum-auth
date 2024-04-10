@@ -32,18 +32,22 @@ message SignInRequest {
 }
 
 message SignInResponse {    
+    // Encoded JWT refresh token
     string refresh_token = 2;
 }
 
 message SignOutRequest {
+    // Encoded JWT refresh token
     string refresh_token = 1;
 }
 
 message GetAccessTokenRequest {
+    // Encoded JWT refresh token
     string refresh_token = 1;
 }
 
 message GetAccessTokenResponse {
+    // Encoded JWT access token
     string access_token = 1;
 }
 
@@ -52,6 +56,7 @@ message TranslateAccessTokenRequest {
 }
 
 message TranslateAccessTokenResponse {
+    // Encoded JWT access token
     string access_token = 1;
 }
 

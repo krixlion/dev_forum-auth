@@ -34,7 +34,7 @@
 
 | Field | Type | Label | Description |
 | ----- | ---- | ----- | ----------- |
-| refresh_token | [string](#string) |  |  |
+| refresh_token | [string](#string) |  | Encoded JWT refresh token |
 
 
 
@@ -49,7 +49,7 @@
 
 | Field | Type | Label | Description |
 | ----- | ---- | ----- | ----------- |
-| access_token | [string](#string) |  |  |
+| access_token | [string](#string) |  | Encoded JWT access token |
 
 
 
@@ -98,7 +98,7 @@
 
 | Field | Type | Label | Description |
 | ----- | ---- | ----- | ----------- |
-| refresh_token | [string](#string) |  |  |
+| refresh_token | [string](#string) |  | Encoded JWT refresh token |
 
 
 
@@ -113,7 +113,7 @@
 
 | Field | Type | Label | Description |
 | ----- | ---- | ----- | ----------- |
-| refresh_token | [string](#string) |  |  |
+| refresh_token | [string](#string) |  | Encoded JWT refresh token |
 
 
 
@@ -143,7 +143,7 @@
 
 | Field | Type | Label | Description |
 | ----- | ---- | ----- | ----------- |
-| access_token | [string](#string) |  |  |
+| access_token | [string](#string) |  | Encoded JWT access token |
 
 
 
