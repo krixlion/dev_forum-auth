@@ -35,11 +35,12 @@ type Config struct {
 func NewTranslator(grpcClient pb.AuthServiceClient, config Config, opts ...Option) *Translator {
 	t := &Translator{
 		grpcClient:   grpcClient,
-		jobs:         make(chan job, config.JobQueueSize),
 		mu:           &sync.RWMutex{},
+		stream:       nil,
 		renewStreamC: make(chan struct{}, 2),
-		config:       config,
+		jobs:         make(chan job, config.JobQueueSize),
 		logger:       nulls.NullLogger{},
+		config:       config,
 	}
 
 	for _, opt := range opts {
