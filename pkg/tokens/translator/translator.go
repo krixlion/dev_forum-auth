@@ -29,24 +29,6 @@ type Config struct {
 	JobQueueSize          int
 }
 
-// job contains the request to be made and a channel to which
-// the response or an error will be sent. Channel should be initialized
-// by the caller. Only one response will be sent through it, so
-// no need for a buffer. Translator will automatically close
-// the channel once it sends the result.
-type job struct {
-	Req     *pb.TranslateAccessTokenRequest
-	ResultC chan result
-}
-
-// result contains either a response or a non-nil error.
-// Always check if the Err is nil and if it is then discard
-// the response and handle the error.
-type result struct {
-	Resp *pb.TranslateAccessTokenResponse
-	Err  error
-}
-
 // NewTranslator returns a new, initialized instance of the Translator.
 // Run() has to be invoked before use. Logging is disabled by default
 // unless a logger option is given.
@@ -73,6 +55,38 @@ func NewTranslator(grpcClient pb.AuthServiceClient, config Config, opts ...Optio
 func (t *Translator) Run(ctx context.Context) {
 	go t.handleStreamRenewals(ctx)
 	t.handleJobs(ctx)
+}
+
+// TranslateAccessToken takes in an opaqueAccessToken and translates it to an
+// encoded JWT token or returns a non-nil error.
+func (t *Translator) TranslateAccessToken(opaqueAccessToken string) (string, error) {
+	resultC := make(chan result)
+	job := job{
+		Req:     &pb.TranslateAccessTokenRequest{OpaqueAccessToken: opaqueAccessToken},
+		ResultC: make(chan result),
+	}
+
+	t.jobs <- job
+	res := <-resultC
+	return res.Resp.AccessToken, res.Err
+}
+
+// job contains the request to be made and a channel to which
+// the response or an error will be sent. Channel should be initialized
+// by the caller. Only one response will be sent through it, so
+// no need for a buffer. Translator will automatically close
+// the channel once it sends the result.
+type job struct {
+	Req     *pb.TranslateAccessTokenRequest
+	ResultC chan result
+}
+
+// result contains either a response or a non-nil error.
+// Always check if the Err is nil and if it is then discard
+// the response and handle the error.
+type result struct {
+	Resp *pb.TranslateAccessTokenResponse
+	Err  error
 }
 
 // handleJobs blocks until given context is cancelled.
@@ -103,20 +117,6 @@ func (t *Translator) handleJobs(ctx context.Context) {
 			return
 		}
 	}
-}
-
-// TranslateAccessToken takes in an opaqueAccessToken and translates it to an
-// encoded JWT token or returns a non-nil error.
-func (t *Translator) TranslateAccessToken(opaqueAccessToken string) (string, error) {
-	resultC := make(chan result)
-	job := job{
-		Req:     &pb.TranslateAccessTokenRequest{OpaqueAccessToken: opaqueAccessToken},
-		ResultC: make(chan result),
-	}
-
-	t.jobs <- job
-	res := <-resultC
-	return res.Resp.AccessToken, res.Err
 }
 
 // maybeSendRenewStreamSig sends a signal to Translator.renewStreamC if
