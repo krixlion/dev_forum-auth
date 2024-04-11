@@ -11,7 +11,6 @@ import (
 	"github.com/krixlion/dev_forum-lib/logging"
 	"github.com/krixlion/dev_forum-lib/nulls"
 	sync "github.com/sasha-s/go-deadlock"
-	"google.golang.org/grpc"
 )
 
 type Translator struct {
@@ -51,9 +50,9 @@ type result struct {
 // NewTranslator returns a new, initialized instance of the Translator.
 // Run() has to be invoked before use. Logging is disabled by default
 // unless a logger option is given.
-func NewTranslator(grpcConn *grpc.ClientConn, config Config, opts ...Option) *Translator {
+func NewTranslator(grpcClient pb.AuthServiceClient, config Config, opts ...Option) *Translator {
 	t := &Translator{
-		grpcClient:   pb.NewAuthServiceClient(grpcConn),
+		grpcClient:   grpcClient,
 		jobs:         make(chan job, config.JobQueueSize),
 		mu:           &sync.RWMutex{},
 		renewStreamC: make(chan struct{}, 2),
