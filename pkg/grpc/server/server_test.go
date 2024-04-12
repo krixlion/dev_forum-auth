@@ -117,7 +117,7 @@ func TestAuthServer_SignIn(t *testing.T) {
 				return
 			}
 			if !cmp.Equal(got, tt.want, cmpopts.IgnoreUnexported(pb.SignInResponse{}, pb.SignInResponse{})) {
-				t.Errorf("AuthServer.SignIn() = %v, want %v", got, tt.want)
+				t.Errorf("AuthServer.SignIn():\n got = %v\n want = %v", got, tt.want)
 			}
 		})
 	}
@@ -249,7 +249,7 @@ func TestAuthServer_GetAccessToken(t *testing.T) {
 			// so be sure to use separate variables when providing args in order to prevent SEGV.
 			if got != tt.want {
 				if !cmp.Equal(got, tt.want, cmpopts.IgnoreUnexported(pb.GetAccessTokenRequest{}, pb.GetAccessTokenResponse{})) {
-					t.Errorf("AuthServer.GetAccessToken() = %v, want %v", got, tt.want)
+					t.Errorf("AuthServer.GetAccessToken():\n got = %v\n want = %v", got, tt.want)
 				}
 			}
 		})
