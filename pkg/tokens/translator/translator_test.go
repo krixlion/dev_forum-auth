@@ -8,7 +8,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/krixlion/dev_forum-auth/pkg/grpc/server/mocks"
+	"github.com/krixlion/dev_forum-auth/pkg/grpc/mocks"
 	pb "github.com/krixlion/dev_forum-auth/pkg/grpc/v1"
 	"github.com/stretchr/testify/mock"
 )
