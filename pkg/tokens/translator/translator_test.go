@@ -22,7 +22,7 @@ func Test_NewTranslator(t *testing.T) {
 			t.Errorf("NewTranslator():\n got = %v\n want = %v\n", got, queueSize)
 		}
 
-		if got, want := cap(translator.renewStreamC), 1; got != want {
+		if got, want := cap(translator.streamAborted), 1; got != want {
 			t.Errorf("NewTranslator():\n got = %v\n want = %v\n", got, want)
 		}
 	})

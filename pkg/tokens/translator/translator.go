@@ -14,13 +14,18 @@ import (
 )
 
 type Translator struct {
-	grpcClient   pb.AuthServiceClient
-	mu           *sync.RWMutex // Protects the stream.
-	stream       pb.AuthService_TranslateAccessTokenClient
-	renewStreamC chan struct{}
-	jobs         chan job
-	logger       logging.Logger
-	config       Config
+	grpcClient pb.AuthServiceClient
+
+	mu     *sync.RWMutex // Protects the stream.
+	stream pb.AuthService_TranslateAccessTokenClient
+
+	// Receives signals when a stream is aborted and needs to be renewed.
+	streamAborted chan struct{}
+
+	jobs chan job
+
+	logger logging.Logger
+	config Config
 }
 
 type Config struct {
@@ -34,13 +39,13 @@ type Config struct {
 // unless a logger option is given.
 func NewTranslator(grpcClient pb.AuthServiceClient, config Config, opts ...Option) *Translator {
 	t := &Translator{
-		grpcClient:   grpcClient,
-		mu:           &sync.RWMutex{},
-		stream:       nil,
-		renewStreamC: make(chan struct{}, 1),
-		jobs:         make(chan job, config.JobQueueSize),
-		logger:       nulls.NullLogger{},
-		config:       config,
+		grpcClient:    grpcClient,
+		mu:            &sync.RWMutex{},
+		stream:        nil,
+		streamAborted: make(chan struct{}, 1),
+		jobs:          make(chan job, config.JobQueueSize),
+		logger:        nulls.NullLogger{},
+		config:        config,
 	}
 
 	for _, opt := range opts {
@@ -134,7 +139,7 @@ func (t *Translator) handleJobs(ctx context.Context) {
 func (t *Translator) maybeSendRenewStreamSig(err error) {
 	if isStreamRenewable(err) {
 		select {
-		case t.renewStreamC <- struct{}{}:
+		case t.streamAborted <- struct{}{}:
 		default:
 			// Stream is being renewed or is going to be renewed shortly.
 			// No need to bloat the buffer.
@@ -164,7 +169,7 @@ func isStreamRenewable(err error) bool {
 func (t *Translator) handleStreamRenewals(ctx context.Context) {
 	for {
 		select {
-		case <-t.renewStreamC:
+		case <-t.streamAborted:
 			t.renewStream(ctx)
 		case <-ctx.Done():
 			return
