@@ -7,24 +7,6 @@ import (
 	"github.com/krixlion/dev_forum-lib/nulls"
 )
 
-func Test_optionFunc_apply(t *testing.T) {
-	type args struct {
-		t *Translator
-	}
-	tests := []struct {
-		name string
-		fn   optionFunc
-		args args
-	}{
-		// TODO: Add test cases.
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			tt.fn.apply(tt.args.t)
-		})
-	}
-}
-
 func TestWithLogger(t *testing.T) {
 	t.Run("Test given logger is assigned to translator", func(t *testing.T) {
 		tr := &Translator{}
