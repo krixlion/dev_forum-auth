@@ -126,31 +126,32 @@ func (t *Translator) handleJobs(ctx context.Context) {
 
 // maybeSendRenewStreamSig sends a signal to Translator.renewStreamC if
 // the following conditions are met:
-//   - given error is not io.EOF,
+//   - given error is not nil
+//   - given error is not wrapped with io.EOF,
 //   - renewStreamC does not have any pending, buffered signals.
 //
 // Use this func to determine whether the error returned by grpc.ClientStream
 // methods indicates that the stream was aborted and needs to be renewed.
 func (t *Translator) maybeSendRenewStreamSig(err error) {
-	if isStreamRenewable(err, len(t.renewStreamC)) {
-		t.renewStreamC <- struct{}{}
+	if isStreamRenewable(err) {
+		select {
+		case t.renewStreamC <- struct{}{}:
+		default:
+			// Stream is being renewed or is going to be renewed shortly.
+			// No need to bloat the buffer.
+			return
+		}
 	}
 }
 
 // isStreamRenewable returns true if given error is non-nil and not io.EOF.
-func isStreamRenewable(err error, currentBufferLen int) bool {
+func isStreamRenewable(err error) bool {
 	if err == nil {
 		return false
 	}
 
 	if errors.Is(err, io.EOF) {
 		// TODO: add desc
-		return false
-	}
-
-	if currentBufferLen > 0 {
-		// Stream is being renewed or is going to be renewed shortly.
-		// No need to bloat the buffer.
 		return false
 	}
 

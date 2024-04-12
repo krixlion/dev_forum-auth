@@ -123,8 +123,7 @@ func TestTranslator_handleJobs(t *testing.T) {
 
 func Test_isStreamRenewable(t *testing.T) {
 	type args struct {
-		err              error
-		currentBufferLen int
+		err error
 	}
 	tests := []struct {
 		name string
@@ -134,15 +133,14 @@ func Test_isStreamRenewable(t *testing.T) {
 		{
 			name: "Test returns false when error is nil",
 			args: args{
-				err:              nil,
-				currentBufferLen: 0,
+				err: nil,
 			},
 			want: false,
 		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if got := isStreamRenewable(tt.args.err, tt.args.currentBufferLen); got != tt.want {
+			if got := isStreamRenewable(tt.args.err); got != tt.want {
 				t.Errorf("isStreamRenewable():\n got = %v\n want = %v", got, tt.want)
 			}
 		})
