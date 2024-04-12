@@ -126,11 +126,11 @@ func (t *Translator) handleJobs(ctx context.Context) {
 	}
 }
 
-// maybeSendRenewStreamSig sends a signal to Translator.renewStreamC if
+// maybeSendRenewStreamSig sends a signal to Translator if
 // the following conditions are met:
-//   - given error is not nil
+//   - given error is not nil,
 //   - given error is not wrapped with io.EOF,
-//   - renewStreamC does not have any pending, buffered signals.
+//   - Translator is currently not renewing the stream.
 //
 // Use this func to determine whether the error returned by grpc.ClientStream
 // methods indicates that the stream was aborted and needs to be renewed.
@@ -160,7 +160,7 @@ func isStreamRenewable(err error) bool {
 	return true
 }
 
-// handleStreamRenewals listens for Translator.renewStreamC signals
+// handleStreamRenewals listens for Translator signals
 // and renews the stream once a signal is received.
 // It blocks until given context is cancelled.
 // It is intended to be invoked in a seperate goroutine.
