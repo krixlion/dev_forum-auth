@@ -18,6 +18,7 @@ import (
 	"github.com/krixlion/dev_forum-lib/event/dispatcher"
 	"github.com/krixlion/dev_forum-lib/filter"
 	"github.com/krixlion/dev_forum-lib/nulls"
+	usermocks "github.com/krixlion/dev_forum-user/pkg/grpc/mocks"
 	userPb "github.com/krixlion/dev_forum-user/pkg/grpc/v1"
 	"github.com/stretchr/testify/mock"
 	"google.golang.org/grpc"
@@ -26,6 +27,7 @@ import (
 	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/types/known/anypb"
 	empty "google.golang.org/protobuf/types/known/emptypb"
+	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
 // Struct for server mock dependencies.
@@ -104,7 +106,58 @@ func TestAuthServer_SignIn(t *testing.T) {
 		want    *pb.SignInResponse
 		wantErr bool
 	}{
-		// TODO: Add test cases.
+		{
+			name: "Test no unexpected errors are returned on valid flow",
+			deps: deps{
+				verifyClientCert: false,
+				now:              func() time.Time { return time.Unix(0, 0) },
+				userClient: func() usermocks.UserClient {
+					m := usermocks.NewUserClient()
+					r := &userPb.GetUserSecretRequest{Query: &userPb.GetUserSecretRequest_Email{Email: "test-email"}}
+					resp := &userPb.GetUserSecretResponse{
+						User: &userPb.User{
+							Id:        "test-id",
+							Name:      "test-name",
+							Email:     "test-email",
+							Password:  "$2a$10$QD5AMz7x8T6xvI8QLb7rpuwKTOni6VGInPSxYLm3BEkXbWTjkaw/W", // "test-pass" - hashed with bcrypt, cost 10.
+							CreatedAt: timestamppb.New(time.Unix(0, 0)),
+							UpdatedAt: timestamppb.New(time.Unix(0, 0)),
+						},
+					}
+
+					m.On("GetSecret", mock.Anything, r, mock.Anything).Return(resp, nil).Once()
+					return m
+				}(),
+				storage: func() storagemocks.Storage {
+					m := storagemocks.NewStorage()
+					tk := entity.Token{
+						Id:        "seed",
+						UserId:    "test-id",
+						Type:      entity.RefreshToken,
+						ExpiresAt: time.Unix(0, 0).Add(time.Minute),
+						IssuedAt:  time.Unix(0, 0),
+					}
+					m.On("Create", mock.Anything, tk).Return(nil).Once()
+					return m
+				}(),
+				vault: storagemocks.NewVault(),
+				tokenManager: func() tokensmocks.TokenManager {
+					m := tokensmocks.NewTokenManager()
+					m.On("GenerateOpaque", tokens.RefreshToken).Return("opaque-refresh-token", "seed", nil).Once()
+					return m
+				}(),
+			},
+			args: args{
+				req: &pb.SignInRequest{
+					Password: "test-pass",
+					Email:    "test-email",
+				},
+			},
+			want: &pb.SignInResponse{
+				RefreshToken: "opaque-refresh-token",
+			},
+			wantErr: false,
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
