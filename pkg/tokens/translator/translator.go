@@ -54,6 +54,7 @@ func NewTranslator(grpcClient pb.AuthServiceClient, config Config, opts ...Optio
 // and job handling. Blocks until given context is cancelled.
 // It is intended to be invoked in a seperate goroutine.
 func (t *Translator) Run(ctx context.Context) {
+	// Init stream on start.
 	t.renewStream(ctx)
 
 	go t.handleStreamRenewals(ctx)
@@ -161,9 +162,6 @@ func isStreamRenewable(err error, currentBufferLen int) bool {
 // It blocks until given context is cancelled.
 // It is intended to be invoked in a seperate goroutine.
 func (t *Translator) handleStreamRenewals(ctx context.Context) {
-	// Init stream on start.
-	t.renewStreamC <- struct{}{}
-
 	for {
 		select {
 		case <-t.renewStreamC:
