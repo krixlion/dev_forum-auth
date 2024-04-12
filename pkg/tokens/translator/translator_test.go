@@ -62,7 +62,7 @@ func TestTranslator_Run(t *testing.T) {
 
 		select {
 		case <-time.After(time.Millisecond):
-			t.Errorf("Run did not stop on context cancellation. Time needed for func to return: %v", time.Since(before).Seconds())
+			t.Errorf("Run did not stop on context cancellation. Time needed for func to return: %vs", time.Since(before).Seconds())
 		case <-finished:
 			return
 		}
