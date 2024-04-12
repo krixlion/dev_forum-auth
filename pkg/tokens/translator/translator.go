@@ -118,7 +118,6 @@ func (t *Translator) handleJobs(ctx context.Context) {
 				close(job.ResultC)
 			}()
 		case <-ctx.Done():
-			// TODO: Handle stream.Context() cancellation too
 			return
 		}
 	}
