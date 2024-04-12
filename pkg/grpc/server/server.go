@@ -55,10 +55,13 @@ type Config struct {
 	VerifyClientCert         bool
 	AccessTokenValidityTime  time.Duration
 	RefreshTokenValidityTime time.Duration
+
+	// Allows to override time.Now for testing purposes.
+	Now func() time.Time
 }
 
 func MakeAuthServer(dependencies Dependencies, config Config) AuthServer {
-	return AuthServer{
+	s := AuthServer{
 		config:       config,
 		services:     dependencies.Services,
 		storage:      dependencies.Storage,
@@ -68,6 +71,12 @@ func MakeAuthServer(dependencies Dependencies, config Config) AuthServer {
 		logger:       dependencies.Logger,
 		tracer:       dependencies.Tracer,
 	}
+
+	if s.config.Now == nil {
+		s.config.Now = time.Now
+	}
+
+	return s
 }
 
 func (s AuthServer) Close() error {
@@ -103,7 +112,7 @@ func (server AuthServer) SignIn(ctx context.Context, req *pb.SignInRequest) (*pb
 		return nil, status.Error(codes.Internal, err.Error())
 	}
 
-	now := time.Now()
+	now := server.config.Now()
 	token := entity.Token{
 		Id:        tokenId,
 		UserId:    user.Id,
@@ -180,12 +189,13 @@ func (server AuthServer) GetAccessToken(ctx context.Context, req *pb.GetAccessTo
 		return nil, status.Error(codes.Internal, err.Error())
 	}
 
+	now := server.config.Now()
 	accessToken := entity.Token{
 		Id:        accessTokenId,
 		UserId:    refreshToken.UserId,
 		Type:      entity.AccessToken,
-		ExpiresAt: time.Now().Add(server.config.AccessTokenValidityTime),
-		IssuedAt:  time.Now(),
+		ExpiresAt: now.Add(server.config.AccessTokenValidityTime),
+		IssuedAt:  now,
 	}
 
 	if err := server.storage.Create(ctx, accessToken); err != nil {

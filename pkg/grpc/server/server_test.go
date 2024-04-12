@@ -31,6 +31,7 @@ import (
 // Struct for server mock dependencies.
 type deps struct {
 	verifyClientCert bool
+	now              func() time.Time
 	storage          storage.Storage
 	vault            storage.Vault
 	userClient       userPb.UserServiceClient
@@ -54,6 +55,7 @@ func setUpServer(ctx context.Context, d deps) pb.AuthServiceClient {
 		VerifyClientCert:         d.verifyClientCert,
 		AccessTokenValidityTime:  time.Minute,
 		RefreshTokenValidityTime: time.Minute,
+		Now:                      d.now,
 	}
 
 	deps := Dependencies{
