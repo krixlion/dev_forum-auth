@@ -42,7 +42,7 @@ func NewTranslator(grpcClient pb.AuthServiceClient, config Config, opts ...Optio
 		grpcClient:    grpcClient,
 		mu:            &sync.RWMutex{},
 		stream:        nil,
-		streamAborted: make(chan struct{}, 1),
+		streamAborted: make(chan struct{}),
 		jobs:          make(chan job, config.JobQueueSize),
 		logger:        nulls.NullLogger{},
 		config:        config,
