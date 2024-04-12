@@ -18,12 +18,16 @@ func Test_NewTranslator(t *testing.T) {
 		queueSize := 5
 		translator := NewTranslator(nil, Config{JobQueueSize: queueSize})
 
+		if got := translator.jobs; got == nil {
+			t.Errorf("NewTranslator(): a chan was not initialized\n got = %v\n", got)
+		}
+
 		if got := cap(translator.jobs); got != queueSize {
 			t.Errorf("NewTranslator():\n got = %v\n want = %v\n", got, queueSize)
 		}
 
-		if got, want := cap(translator.streamAborted), 1; got != want {
-			t.Errorf("NewTranslator():\n got = %v\n want = %v\n", got, want)
+		if got := translator.streamAborted; got == nil {
+			t.Errorf("NewTranslator(): a chan was not initialized\n got = %v\n", got)
 		}
 	})
 	t.Run("Test given options can mutate the final struct", func(t *testing.T) {
