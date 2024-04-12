@@ -2,6 +2,9 @@ package translator
 
 import (
 	"context"
+	"errors"
+	"fmt"
+	"io"
 	"testing"
 	"time"
 
@@ -136,6 +139,27 @@ func Test_isStreamRenewable(t *testing.T) {
 				err: nil,
 			},
 			want: false,
+		},
+		{
+			name: "Test returns false when error is io.EOF",
+			args: args{
+				err: io.EOF,
+			},
+			want: false,
+		},
+		{
+			name: "Test returns false when error is wrapped io.EOF",
+			args: args{
+				err: fmt.Errorf("%w", io.EOF),
+			},
+			want: false,
+		},
+		{
+			name: "Test returns true on valid error",
+			args: args{
+				err: errors.New("test err"),
+			},
+			want: true,
 		},
 	}
 	for _, tt := range tests {
