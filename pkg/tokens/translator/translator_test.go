@@ -91,11 +91,11 @@ func TestTranslator_handleJobs(t *testing.T) {
 				}(),
 			},
 			args: args{job: job{
-				Req:     &pb.TranslateAccessTokenRequest{OpaqueAccessToken: "test-opaque"},
-				ResultC: make(chan result),
+				OpaqueAccessToken: "test-opaque",
+				ResultC:           make(chan result),
 			}},
 			want: result{
-				Resp: &pb.TranslateAccessTokenResponse{AccessToken: "test-token"},
+				TranslatedAccessToken: "test-token",
 			},
 		},
 	}
@@ -115,8 +115,8 @@ func TestTranslator_handleJobs(t *testing.T) {
 				return
 			}
 
-			if got.Resp.AccessToken != tt.want.Resp.AccessToken {
-				t.Errorf("Translator.handleJobs():\n got = %v\n want = %v", got.Resp, tt.want.Resp)
+			if got.TranslatedAccessToken != tt.want.TranslatedAccessToken {
+				t.Errorf("Translator.handleJobs():\n got = %v\n want = %v", got.TranslatedAccessToken, tt.want.TranslatedAccessToken)
 			}
 		})
 	}

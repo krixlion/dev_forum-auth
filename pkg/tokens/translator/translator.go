@@ -65,31 +65,31 @@ func (t *Translator) Run(ctx context.Context) {
 func (t *Translator) TranslateAccessToken(opaqueAccessToken string) (string, error) {
 	resultC := make(chan result)
 	job := job{
-		Req:     &pb.TranslateAccessTokenRequest{OpaqueAccessToken: opaqueAccessToken},
-		ResultC: make(chan result),
+		OpaqueAccessToken: opaqueAccessToken,
+		ResultC:           make(chan result),
 	}
 
 	t.jobs <- job
 	res := <-resultC
-	return res.Resp.AccessToken, res.Err
+	return res.TranslatedAccessToken, res.Err
 }
 
-// job contains the request to be made and a channel to which
-// the response or an error will be sent. Channel should be initialized
-// by the caller. Only one response will be sent through it, so
+// job contains the request to be made and a channel to which the
+// translated token or an error will be sent. Channel should be initialized
+// by the caller. Only one result is sent through it, so
 // no need for a buffer. Translator will automatically close
 // the channel once it sends the result.
 type job struct {
-	Req     *pb.TranslateAccessTokenRequest
-	ResultC chan result
+	OpaqueAccessToken string
+	ResultC           chan result
 }
 
-// result contains either a response or a non-nil error.
+// result contains either a translated token or a non-nil error.
 // Always check if the Err is nil and if it is then discard
 // the response and handle the error.
 type result struct {
-	Resp *pb.TranslateAccessTokenResponse
-	Err  error
+	TranslatedAccessToken string
+	Err                   error
 }
 
 // handleJobs blocks until given context is cancelled.
@@ -103,7 +103,7 @@ func (t *Translator) handleJobs(ctx context.Context) {
 				t.mu.RLock()
 				defer t.mu.RUnlock()
 
-				if err := t.stream.Send(job.Req); err != nil {
+				if err := t.stream.Send(&pb.TranslateAccessTokenRequest{OpaqueAccessToken: job.OpaqueAccessToken}); err != nil {
 					t.maybeSendRenewStreamSig(err)
 					job.ResultC <- result{Err: err}
 					close(job.ResultC)
@@ -113,7 +113,7 @@ func (t *Translator) handleJobs(ctx context.Context) {
 				resp, err := t.stream.Recv()
 				t.maybeSendRenewStreamSig(err)
 
-				job.ResultC <- result{Resp: resp, Err: err}
+				job.ResultC <- result{TranslatedAccessToken: resp.AccessToken, Err: err}
 				close(job.ResultC)
 			}()
 		case <-ctx.Done():
