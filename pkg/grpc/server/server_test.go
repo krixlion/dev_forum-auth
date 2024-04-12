@@ -113,7 +113,7 @@ func TestAuthServer_SignIn(t *testing.T) {
 
 			got, err := client.SignIn(ctx, tt.args.req)
 			if (err != nil) != tt.wantErr {
-				t.Errorf("AuthServer.SignIn() error = %v, wantErr %v", err, tt.wantErr)
+				t.Errorf("AuthServer.SignIn() error = %v, wantErr = %v", err, tt.wantErr)
 				return
 			}
 			if !cmp.Equal(got, tt.want, cmpopts.IgnoreUnexported(pb.SignInResponse{}, pb.SignInResponse{})) {
@@ -183,7 +183,7 @@ func TestAuthServer_SignOut(t *testing.T) {
 
 			_, err := client.SignOut(ctx, tt.args.req)
 			if (err != nil) != tt.wantErr {
-				t.Errorf("AuthServer.SignOut() error = %v, wantErr %v", err, tt.wantErr)
+				t.Errorf("AuthServer.SignOut() error = %v, wantErr = %v", err, tt.wantErr)
 				return
 			}
 		})
@@ -241,7 +241,7 @@ func TestAuthServer_GetAccessToken(t *testing.T) {
 
 			got, err := client.GetAccessToken(ctx, tt.args.req)
 			if (err != nil) != tt.wantErr {
-				t.Errorf("AuthServer.GetAccessToken() error = %v, wantErr %v", err, tt.wantErr)
+				t.Errorf("AuthServer.GetAccessToken() error = %v, wantErr = %v", err, tt.wantErr)
 				return
 			}
 
@@ -378,7 +378,7 @@ func TestAuthServer_GetValidationKeySet(t *testing.T) {
 			// TODO: Make this into an actual test.
 			jwk, err := stream.Recv()
 			if (err != nil) != tt.wantErr {
-				t.Errorf("AuthServer.GetValidationKeySet() error = %v, wantErr %v", err, tt.wantErr)
+				t.Errorf("AuthServer.GetValidationKeySet() error = %v, wantErr = %v", err, tt.wantErr)
 				return
 			}
 
