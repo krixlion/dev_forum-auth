@@ -37,7 +37,7 @@ func NewTranslator(grpcClient pb.AuthServiceClient, config Config, opts ...Optio
 		grpcClient:   grpcClient,
 		mu:           &sync.RWMutex{},
 		stream:       nil,
-		renewStreamC: make(chan struct{}, 2),
+		renewStreamC: make(chan struct{}, 1),
 		jobs:         make(chan job, config.JobQueueSize),
 		logger:       nulls.NullLogger{},
 		config:       config,
@@ -54,6 +54,8 @@ func NewTranslator(grpcClient pb.AuthServiceClient, config Config, opts ...Optio
 // and job handling. Blocks until given context is cancelled.
 // It is intended to be invoked in a seperate goroutine.
 func (t *Translator) Run(ctx context.Context) {
+	t.renewStream(ctx)
+
 	go t.handleStreamRenewals(ctx)
 	t.handleJobs(ctx)
 }
@@ -115,6 +117,7 @@ func (t *Translator) handleJobs(ctx context.Context) {
 				close(job.ResultC)
 			}()
 		case <-ctx.Done():
+			// TODO: Handle stream.Context() cancellation too
 			return
 		}
 	}
@@ -124,18 +127,33 @@ func (t *Translator) handleJobs(ctx context.Context) {
 // the following conditions are met:
 //   - given error is not io.EOF,
 //   - renewStreamC does not have any pending, buffered signals.
+//
+// Use this func to determine whether the error returned by grpc.ClientStream
+// methods indicates that the stream was aborted and needs to be renewed.
 func (t *Translator) maybeSendRenewStreamSig(err error) {
-	if errors.Is(err, io.EOF) {
-		return
+	if isStreamRenewable(err, len(t.renewStreamC)) {
+		t.renewStreamC <- struct{}{}
+	}
+}
+
+// isStreamRenewable returns true if given error is non-nil and not io.EOF.
+func isStreamRenewable(err error, currentBufferLen int) bool {
+	if err == nil {
+		return false
 	}
 
-	if len(t.renewStreamC) > 0 {
+	if errors.Is(err, io.EOF) {
+		// TODO: add desc
+		return false
+	}
+
+	if currentBufferLen > 0 {
 		// Stream is being renewed or is going to be renewed shortly.
 		// No need to bloat the buffer.
-		return
+		return false
 	}
 
-	t.renewStreamC <- struct{}{}
+	return true
 }
 
 // handleStreamRenewals listens for Translator.renewStreamC signals
@@ -174,7 +192,6 @@ func (t *Translator) renewStream(ctx context.Context) {
 			return
 		}
 
-		// TODO: think of better log messages
 		t.logger.Log(ctx, "Failed to renew the token translation stream", "err", err)
 
 		time.Sleep(t.config.StreamRenewalInterval)
