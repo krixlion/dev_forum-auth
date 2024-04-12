@@ -227,3 +227,32 @@ func TestTranslator_TranslateAccessToken(t *testing.T) {
 		})
 	}
 }
+
+func TestTranslator_maybeSendRenewStreamSig(t *testing.T) {
+	t.Run("Test a streamAborted signal is sent on an unknown error", func(t *testing.T) {
+		testErr := errors.New("test-error")
+		tr := &Translator{
+			streamAborted: make(chan struct{}),
+		}
+
+		finished := make(chan struct{})
+		go func() {
+			<-tr.streamAborted
+			finished <- struct{}{}
+		}()
+
+		// Wait for the goroutine to start up.
+		time.Sleep(time.Millisecond)
+
+		before := time.Now()
+
+		tr.maybeSendRenewStreamSig(testErr)
+
+		select {
+		case <-time.After(time.Millisecond):
+			t.Errorf("Func did not send stream renewal signal. Time passed: %vs", time.Since(before).Seconds())
+		case <-finished:
+			return
+		}
+	})
+}
