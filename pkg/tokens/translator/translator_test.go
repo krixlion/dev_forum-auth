@@ -1,4 +1,3 @@
-// TODO: add tests
 package translator
 
 import (
