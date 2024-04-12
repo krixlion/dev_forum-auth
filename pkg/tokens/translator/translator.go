@@ -69,14 +69,13 @@ func (t *Translator) Run(ctx context.Context) {
 // TranslateAccessToken takes in an opaqueAccessToken and translates it to an
 // encoded JWT token or returns a non-nil error.
 func (t *Translator) TranslateAccessToken(opaqueAccessToken string) (string, error) {
-	resultC := make(chan result)
 	job := job{
 		OpaqueAccessToken: opaqueAccessToken,
 		ResultC:           make(chan result),
 	}
 
 	t.jobs <- job
-	res := <-resultC
+	res := <-job.ResultC
 	return res.TranslatedAccessToken, res.Err
 }
 

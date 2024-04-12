@@ -174,3 +174,56 @@ func Test_isStreamRenewable(t *testing.T) {
 		})
 	}
 }
+
+func TestTranslator_TranslateAccessToken(t *testing.T) {
+	type fields struct {
+		grpcClient pb.AuthServiceClient
+		config     Config
+	}
+	type args struct {
+		opaqueAccessToken string
+	}
+	tests := []struct {
+		name    string
+		fields  fields
+		args    args
+		want    string
+		wantErr bool
+	}{
+		{
+			name: "Test token is returned with no error on happy path",
+			fields: fields{
+				grpcClient: func() mocks.AuthClient {
+					s := mocks.NewAuthStreamClient()
+					s.On("Send", &pb.TranslateAccessTokenRequest{OpaqueAccessToken: "test-opaque"}).Return(nil).Once()
+					s.On("Recv").Return(&pb.TranslateAccessTokenResponse{AccessToken: "test-translated-token"}, nil).Once()
+
+					m := mocks.NewAuthClient()
+					m.On("TranslateAccessToken", mock.Anything, mock.Anything).Return(s, nil).Once()
+					return m
+				}(),
+			},
+			args:    args{opaqueAccessToken: "test-opaque"},
+			want:    "test-translated-token",
+			wantErr: false,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			ctx, cancel := context.WithTimeout(context.Background(), time.Second*2)
+			defer cancel()
+
+			tr := NewTranslator(tt.fields.grpcClient, tt.fields.config)
+			go tr.Run(ctx)
+
+			got, err := tr.TranslateAccessToken(tt.args.opaqueAccessToken)
+			if (err != nil) != tt.wantErr {
+				t.Errorf("Translator.TranslateAccessToken():\n error = %v\n wantErr %v", err, tt.wantErr)
+				return
+			}
+			if got != tt.want {
+				t.Errorf("Translator.TranslateAccessToken():\n got = %v\n want = %v", got, tt.want)
+			}
+		})
+	}
+}
