@@ -1,4 +1,4 @@
-package server
+package server_test
 
 import (
 	"context"
@@ -10,90 +10,20 @@ import (
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/go-cmp/cmp/cmpopts"
 	"github.com/krixlion/dev_forum-auth/pkg/entity"
+	"github.com/krixlion/dev_forum-auth/pkg/grpc/server/servertest"
 	pb "github.com/krixlion/dev_forum-auth/pkg/grpc/v1"
 	"github.com/krixlion/dev_forum-auth/pkg/storage"
 	"github.com/krixlion/dev_forum-auth/pkg/storage/storagemocks"
 	"github.com/krixlion/dev_forum-auth/pkg/tokens"
 	"github.com/krixlion/dev_forum-auth/pkg/tokens/tokensmocks"
-	"github.com/krixlion/dev_forum-lib/event/dispatcher"
 	"github.com/krixlion/dev_forum-lib/filter"
-	"github.com/krixlion/dev_forum-lib/nulls"
 	usermocks "github.com/krixlion/dev_forum-user/pkg/grpc/mocks"
 	userPb "github.com/krixlion/dev_forum-user/pkg/grpc/v1"
 	"github.com/stretchr/testify/mock"
-	"google.golang.org/grpc"
-	"google.golang.org/grpc/credentials/insecure"
-	"google.golang.org/grpc/test/bufconn"
-	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/types/known/anypb"
 	empty "google.golang.org/protobuf/types/known/emptypb"
 	"google.golang.org/protobuf/types/known/timestamppb"
 )
-
-// Struct for server mock dependencies.
-type deps struct {
-	verifyClientCert bool
-	now              func() time.Time
-	storage          storage.Storage
-	vault            storage.Vault
-	userClient       userPb.UserServiceClient
-	tokenManager     tokens.Manager
-}
-
-// setUpServer initializes and runs in the background a gRPC
-// server allowing only for local calls for testing.
-// Returns a client to interact with the server.
-// The server is shutdown when provided context is cancelled.
-// No interceptor is registered.
-func setUpServer(ctx context.Context, d deps) pb.AuthServiceClient {
-	// bufconn allows the server to call itself
-	// great for testing across whole infrastructure
-	lis := bufconn.Listen(1024 * 1024)
-	bufDialer := func(context.Context, string) (net.Conn, error) {
-		return lis.Dial()
-	}
-
-	config := Config{
-		VerifyClientCert:         d.verifyClientCert,
-		AccessTokenValidityTime:  time.Minute,
-		RefreshTokenValidityTime: time.Minute,
-		Now:                      d.now,
-	}
-
-	deps := Dependencies{
-		Services: Services{
-			User: d.userClient,
-		},
-		Vault:        d.vault,
-		TokenManager: d.tokenManager,
-		Storage:      d.storage,
-		Dispatcher:   dispatcher.NewDispatcher(0),
-		Logger:       nulls.NullLogger{},
-		Tracer:       nulls.NullTracer{},
-	}
-
-	s := grpc.NewServer()
-	server := MakeAuthServer(deps, config)
-	pb.RegisterAuthServiceServer(s, server)
-	go func() {
-		if err := s.Serve(lis); err != nil {
-			log.Fatalf("Server exited with an error: %v", err)
-		}
-	}()
-
-	go func() {
-		<-ctx.Done()
-		s.Stop()
-	}()
-
-	conn, err := grpc.DialContext(ctx, "bufnet", grpc.WithContextDialer(bufDialer), grpc.WithTransportCredentials(insecure.NewCredentials()))
-	if err != nil {
-		log.Fatalf("Failed to dial bufnet: %v", err)
-	}
-
-	client := pb.NewAuthServiceClient(conn)
-	return client
-}
 
 func TestAuthServer_SignIn(t *testing.T) {
 	type args struct {
@@ -101,17 +31,17 @@ func TestAuthServer_SignIn(t *testing.T) {
 	}
 	tests := []struct {
 		name    string
-		deps    deps
+		deps    servertest.Deps
 		args    args
 		want    *pb.SignInResponse
 		wantErr bool
 	}{
 		{
 			name: "Test no unexpected errors are returned on valid flow",
-			deps: deps{
-				verifyClientCert: false,
-				now:              func() time.Time { return time.Unix(0, 0) },
-				userClient: func() usermocks.UserClient {
+			deps: servertest.Deps{
+				VerifyClientCert: false,
+				Now:              func() time.Time { return time.Unix(0, 0) },
+				UserClient: func() usermocks.UserClient {
 					m := usermocks.NewUserClient()
 					r := &userPb.GetUserSecretRequest{Query: &userPb.GetUserSecretRequest_Email{Email: "test-email"}}
 					resp := &userPb.GetUserSecretResponse{
@@ -128,7 +58,7 @@ func TestAuthServer_SignIn(t *testing.T) {
 					m.On("GetSecret", mock.Anything, r, mock.Anything).Return(resp, nil).Once()
 					return m
 				}(),
-				storage: func() storagemocks.Storage {
+				Storage: func() storagemocks.Storage {
 					m := storagemocks.NewStorage()
 					tk := entity.Token{
 						Id:        "seed",
@@ -140,8 +70,8 @@ func TestAuthServer_SignIn(t *testing.T) {
 					m.On("Create", mock.Anything, tk).Return(nil).Once()
 					return m
 				}(),
-				vault: storagemocks.NewVault(),
-				tokenManager: func() tokensmocks.TokenManager {
+				Vault: storagemocks.NewVault(),
+				TokenManager: func() tokensmocks.TokenManager {
 					m := tokensmocks.NewTokenManager()
 					m.On("GenerateOpaque", tokens.RefreshToken).Return("opaque-refresh-token", "seed", nil).Once()
 					return m
@@ -164,7 +94,7 @@ func TestAuthServer_SignIn(t *testing.T) {
 			ctx, cancel := context.WithTimeout(context.Background(), time.Second)
 			defer cancel()
 
-			client := setUpServer(ctx, tt.deps)
+			client := servertest.NewServer(ctx, tt.deps)
 
 			got, err := client.SignIn(ctx, tt.args.req)
 			if (err != nil) != tt.wantErr {
@@ -184,19 +114,19 @@ func TestAuthServer_SignOut(t *testing.T) {
 	}
 	tests := []struct {
 		name    string
-		deps    deps
+		deps    servertest.Deps
 		args    args
 		wantErr bool
 	}{
 		{
 			name: "Test if no unexpected errors are returned on valid flow",
-			deps: deps{
-				tokenManager: func() tokens.Manager {
+			deps: servertest.Deps{
+				TokenManager: func() tokens.Manager {
 					manager := tokensmocks.NewTokenManager()
 					manager.On("DecodeOpaque", tokens.RefreshToken, "test-opaque").Return("test-opaque-seed", nil).Once()
 					return manager
 				}(),
-				storage: func() storage.Storage {
+				Storage: func() storage.Storage {
 					storage := storagemocks.NewStorage()
 					testToken := entity.Token{
 						Id:     "test-opaque-seed",
@@ -234,7 +164,7 @@ func TestAuthServer_SignOut(t *testing.T) {
 			ctx, cancel := context.WithTimeout(context.Background(), time.Second)
 			defer cancel()
 
-			client := setUpServer(ctx, tt.deps)
+			client := servertest.NewServer(ctx, tt.deps)
 
 			_, err := client.SignOut(ctx, tt.args.req)
 			if (err != nil) != tt.wantErr {
@@ -251,21 +181,21 @@ func TestAuthServer_GetAccessToken(t *testing.T) {
 	}
 	tests := []struct {
 		name    string
-		deps    deps
+		deps    servertest.Deps
 		args    args
 		want    *pb.GetAccessTokenResponse
 		wantErr bool
 	}{
 		{
 			name: "Test if no unexpected errors are returned on valid flow",
-			deps: deps{
-				tokenManager: func() tokens.Manager {
+			deps: servertest.Deps{
+				TokenManager: func() tokens.Manager {
 					manager := tokensmocks.NewTokenManager()
 					manager.On("DecodeOpaque", tokens.RefreshToken, "test-opaque").Return("test-opaque-decoded", nil).Once()
 					manager.On("GenerateOpaque", tokens.AccessToken).Return("test-opaque-generated", "test-opaque-seed", nil).Once()
 					return manager
 				}(),
-				storage: func() storage.Storage {
+				Storage: func() storage.Storage {
 					storage := storagemocks.NewStorage()
 					testToken := entity.Token{
 						Id:     "test-opaque-seed",
@@ -292,7 +222,7 @@ func TestAuthServer_GetAccessToken(t *testing.T) {
 			ctx, cancel := context.WithTimeout(context.Background(), time.Second)
 			defer cancel()
 
-			client := setUpServer(ctx, tt.deps)
+			client := servertest.NewServer(ctx, tt.deps)
 
 			got, err := client.GetAccessToken(ctx, tt.args.req)
 			if (err != nil) != tt.wantErr {
@@ -318,20 +248,20 @@ func TestAuthServer_TranslateAccessToken(t *testing.T) {
 	tests := []struct {
 		name    string
 		args    args
-		deps    deps
+		deps    servertest.Deps
 		want    *pb.TranslateAccessTokenResponse
 		wantErr bool
 	}{
 		{
 			name: "Test if no unexpected errors are returned on valid flow",
-			deps: deps{
-				tokenManager: func() tokens.Manager {
+			deps: servertest.Deps{
+				TokenManager: func() tokens.Manager {
 					manager := tokensmocks.NewTokenManager()
 					manager.On("DecodeOpaque", tokens.AccessToken, "test-opaque").Return("test-opaque-decoded", nil).Once()
 					manager.On("Encode", mock.AnythingOfType("entity.Key"), mock.AnythingOfType("entity.Token")).Return([]byte("test-jwt-encoded"), nil).Once()
 					return manager
 				}(),
-				storage: func() storage.Storage {
+				Storage: func() storage.Storage {
 					storage := storagemocks.NewStorage()
 					testToken := entity.Token{
 						Id:     "test",
@@ -341,7 +271,7 @@ func TestAuthServer_TranslateAccessToken(t *testing.T) {
 					storage.On("Get", mock.Anything, "test-opaque-decoded").Return(testToken, nil).Once()
 					return storage
 				}(),
-				vault: func() storage.Vault {
+				Vault: func() storage.Vault {
 					vault := storagemocks.NewVault()
 					testKey := entity.Key{
 						Id:        "test",
@@ -363,8 +293,8 @@ func TestAuthServer_TranslateAccessToken(t *testing.T) {
 		},
 		{
 			name: "Test if returns an error on missing client cert",
-			deps: deps{
-				verifyClientCert: true,
+			deps: servertest.Deps{
+				VerifyClientCert: true,
 			},
 			args: args{
 				req: &pb.TranslateAccessTokenRequest{
@@ -379,7 +309,7 @@ func TestAuthServer_TranslateAccessToken(t *testing.T) {
 			ctx, cancel := context.WithTimeout(context.Background(), time.Second)
 			defer cancel()
 
-			client := setUpServer(ctx, tt.deps)
+			client := servertest.NewServer(ctx, tt.deps)
 
 			stream, err := client.TranslateAccessToken(ctx)
 			if err != nil {
@@ -412,7 +342,7 @@ func TestAuthServer_TranslateAccessToken(t *testing.T) {
 func TestAuthServer_GetValidationKeySet(t *testing.T) {
 	tests := []struct {
 		name    string
-		deps    deps
+		deps    servertest.Deps
 		want    []entity.Key
 		wantErr bool
 	}{
@@ -423,7 +353,7 @@ func TestAuthServer_GetValidationKeySet(t *testing.T) {
 			ctx, cancel := context.WithTimeout(context.Background(), time.Second)
 			defer cancel()
 
-			client := setUpServer(ctx, tt.deps)
+			client := servertest.NewServer(ctx, tt.deps)
 			stream, err := client.GetValidationKeySet(ctx, &empty.Empty{})
 			if err != nil {
 				t.Errorf("AuthServer.GetValidationKeySet() error = %v", err)
