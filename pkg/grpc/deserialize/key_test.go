@@ -1,11 +1,14 @@
 package deserialize
 
 import (
+	"crypto/ecdsa"
+	"crypto/elliptic"
 	"crypto/rsa"
 	"math/big"
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
+	ecpb "github.com/krixlion/dev_forum-auth/pkg/grpc/v1/ec"
 	rsapb "github.com/krixlion/dev_forum-auth/pkg/grpc/v1/rsa"
 )
 
@@ -45,6 +48,49 @@ func TestRSA(t *testing.T) {
 
 			if !cmp.Equal(got, tt.want) {
 				t.Errorf("RSA():\n got = %v\n want = %v", got, tt.want)
+			}
+		})
+	}
+}
+
+func TestECDSA(t *testing.T) {
+	type args struct {
+		input *ecpb.EC
+	}
+	tests := []struct {
+		name    string
+		args    args
+		want    *ecdsa.PublicKey
+		wantErr bool
+	}{
+		{
+			name: "Test a valid public key is correctly deserialized",
+			args: args{
+				input: &ecpb.EC{
+					Crv: ecpb.ECType_P256,
+					X:   "m7joBnA3H0VQi1-PWZRqfE3qSzojoDbPJMH0CZP0odo",
+					Y:   "rRcW3ovWZOy0WWZI1yKkaFKT3iCMHS2pNhucunTD0ew",
+				},
+			},
+			want: &ecdsa.PublicKey{
+				Curve: elliptic.P256(),
+				// Big Endian 70435192769055300932927002065149381078422509475567861355254674689345996497370
+				X: new(big.Int).SetBytes([]byte{0x9B, 0xB8, 0xE8, 0x06, 0x70, 0x37, 0x1F, 0x45, 0x50, 0x8B, 0x5F, 0x8F, 0x59, 0x94, 0x6A, 0x7C, 0x4D, 0xEA, 0x4B, 0x3A, 0x23, 0xA0, 0x36, 0xCF, 0x24, 0xC1, 0xF4, 0x09, 0x93, 0xF4, 0xA1, 0xDA}),
+				// Big Endian 78290918125649382743379572394002796782688715728647748645467977529752316793324
+				Y: new(big.Int).SetBytes([]byte{0xAD, 0x17, 0x16, 0xDE, 0x8B, 0xD6, 0x64, 0xEC, 0xB4, 0x59, 0x66, 0x48, 0xD7, 0x22, 0xA4, 0x68, 0x52, 0x93, 0xDE, 0x20, 0x8C, 0x1D, 0x2D, 0xA9, 0x36, 0x1B, 0x9C, 0xBA, 0x74, 0xC3, 0xD1, 0xEC}),
+			},
+			wantErr: false,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got, err := ECDSA(tt.args.input)
+			if (err != nil) != tt.wantErr {
+				t.Errorf("ECDSA(): error = %v, wantErr %v", err, tt.wantErr)
+				return
+			}
+			if !cmp.Equal(got, tt.want) {
+				t.Errorf("ECDSA():\n got = %v\n want = %v", got, tt.want)
 			}
 		})
 	}
