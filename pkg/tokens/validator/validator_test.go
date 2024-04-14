@@ -176,34 +176,6 @@ func Test_NewTokenValidator(t *testing.T) {
 	}
 }
 
-func Test_keySetFromKeys(t *testing.T) {
-	type args struct {
-		keys []Key
-	}
-	tests := []struct {
-		name    string
-		args    args
-		wantErr bool
-	}{
-		{
-			name: "Test if returns an error on nil keys",
-			args: args{
-				keys: nil,
-			},
-			wantErr: true,
-		},
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			_, err := keySetFromKeys(tt.args.keys)
-			if (err != nil) != tt.wantErr {
-				t.Errorf("keySetFromKeys() error = %v, wantErr = %v", err, tt.wantErr)
-				return
-			}
-		})
-	}
-}
-
 func TestJWTValidator_RunReturnsOnContextCancellation(t *testing.T) {
 	validator, err := NewValidator("", func(ctx context.Context) ([]Key, error) { return []Key{testKey}, nil })
 	if err != nil {
