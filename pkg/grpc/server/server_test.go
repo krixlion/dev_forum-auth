@@ -6,7 +6,6 @@ import (
 	"crypto/elliptic"
 	"crypto/rand"
 	"crypto/rsa"
-	"errors"
 	"io"
 	"testing"
 	"time"
@@ -441,7 +440,7 @@ func TestAuthServer_GetValidationKeySet(t *testing.T) {
 			for {
 				jwk, err := stream.Recv()
 				if err != nil {
-					if errors.Is(err, io.EOF) {
+					if err == io.EOF {
 						break
 					}
 					t.Errorf("AuthServer.GetValidationKeySet() unexpected error = %v", err)

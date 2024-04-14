@@ -152,11 +152,11 @@ func Test_isStreamRenewable(t *testing.T) {
 			want: false,
 		},
 		{
-			name: "Test returns false when error is wrapped io.EOF",
+			name: "Test returns true when error is wrapped io.EOF",
 			args: args{
 				err: fmt.Errorf("%w", io.EOF),
 			},
-			want: false,
+			want: true,
 		},
 		{
 			name: "Test returns true on valid error",

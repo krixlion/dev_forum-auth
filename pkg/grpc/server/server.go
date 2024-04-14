@@ -2,7 +2,6 @@ package server
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"io"
 	"time"
@@ -223,7 +222,7 @@ func (server AuthServer) TranslateAccessToken(stream pb.AuthService_TranslateAcc
 
 		req, err := stream.Recv()
 		if err != nil {
-			if errors.Is(err, io.EOF) {
+			if err == io.EOF {
 				return nil
 			}
 			return err

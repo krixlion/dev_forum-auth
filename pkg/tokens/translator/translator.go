@@ -2,7 +2,6 @@ package translator
 
 import (
 	"context"
-	"errors"
 	"io"
 	"time"
 
@@ -129,7 +128,7 @@ func (t *Translator) handleJobs(ctx context.Context) {
 // maybeSendRenewStreamSig sends a signal to Translator if
 // the following conditions are met:
 //   - given error is not nil,
-//   - given error is not wrapped with io.EOF,
+//   - given error is not io.EOF,
 //   - Translator is currently not renewing the stream.
 //
 // Use this func to determine whether the error returned by grpc.ClientStream
@@ -152,7 +151,7 @@ func isStreamRenewable(err error) bool {
 		return false
 	}
 
-	if errors.Is(err, io.EOF) {
+	if err == io.EOF {
 		// TODO: add desc
 		return false
 	}
