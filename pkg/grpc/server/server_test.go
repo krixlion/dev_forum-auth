@@ -353,11 +353,11 @@ type Key struct {
 func TestAuthServer_GetValidationKeySet(t *testing.T) {
 	rsaPrivKey, err := rsa.GenerateKey(rand.Reader, 1024)
 	if err != nil {
-		t.Fatalf("Failed to generate certs: %s", err)
+		t.Fatalf("Failed to generate rsa private key: %s", err)
 	}
 	ecdsaPrivKey, err := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
 	if err != nil {
-		t.Fatalf("Failed to generate certs: %s", err)
+		t.Fatalf("Failed to generate ecdsa private key: %s", err)
 	}
 
 	tests := []struct {
