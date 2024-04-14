@@ -2,8 +2,12 @@ package server_test
 
 import (
 	"context"
-	"log"
-	"net"
+	"crypto/ecdsa"
+	"crypto/elliptic"
+	"crypto/rand"
+	"crypto/rsa"
+	"errors"
+	"io"
 	"testing"
 	"time"
 
@@ -14,6 +18,7 @@ import (
 	pb "github.com/krixlion/dev_forum-auth/pkg/grpc/v1"
 	"github.com/krixlion/dev_forum-auth/pkg/storage"
 	"github.com/krixlion/dev_forum-auth/pkg/storage/storagemocks"
+	"github.com/krixlion/dev_forum-auth/pkg/storage/vault"
 	"github.com/krixlion/dev_forum-auth/pkg/tokens"
 	"github.com/krixlion/dev_forum-auth/pkg/tokens/tokensmocks"
 	"github.com/krixlion/dev_forum-lib/filter"
@@ -339,14 +344,86 @@ func TestAuthServer_TranslateAccessToken(t *testing.T) {
 	}
 }
 
+type Key struct {
+	Id        string
+	Algorithm string
+	Type      string
+	Raw       interface{}
+}
+
 func TestAuthServer_GetValidationKeySet(t *testing.T) {
+	rsaPrivKey, err := rsa.GenerateKey(rand.Reader, 1024)
+	if err != nil {
+		t.Fatalf("Failed to generate certs: %s", err)
+	}
+	ecdsaPrivKey, err := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
+	if err != nil {
+		t.Fatalf("Failed to generate certs: %s", err)
+	}
+
 	tests := []struct {
-		name    string
-		deps    servertest.Deps
-		want    []entity.Key
-		wantErr bool
+		name string
+		deps servertest.Deps
+		want []*pb.Jwk
 	}{
-		// TODO: Add test cases.
+		{
+			name: "Test if no unexpected errors are returned on valid flow",
+			deps: servertest.Deps{
+				Vault: func() storagemocks.Vault {
+					m := storagemocks.NewVault()
+					rsaKey := entity.Key{
+						Id:         "test-rsa-id",
+						Type:       entity.RSA,
+						Algorithm:  entity.RS256,
+						Raw:        rsaPrivKey,
+						EncodeFunc: vault.EncodeRSA,
+					}
+					ecsdaKey := entity.Key{
+						Id:         "test-ecdsa-id",
+						Type:       entity.ECDSA,
+						Algorithm:  entity.ES256,
+						Raw:        ecdsaPrivKey,
+						EncodeFunc: vault.EncodeECDSA,
+					}
+					m.On("GetKeySet", mock.Anything).Return([]entity.Key{rsaKey, ecsdaKey}, nil).Once()
+					return m
+				}(),
+			},
+			want: []*pb.Jwk{
+				{
+					Kid: "test-rsa-id",
+					Alg: "RS256",
+					Kty: "RSA",
+					Key: func() *anypb.Any {
+						v, err := vault.EncodeRSA(rsaPrivKey)
+						if err != nil {
+							t.Fatalf("Failed to encode RSA key: %s", err)
+						}
+						msg, err := anypb.New(v)
+						if err != nil {
+							t.Fatalf("Failed to marshal RSA key to anypb.Any: %s", err)
+						}
+						return msg
+					}(),
+				},
+				{
+					Kid: "test-ecdsa-id",
+					Alg: "ES256",
+					Kty: "ECDSA",
+					Key: func() *anypb.Any {
+						v, err := vault.EncodeECDSA(ecdsaPrivKey)
+						if err != nil {
+							t.Fatalf("Failed to encode ECDSA key: %s", err)
+						}
+						msg, err := anypb.New(v)
+						if err != nil {
+							t.Fatalf("Failed to marshal ECDSA key to anypb.Any: %s", err)
+						}
+						return msg
+					}(),
+				},
+			},
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -356,18 +433,26 @@ func TestAuthServer_GetValidationKeySet(t *testing.T) {
 			client := servertest.NewServer(ctx, tt.deps)
 			stream, err := client.GetValidationKeySet(ctx, &empty.Empty{})
 			if err != nil {
-				t.Errorf("AuthServer.GetValidationKeySet() error = %v", err)
+				t.Errorf("AuthServer.GetValidationKeySet(): failed to get stream, error = %v", err)
 				return
 			}
 
-			// TODO: Make this into an actual test.
-			jwk, err := stream.Recv()
-			if (err != nil) != tt.wantErr {
-				t.Errorf("AuthServer.GetValidationKeySet() error = %v, wantErr = %v", err, tt.wantErr)
-				return
+			got := []*pb.Jwk{}
+			for {
+				jwk, err := stream.Recv()
+				if err != nil {
+					if errors.Is(err, io.EOF) {
+						break
+					}
+					t.Errorf("AuthServer.GetValidationKeySet() unexpected error = %v", err)
+					return
+				}
+				got = append(got, jwk)
 			}
 
-			anypb.UnmarshalNew(jwk.GetKey(), proto.UnmarshalOptions{})
+			if !cmp.Equal(got, tt.want, cmpopts.IgnoreUnexported(pb.Jwk{}, anypb.Any{})) {
+				t.Errorf("AuthServer.GetValidationKeySet():\n got = %v\n want = %v\n", got, tt.want)
+			}
 		})
 	}
 }
