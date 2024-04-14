@@ -14,6 +14,8 @@ import (
 	"github.com/lestrrat-go/jwx/jwt"
 )
 
+var _ tokens.Validator = (*JWTValidator)(nil)
+
 var (
 	ErrKeysNotReceived        = errors.New("no keys were received")
 	ErrKeySetNotFound         = errors.New("key set not found")
