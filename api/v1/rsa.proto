@@ -4,7 +4,11 @@ package auth;
 
 option go_package = "github.com/krixlion/dev_forum-auth/pkg/grpc/v1/rsa;rsapb";
 
+// RSA Public Key message type.
+// All fields are positive big endian integers Base64Url-encoded with no padding.
 message RSA {
+    // Modulus.
     string n = 1;
+    // Public exponent.
     string e = 2;
 }

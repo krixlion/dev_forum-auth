@@ -72,11 +72,14 @@ func (ECType) EnumDescriptor() ([]byte, []int) {
 	return file_ec_proto_rawDescGZIP(), []int{0}
 }
 
+// EC Public Key message type.
+// X and Y are big endian integers Base64Url-encoded with no padding.
 type EC struct {
 	state         protoimpl.MessageState
 	sizeCache     protoimpl.SizeCache
 	unknownFields protoimpl.UnknownFields
 
+	// Curve.
 	Crv ECType `protobuf:"varint,1,opt,name=crv,proto3,enum=auth.ECType" json:"crv,omitempty"`
 	X   string `protobuf:"bytes,2,opt,name=x,proto3" json:"x,omitempty"`
 	Y   string `protobuf:"bytes,3,opt,name=y,proto3" json:"y,omitempty"`

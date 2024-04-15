@@ -10,8 +10,11 @@ enum ECType {
     P384 = 2;
     P521 = 3;
 }
-  
+
+// EC Public Key message type.
+// X and Y are big endian integers Base64Url-encoded with no padding.
 message EC {
+    // Curve.
     ECType crv = 1;
     string x = 2;
     string y = 3;
