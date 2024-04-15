@@ -9,29 +9,30 @@ import (
 	ecpb "github.com/krixlion/dev_forum-auth/pkg/grpc/v1/ec"
 )
 
-const ECDSAId = "testECDSA"
+type ECKeyPairData struct {
+	Id      string
+	PrivPem string // Private key as a PEM cert.
 
-const (
-	ECDSAPem = `-----BEGIN EC PRIVATE KEY-----
-MHcCAQEEIPvaD0k0SRg9JD/grK0adgk0uP4a2ruhJi5qBUBQ95qLoAoGCCqGSM49
-AwEHoUQDQgAEKONQckRXFo/XksZgsl+5ESQ2/If7MJgaAcqfT16h0bo96XaM59qC
-RcjHeoAygjyzwqVdOjqLzIsC7WEtuMl3lw==
------END EC PRIVATE KEY-----`
-)
+	PrivKey *ecdsa.PrivateKey
+	PubKey  *ecdsa.PublicKey
 
-// Base64URL encoded Big-Endian value.
-const (
-	X = `KONQckRXFo_XksZgsl-5ESQ2_If7MJgaAcqfT16h0bo`
-	Y = `Pel2jOfagkXIx3qAMoI8s8KlXTo6i8yLAu1hLbjJd5c`
-)
+	Crv ecpb.ECType
+	// Base64RawURL encoded Big-Endian values.
+	X string
+	Y string
+}
 
-const Crv = ecpb.ECType_P256
+var ECDSA ECKeyPairData = ECKeyPairData{
+	Id:      "testECDSA",
+	PrivPem: "-----BEGIN EC PRIVATE KEY-----\nMHcCAQEEIPvaD0k0SRg9JD/grK0adgk0uP4a2ruhJi5qBUBQ95qLoAoGCCqGSM49\nAwEHoUQDQgAEKONQckRXFo/XksZgsl+5ESQ2/If7MJgaAcqfT16h0bo96XaM59qC\nRcjHeoAygjyzwqVdOjqLzIsC7WEtuMl3lw==\n-----END EC PRIVATE KEY-----",
 
-var PrivateECDSAKey *ecdsa.PrivateKey
-var PublicECDSAKey *ecdsa.PublicKey
+	Crv: ecpb.ECType_P256,
+	X:   `KONQckRXFo_XksZgsl-5ESQ2_If7MJgaAcqfT16h0bo`,
+	Y:   `Pel2jOfagkXIx3qAMoI8s8KlXTo6i8yLAu1hLbjJd5c`,
+}
 
 func initECDSA() {
-	block, _ := pem.Decode([]byte(ECDSAPem))
+	block, _ := pem.Decode([]byte(ECDSA.PrivPem))
 
 	if block == nil {
 		err := errors.New("failed to decode ecdsa pem block")
@@ -43,6 +44,6 @@ func initECDSA() {
 		panic(err)
 	}
 
-	PrivateECDSAKey = privateKey
-	PublicECDSAKey = privateKey.Public().(*ecdsa.PublicKey)
+	ECDSA.PrivKey = privateKey
+	ECDSA.PubKey = privateKey.Public().(*ecdsa.PublicKey)
 }

@@ -53,10 +53,10 @@ func TestVault_GetKeySet(t *testing.T) {
 			name: "Test if retrieves beforehand seeded set",
 			want: []entity.Key{
 				{
-					Id:        testdata.ECDSAId,
+					Id:        testdata.ECDSA.Id,
 					Algorithm: entity.ES256,
 					Raw: func() *ecdsa.PrivateKey {
-						key, err := DecodeECDSA(testdata.ECDSAPem)
+						key, err := DecodeECDSA(testdata.ECDSA.PrivPem)
 						if err != nil {
 							panic(err)
 						}
@@ -65,10 +65,10 @@ func TestVault_GetKeySet(t *testing.T) {
 					EncodeFunc: EncodeECDSA,
 				},
 				{
-					Id:        testdata.RSAId,
+					Id:        testdata.RSA.Id,
 					Algorithm: entity.RS256,
 					Raw: func() *rsa.PrivateKey {
-						key, err := DecodeRSA(testdata.RSAPem)
+						key, err := DecodeRSA(testdata.RSA.PrivPem)
 						if err != nil {
 							panic(err)
 						}
@@ -118,7 +118,7 @@ func TestVault_list(t *testing.T) {
 		{
 			name:    "Test if retrieves beforehand seeded path",
 			args:    args{path: "secret"},
-			want:    []string{testdata.ECDSAId, testdata.RSAId},
+			want:    []string{testdata.ECDSA.Id, testdata.RSA.Id},
 			wantErr: false,
 		},
 	}
@@ -188,7 +188,7 @@ func TestVault_create(t *testing.T) {
 			args: args{secret: secretData{
 				algorithm:  entity.ES256,
 				keyType:    entity.ECDSA,
-				encodedKey: testdata.ECDSAPem,
+				encodedKey: testdata.ECDSA.PrivPem,
 			}},
 			wantErr: false,
 		},

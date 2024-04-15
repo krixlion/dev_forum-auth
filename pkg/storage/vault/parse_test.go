@@ -26,14 +26,14 @@ func Test_parseSecret(t *testing.T) {
 					Data: map[string]interface{}{
 						"keyType":   string(entity.RSA),
 						"algorithm": string(entity.RS256),
-						"private":   testdata.RSAPem,
+						"private":   testdata.RSA.PrivPem,
 					},
 				},
 			},
 			want: secretData{
 				keyType:    entity.RSA,
 				algorithm:  entity.RS256,
-				encodedKey: testdata.RSAPem,
+				encodedKey: testdata.RSA.PrivPem,
 			},
 		},
 		{
@@ -58,7 +58,7 @@ func Test_parseSecret(t *testing.T) {
 				secret: &vault.KVSecret{
 					Data: map[string]interface{}{
 						"algorithm": string(entity.RS256),
-						"private":   testdata.RSAPem,
+						"private":   testdata.RSA.PrivPem,
 					},
 				},
 			},
@@ -70,7 +70,7 @@ func Test_parseSecret(t *testing.T) {
 				secret: &vault.KVSecret{
 					Data: map[string]interface{}{
 						"keyType": string(entity.RSA),
-						"private": testdata.RSAPem,
+						"private": testdata.RSA.PrivPem,
 					},
 				},
 			},

@@ -52,22 +52,22 @@ func Seed() error {
 	}
 
 	testKeyData := map[string]interface{}{
-		"private":   RSAPem,
+		"private":   RSA.PrivPem,
 		"algorithm": string(entity.RS256),
 		"keyType":   string(entity.RSA),
 	}
 
-	if _, err := kvv2.Put(ctx, RSAId, testKeyData); err != nil {
+	if _, err := kvv2.Put(ctx, RSA.Id, testKeyData); err != nil {
 		return fmt.Errorf("failed to put key: %w", err)
 	}
 
 	testKeyData = map[string]interface{}{
-		"private":   ECDSAPem,
+		"private":   ECDSA.PrivPem,
 		"algorithm": string(entity.ES256),
 		"keyType":   string(entity.ECDSA),
 	}
 
-	if _, err := kvv2.Put(ctx, ECDSAId, testKeyData); err != nil {
+	if _, err := kvv2.Put(ctx, ECDSA.Id, testKeyData); err != nil {
 		return fmt.Errorf("failed to put key: %w", err)
 	}
 

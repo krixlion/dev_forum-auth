@@ -109,11 +109,11 @@ func TestEncodeRSA(t *testing.T) {
 		{
 			name: "Test if valid RSA private key is marshaled into correct public key",
 			args: args{
-				key: testdata.PrivateRSAKey,
+				key: testdata.RSA.PrivKey,
 			},
 			want: &rsapb.RSA{
-				N: testdata.N,
-				E: testdata.E,
+				N: testdata.RSA.N,
+				E: testdata.RSA.E,
 			},
 		},
 	}
@@ -131,6 +131,7 @@ func TestEncodeRSA(t *testing.T) {
 		})
 	}
 }
+
 func TestDecodeECDSA(t *testing.T) {
 	type args struct {
 		encodedKey string
@@ -188,12 +189,12 @@ func TestEncodeECDSA(t *testing.T) {
 		{
 			name: "Test if valid ECDSA private key is marshaled into correct public key",
 			args: args{
-				key: testdata.PrivateECDSAKey,
+				key: testdata.ECDSA.PrivKey,
 			},
 			want: &ecpb.EC{
-				Crv: testdata.Crv,
-				X:   testdata.X,
-				Y:   testdata.Y,
+				Crv: testdata.ECDSA.Crv,
+				X:   testdata.ECDSA.X,
+				Y:   testdata.ECDSA.Y,
 			},
 		},
 	}
