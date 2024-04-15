@@ -9,8 +9,8 @@ import (
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/go-cmp/cmp/cmpopts"
 	"github.com/krixlion/dev_forum-auth/pkg/entity"
-	ecPb "github.com/krixlion/dev_forum-auth/pkg/grpc/v1/ec"
-	rsaPb "github.com/krixlion/dev_forum-auth/pkg/grpc/v1/rsa"
+	ecpb "github.com/krixlion/dev_forum-auth/pkg/grpc/v1/ec"
+	rsapb "github.com/krixlion/dev_forum-auth/pkg/grpc/v1/rsa"
 	"github.com/krixlion/dev_forum-auth/pkg/storage/vault/testdata"
 	"google.golang.org/protobuf/proto"
 )
@@ -111,7 +111,7 @@ func TestEncodeRSA(t *testing.T) {
 			args: args{
 				key: testdata.PrivateRSAKey,
 			},
-			want: &rsaPb.RSA{
+			want: &rsapb.RSA{
 				N: testdata.N,
 				E: testdata.E,
 			},
@@ -125,7 +125,7 @@ func TestEncodeRSA(t *testing.T) {
 				t.Errorf("EncodeRSA() error = %v, wantErr %v", err, tt.wantErr)
 				return
 			}
-			if !cmp.Equal(got, tt.want, cmpopts.IgnoreUnexported(rsaPb.RSA{})) {
+			if !cmp.Equal(got, tt.want, cmpopts.IgnoreUnexported(rsapb.RSA{})) {
 				t.Errorf("EncodeRSA() = %v, want %v", got, tt.want)
 			}
 		})
@@ -190,7 +190,7 @@ func TestEncodeECDSA(t *testing.T) {
 			args: args{
 				key: testdata.PrivateECDSAKey,
 			},
-			want: &ecPb.EC{
+			want: &ecpb.EC{
 				Crv: testdata.Crv,
 				X:   testdata.X,
 				Y:   testdata.Y,
@@ -204,7 +204,7 @@ func TestEncodeECDSA(t *testing.T) {
 				t.Errorf("EncodeECDSA() error = %v, wantErr %v", err, tt.wantErr)
 				return
 			}
-			if !cmp.Equal(got, tt.want, cmpopts.IgnoreUnexported(ecPb.EC{})) {
+			if !cmp.Equal(got, tt.want, cmpopts.IgnoreUnexported(ecpb.EC{})) {
 				t.Errorf("EncodeECDSA():\n got = %v\n want = %v", got, tt.want)
 			}
 		})

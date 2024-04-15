@@ -2,7 +2,7 @@ syntax = "proto3";
 
 package auth;
 
-option go_package = "github.com/krixlion/dev_forum-auth/pkg/grpc/v1/ec;rsapb";
+option go_package = "github.com/krixlion/dev_forum-auth/pkg/grpc/v1/ec;ecpb";
 
 enum ECType {
     UNDEFINED = 0;

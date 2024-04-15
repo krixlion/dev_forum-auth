@@ -13,8 +13,8 @@ import (
 	"fmt"
 
 	"github.com/krixlion/dev_forum-auth/pkg/entity"
-	ecPb "github.com/krixlion/dev_forum-auth/pkg/grpc/v1/ec"
-	rsaPb "github.com/krixlion/dev_forum-auth/pkg/grpc/v1/rsa"
+	ecpb "github.com/krixlion/dev_forum-auth/pkg/grpc/v1/ec"
+	rsapb "github.com/krixlion/dev_forum-auth/pkg/grpc/v1/rsa"
 	"google.golang.org/protobuf/proto"
 )
 
@@ -80,7 +80,7 @@ func EncodeRSA(key crypto.PrivateKey) (proto.Message, error) {
 
 	n := privateKey.PublicKey.N.Bytes()
 
-	message := &rsaPb.RSA{
+	message := &rsapb.RSA{
 		N: base64.RawURLEncoding.EncodeToString(n),
 		E: base64.RawURLEncoding.EncodeToString(e),
 	}
@@ -125,17 +125,17 @@ func EncodeECDSA(key crypto.PrivateKey) (proto.Message, error) {
 	x := privateKey.PublicKey.X.Bytes()
 	y := privateKey.PublicKey.Y.Bytes()
 
-	var crv ecPb.ECType
+	var crv ecpb.ECType
 	switch privateKey.PublicKey.Curve {
 	case elliptic.P256():
-		crv = ecPb.ECType_P256
+		crv = ecpb.ECType_P256
 	case elliptic.P384():
-		crv = ecPb.ECType_P384
+		crv = ecpb.ECType_P384
 	case elliptic.P521():
-		crv = ecPb.ECType_P521
+		crv = ecpb.ECType_P521
 	}
 
-	message := &ecPb.EC{
+	message := &ecpb.EC{
 		Crv: crv,
 		X:   base64.RawURLEncoding.EncodeToString(x),
 		Y:   base64.RawURLEncoding.EncodeToString(y),

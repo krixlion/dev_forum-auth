@@ -9,7 +9,7 @@ import (
 	"math/big"
 	"strconv"
 
-	ecPb "github.com/krixlion/dev_forum-auth/pkg/grpc/v1/ec"
+	ecpb "github.com/krixlion/dev_forum-auth/pkg/grpc/v1/ec"
 	rsapb "github.com/krixlion/dev_forum-auth/pkg/grpc/v1/rsa"
 	"google.golang.org/protobuf/proto"
 )
@@ -24,7 +24,7 @@ func Key(input proto.Message) (interface{}, error) {
 	switch msg := input.(type) {
 	case *rsapb.RSA:
 		return RSA(msg)
-	case *ecPb.EC:
+	case *ecpb.EC:
 		return ECDSA(msg)
 	default:
 		return nil, ErrUnknownMessageType
@@ -70,7 +70,7 @@ func RSA(input *rsapb.RSA) (*rsa.PublicKey, error) {
 }
 
 // Unserializes an ECDSA message.
-func ECDSA(input *ecPb.EC) (*ecdsa.PublicKey, error) {
+func ECDSA(input *ecpb.EC) (*ecdsa.PublicKey, error) {
 	if input == nil {
 		return nil, ErrKeyNil
 	}
@@ -90,13 +90,13 @@ func ECDSA(input *ecPb.EC) (*ecdsa.PublicKey, error) {
 
 	var crv elliptic.Curve
 	switch input.GetCrv() {
-	case ecPb.ECType_P256:
+	case ecpb.ECType_P256:
 		crv = elliptic.P256()
-	case ecPb.ECType_P384:
+	case ecpb.ECType_P384:
 		crv = elliptic.P384()
-	case ecPb.ECType_P521:
+	case ecpb.ECType_P521:
 		crv = elliptic.P521()
-	case ecPb.ECType_UNDEFINED:
+	case ecpb.ECType_UNDEFINED:
 		return nil, errors.New("failed to parse ECDSA key: curve undefined")
 	default:
 		return nil, errors.New("failed to parse ECDSA key: unexpected curve")

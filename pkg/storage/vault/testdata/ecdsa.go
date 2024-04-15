@@ -6,7 +6,7 @@ import (
 	"encoding/pem"
 	"errors"
 
-	ecPb "github.com/krixlion/dev_forum-auth/pkg/grpc/v1/ec"
+	ecpb "github.com/krixlion/dev_forum-auth/pkg/grpc/v1/ec"
 )
 
 const ECDSAId = "testECDSA"
@@ -25,7 +25,7 @@ const (
 	Y = `Pel2jOfagkXIx3qAMoI8s8KlXTo6i8yLAu1hLbjJd5c`
 )
 
-const Crv = ecPb.ECType_P256
+const Crv = ecpb.ECType_P256
 
 var PrivateECDSAKey *ecdsa.PrivateKey
 var PublicECDSAKey *ecdsa.PublicKey
