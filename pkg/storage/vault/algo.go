@@ -19,7 +19,7 @@ import (
 )
 
 // Decode decodes provided key with specified algorithm and returns it along with a callback
-// that should be used to encode this key to proto message format.
+// that should be used to encode the key to proto message format.
 // If decode func for specified algorithm is not found it returns an ErrAlgorithmNotSupported.
 // If the algorithm is not recognized it returns an ErrInvalidAlgorithm.
 func Decode(algorithm entity.Algorithm, encodedKey string) (crypto.PrivateKey, entity.KeyEncodeFunc, error) {
@@ -63,6 +63,9 @@ func DecodeRSA(rsaPem string) (*rsa.PrivateKey, error) {
 	return privateKey, nil
 }
 
+// EncodeRSA encodes the PublicKey of given RSA PrivateKey into
+// a supported gRPC message format.
+// Returns an error if given key is not of type rsa.PrivateKey or pointer to it.
 func EncodeRSA(key crypto.PrivateKey) (proto.Message, error) {
 	var privateKey *rsa.PrivateKey
 
@@ -88,8 +91,9 @@ func EncodeRSA(key crypto.PrivateKey) (proto.Message, error) {
 	return message, nil
 }
 
-func DecodeECDSA(ecdsaPem string) (*ecdsa.PrivateKey, error) {
-	block, _ := pem.Decode([]byte(ecdsaPem))
+// DecodeECDSA decodes EC PEM block and returns a non-nil err on failure.
+func DecodeECDSA(ecPem string) (*ecdsa.PrivateKey, error) {
+	block, _ := pem.Decode([]byte(ecPem))
 
 	if block == nil {
 		return nil, errors.New("failed to decode ecdsa pem block")
@@ -107,6 +111,9 @@ func DecodeECDSA(ecdsaPem string) (*ecdsa.PrivateKey, error) {
 	return privateKey, nil
 }
 
+// EncodeECDSA encodes the PublicKey of given EC PrivateKey into
+// a supported gRPC message format.
+// Returns an error if given key is not of type ecdsa.PrivateKey or pointer to it.
 func EncodeECDSA(key crypto.PrivateKey) (proto.Message, error) {
 	if key == nil {
 		return nil, errors.New("received nil key")
