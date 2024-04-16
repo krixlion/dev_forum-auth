@@ -5,6 +5,9 @@ metadata:
 spec:
   serviceName: vault-service
   replicas: 1
+  selector:
+    matchLabels:
+      database: vault
   volumeClaimTemplates:
     - metadata:
         name: vault-data

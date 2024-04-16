@@ -5,6 +5,9 @@ metadata:
 spec:
   serviceName: mongodb-service
   replicas: 1
+  selector:
+    matchLabels:
+      database: mongodb
   volumeClaimTemplates:
     - metadata:
         name: mongodb-data
