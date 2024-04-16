@@ -19,7 +19,7 @@ func TestKeySerializationFlowCompatibilityForRSA(t *testing.T) {
 		return
 	}
 
-	serialized, err := vault.EncodeRSA(original)
+	serialized, err := vault.EncodeRSA(original.PublicKey)
 	if err != nil {
 		t.Errorf("Failed to encode RSA key: error = %v", err)
 		return
@@ -50,7 +50,7 @@ func TestKeySerializationFlowCompatibilityForECDSA(t *testing.T) {
 		return
 	}
 
-	serialized, err := vault.EncodeECDSA(original)
+	serialized, err := vault.EncodeECDSA(original.PublicKey)
 	if err != nil {
 		t.Errorf("Failed to encode ECDSA key: error = %v", err)
 		return

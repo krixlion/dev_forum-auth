@@ -15,7 +15,7 @@ type Key struct {
 	EncodeFunc KeyEncodeFunc
 }
 
-type KeyEncodeFunc func(crypto.PrivateKey) (proto.Message, error)
+type KeyEncodeFunc func(crypto.PublicKey) (proto.Message, error)
 
 type KeyType string
 
@@ -40,5 +40,5 @@ func (key Key) Encode() (proto.Message, error) {
 		return nil, errors.New("encodeFunc is nil")
 	}
 
-	return key.EncodeFunc(key.Raw)
+	return key.EncodeFunc(key.Raw.(interface{ Public() crypto.PublicKey }).Public())
 }

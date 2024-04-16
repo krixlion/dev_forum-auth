@@ -63,25 +63,24 @@ func DecodeRSA(rsaPem string) (*rsa.PrivateKey, error) {
 	return privateKey, nil
 }
 
-// EncodeRSA encodes the PublicKey of given RSA PrivateKey into
-// a supported gRPC message format.
-// Returns an error if given key is not of type rsa.PrivateKey or pointer to it.
-func EncodeRSA(key crypto.PrivateKey) (proto.Message, error) {
-	var privateKey *rsa.PrivateKey
+// EncodeRSA encodes given RSA PublicKey into a supported gRPC message format.
+// Returns an error if given key is not of type rsa.PublicKey or a pointer to it.
+func EncodeRSA(key crypto.PublicKey) (proto.Message, error) {
+	var pubKey *rsa.PublicKey
 
 	switch k := key.(type) {
-	case *rsa.PrivateKey:
-		privateKey = k
-	case rsa.PrivateKey:
-		privateKey = &k
+	case *rsa.PublicKey:
+		pubKey = k
+	case rsa.PublicKey:
+		pubKey = &k
 	default:
-		return nil, fmt.Errorf("received invalid key type, expected *rsa.PrivateKey, received %T", key)
+		return nil, fmt.Errorf("received invalid key type, expected *rsa.PublicKey, received %T", key)
 	}
 
 	e := make([]byte, 4)
-	binary.BigEndian.PutUint32(e, uint32(privateKey.PublicKey.E))
+	binary.BigEndian.PutUint32(e, uint32(pubKey.E))
 
-	n := privateKey.PublicKey.N.Bytes()
+	n := pubKey.N.Bytes()
 
 	message := &rsapb.RSA{
 		N: base64.RawURLEncoding.EncodeToString(n),
@@ -111,29 +110,28 @@ func DecodeECDSA(ecPem string) (*ecdsa.PrivateKey, error) {
 	return privateKey, nil
 }
 
-// EncodeECDSA encodes the PublicKey of given EC PrivateKey into
-// a supported gRPC message format.
-// Returns an error if given key is not of type ecdsa.PrivateKey or pointer to it.
-func EncodeECDSA(key crypto.PrivateKey) (proto.Message, error) {
+// EncodeECDSA encodes given EC PublicKey into a supported gRPC message format.
+// Returns an error if given key is not of type ecdsa.PublicKey or a pointer to it.
+func EncodeECDSA(key crypto.PublicKey) (proto.Message, error) {
 	if key == nil {
 		return nil, errors.New("received nil key")
 	}
 
-	var privateKey *ecdsa.PrivateKey
+	var pubKey *ecdsa.PublicKey
 	switch k := key.(type) {
-	case *ecdsa.PrivateKey:
-		privateKey = k
-	case ecdsa.PrivateKey:
-		privateKey = &k
+	case *ecdsa.PublicKey:
+		pubKey = k
+	case ecdsa.PublicKey:
+		pubKey = &k
 	default:
-		return nil, fmt.Errorf("received invalid key type, expected *ecdsa.PrivateKey, received %T", key)
+		return nil, fmt.Errorf("received invalid key type, expected *ecdsa.PublicKey, received %T", key)
 	}
 
-	x := privateKey.PublicKey.X.Bytes()
-	y := privateKey.PublicKey.Y.Bytes()
+	x := pubKey.X.Bytes()
+	y := pubKey.Y.Bytes()
 
 	var crv ecpb.ECType
-	switch privateKey.PublicKey.Curve {
+	switch pubKey.Curve {
 	case elliptic.P256():
 		crv = ecpb.ECType_P256
 	case elliptic.P384():

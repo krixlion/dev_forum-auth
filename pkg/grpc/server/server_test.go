@@ -394,7 +394,7 @@ func TestAuthServer_GetValidationKeySet(t *testing.T) {
 					Alg: "RS256",
 					Kty: "RSA",
 					Key: func() *anypb.Any {
-						v, err := vault.EncodeRSA(rsaPrivKey)
+						v, err := vault.EncodeRSA(rsaPrivKey.PublicKey)
 						if err != nil {
 							t.Fatalf("Failed to encode RSA key: %s", err)
 						}
@@ -410,7 +410,7 @@ func TestAuthServer_GetValidationKeySet(t *testing.T) {
 					Alg: "ES256",
 					Kty: "ECDSA",
 					Key: func() *anypb.Any {
-						v, err := vault.EncodeECDSA(ecdsaPrivKey)
+						v, err := vault.EncodeECDSA(ecdsaPrivKey.PublicKey)
 						if err != nil {
 							t.Fatalf("Failed to encode ECDSA key: %s", err)
 						}
