@@ -20,7 +20,7 @@ spec:
     spec:
       containers:
         - name: mongodb-cluster
-          image: mongo:6.0.5
+          image: mongo:6.0
           # env:
           #   - name: MONGO_INITDB_ROOT_USERNAME_FILE
           #     value: /etc/secrets/admin/MONGO_ROOT_USERNAME

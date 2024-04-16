@@ -20,7 +20,7 @@ spec:
     spec:
       containers:
         - name: vault-cluster
-          image: hashicorp/vault:1.13.1
+          image: hashicorp/vault:1.13
           ports:
             - name: vault
               containerPort: 8200
