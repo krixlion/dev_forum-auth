@@ -6,7 +6,7 @@ import (
 	"github.com/google/go-cmp/cmp"
 	vault "github.com/hashicorp/vault/api"
 	"github.com/krixlion/dev_forum-auth/pkg/entity"
-	"github.com/krixlion/dev_forum-auth/pkg/storage/vault/testdata"
+	"github.com/krixlion/dev_forum-auth/pkg/grpc/protokey/testdata"
 )
 
 func Test_parseSecret(t *testing.T) {

@@ -11,7 +11,9 @@ import (
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/go-cmp/cmp/cmpopts"
 	"github.com/krixlion/dev_forum-auth/pkg/entity"
-	"github.com/krixlion/dev_forum-auth/pkg/storage/vault/testdata"
+	"github.com/krixlion/dev_forum-auth/pkg/grpc/protokey"
+	"github.com/krixlion/dev_forum-auth/pkg/grpc/protokey/testdata"
+	vaultdata "github.com/krixlion/dev_forum-auth/pkg/storage/vault/testdata"
 	"github.com/krixlion/dev_forum-lib/env"
 	"github.com/krixlion/dev_forum-lib/nulls"
 )
@@ -19,7 +21,7 @@ import (
 func setUpVault() Vault {
 	env.Load("app")
 
-	if err := testdata.Seed(); err != nil {
+	if err := vaultdata.Seed(); err != nil {
 		panic(err)
 	}
 
@@ -62,7 +64,7 @@ func TestVault_GetKeySet(t *testing.T) {
 						}
 						return key
 					}(),
-					EncodeFunc: EncodeECDSA,
+					EncodeFunc: protokey.SerializeECDSA,
 				},
 				{
 					Id:        testdata.RSA.Id,
@@ -74,7 +76,7 @@ func TestVault_GetKeySet(t *testing.T) {
 						}
 						return key
 					}(),
-					EncodeFunc: EncodeRSA,
+					EncodeFunc: protokey.SerializeRSA,
 				},
 			},
 			wantErr: false,

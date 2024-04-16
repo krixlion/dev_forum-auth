@@ -1,4 +1,4 @@
-package testdata
+package vault
 
 import (
 	"context"
@@ -9,15 +9,11 @@ import (
 
 	vault "github.com/hashicorp/vault/api"
 	"github.com/krixlion/dev_forum-auth/pkg/entity"
+	"github.com/krixlion/dev_forum-auth/pkg/grpc/protokey/testdata"
 	"github.com/krixlion/dev_forum-lib/env"
 )
 
 var ErrFailedToParseKey = errors.New("failed to parse key")
-
-func init() {
-	initRSA()
-	initECDSA()
-}
 
 func Seed() error {
 	env.Load("app")
@@ -52,22 +48,22 @@ func Seed() error {
 	}
 
 	testKeyData := map[string]interface{}{
-		"private":   RSA.PrivPem,
+		"private":   testdata.RSA.PrivPem,
 		"algorithm": string(entity.RS256),
 		"keyType":   string(entity.RSA),
 	}
 
-	if _, err := kvv2.Put(ctx, RSA.Id, testKeyData); err != nil {
+	if _, err := kvv2.Put(ctx, testdata.RSA.Id, testKeyData); err != nil {
 		return fmt.Errorf("failed to put key: %w", err)
 	}
 
 	testKeyData = map[string]interface{}{
-		"private":   ECDSA.PrivPem,
+		"private":   testdata.ECDSA.PrivPem,
 		"algorithm": string(entity.ES256),
 		"keyType":   string(entity.ECDSA),
 	}
 
-	if _, err := kvv2.Put(ctx, ECDSA.Id, testKeyData); err != nil {
+	if _, err := kvv2.Put(ctx, testdata.ECDSA.Id, testKeyData); err != nil {
 		return fmt.Errorf("failed to put key: %w", err)
 	}
 

@@ -9,7 +9,6 @@ import (
 
 	"github.com/google/go-cmp/cmp"
 	"github.com/krixlion/dev_forum-auth/pkg/grpc/protokey"
-	"github.com/krixlion/dev_forum-auth/pkg/storage/vault"
 )
 
 func TestKeySerializationFlowCompatibilityForRSA(t *testing.T) {
@@ -19,7 +18,7 @@ func TestKeySerializationFlowCompatibilityForRSA(t *testing.T) {
 		return
 	}
 
-	serialized, err := vault.EncodeRSA(original.PublicKey)
+	serialized, err := protokey.SerializeRSA(original.PublicKey)
 	if err != nil {
 		t.Errorf("Failed to encode RSA key: error = %v", err)
 		return
@@ -50,7 +49,7 @@ func TestKeySerializationFlowCompatibilityForECDSA(t *testing.T) {
 		return
 	}
 
-	serialized, err := vault.EncodeECDSA(original.PublicKey)
+	serialized, err := protokey.SerializeECDSA(original.PublicKey)
 	if err != nil {
 		t.Errorf("Failed to encode ECDSA key: error = %v", err)
 		return

@@ -1,6 +1,7 @@
 package protokey
 
 import (
+	"crypto"
 	"crypto/ecdsa"
 	"crypto/elliptic"
 	"crypto/rsa"
@@ -8,8 +9,11 @@ import (
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
+	"github.com/google/go-cmp/cmp/cmpopts"
+	"github.com/krixlion/dev_forum-auth/pkg/grpc/protokey/testdata"
 	ecpb "github.com/krixlion/dev_forum-auth/pkg/grpc/v1/ec"
 	rsapb "github.com/krixlion/dev_forum-auth/pkg/grpc/v1/rsa"
+	"google.golang.org/protobuf/proto"
 )
 
 func TestDeserializeRSA(t *testing.T) {
@@ -91,6 +95,78 @@ func TestDeserializeECDSA(t *testing.T) {
 			}
 			if !cmp.Equal(got, tt.want) {
 				t.Errorf("ECDSA():\n got = %v\n want = %v", got, tt.want)
+			}
+		})
+	}
+}
+
+func TestSerializeRSA(t *testing.T) {
+	type args struct {
+		key crypto.PrivateKey
+	}
+	tests := []struct {
+		name    string
+		args    args
+		want    proto.Message
+		wantErr bool
+	}{
+		{
+			name: "Test if valid RSA private key is marshaled into correct public key",
+			args: args{
+				key: testdata.RSA.PubKey,
+			},
+			want: &rsapb.RSA{
+				N: testdata.RSA.N,
+				E: testdata.RSA.E,
+			},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got, err := SerializeRSA(tt.args.key)
+			if (err != nil) != tt.wantErr {
+				t.Errorf("SerializeRSA() error = %v, wantErr %v", err, tt.wantErr)
+				return
+			}
+			if !cmp.Equal(got, tt.want, cmpopts.IgnoreUnexported(rsapb.RSA{})) {
+				t.Errorf("SerializeRSA() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
+
+func TestSerializeECDSA(t *testing.T) {
+	type args struct {
+		key crypto.PrivateKey
+	}
+	tests := []struct {
+		name    string
+		args    args
+		want    proto.Message
+		wantErr bool
+	}{
+		{
+			name: "Test if valid ECDSA private key is marshaled into correct public key",
+			args: args{
+				key: testdata.ECDSA.PubKey,
+			},
+			want: &ecpb.EC{
+				Crv: testdata.ECDSA.Crv,
+				X:   testdata.ECDSA.X,
+				Y:   testdata.ECDSA.Y,
+			},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got, err := SerializeECDSA(tt.args.key)
+			if (err != nil) != tt.wantErr {
+				t.Errorf("SerializeECDSA() error = %v, wantErr %v", err, tt.wantErr)
+				return
+			}
+			if !cmp.Equal(got, tt.want, cmpopts.IgnoreUnexported(ecpb.EC{})) {
+				t.Errorf("SerializeECDSA():\n got = %v\n want = %v", got, tt.want)
 			}
 		})
 	}

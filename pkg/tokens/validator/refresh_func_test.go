@@ -12,9 +12,9 @@ import (
 
 	"github.com/google/go-cmp/cmp"
 	"github.com/krixlion/dev_forum-auth/pkg/entity"
+	"github.com/krixlion/dev_forum-auth/pkg/grpc/protokey"
 	"github.com/krixlion/dev_forum-auth/pkg/grpc/server/servertest"
 	"github.com/krixlion/dev_forum-auth/pkg/storage/storagemocks"
-	"github.com/krixlion/dev_forum-auth/pkg/storage/vault"
 	"github.com/krixlion/dev_forum-lib/nulls"
 	"github.com/stretchr/testify/mock"
 )
@@ -45,14 +45,14 @@ func TestDefaultRefreshFunc(t *testing.T) {
 							Type:       entity.RSA,
 							Algorithm:  entity.RS256,
 							Raw:        rsaPrivKey,
-							EncodeFunc: vault.EncodeRSA,
+							EncodeFunc: protokey.SerializeRSA,
 						},
 						{
 							Id:         "test-ecdsa-id",
 							Type:       entity.ECDSA,
 							Algorithm:  entity.ES256,
 							Raw:        ecdsaPrivKey,
-							EncodeFunc: vault.EncodeECDSA,
+							EncodeFunc: protokey.SerializeECDSA,
 						},
 					}
 					m := storagemocks.NewVault()

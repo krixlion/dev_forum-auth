@@ -57,7 +57,7 @@ func parseSecret(secret *vault.KVSecret) (secretData, error) {
 // makeKey is a convenience func used to make an entity.Key
 // correctly decoded with correct encodeFunc assigned.
 func makeKey(id string, validated secretData) (entity.Key, error) {
-	privateKey, encodeFunc, err := Decode(validated.algorithm, validated.encodedKey)
+	privateKey, encodeFunc, err := DecodeKey(validated.algorithm, validated.encodedKey)
 	if err != nil {
 		return entity.Key{}, err
 	}

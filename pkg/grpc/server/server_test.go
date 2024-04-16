@@ -13,11 +13,11 @@ import (
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/go-cmp/cmp/cmpopts"
 	"github.com/krixlion/dev_forum-auth/pkg/entity"
+	"github.com/krixlion/dev_forum-auth/pkg/grpc/protokey"
 	"github.com/krixlion/dev_forum-auth/pkg/grpc/server/servertest"
 	pb "github.com/krixlion/dev_forum-auth/pkg/grpc/v1"
 	"github.com/krixlion/dev_forum-auth/pkg/storage"
 	"github.com/krixlion/dev_forum-auth/pkg/storage/storagemocks"
-	"github.com/krixlion/dev_forum-auth/pkg/storage/vault"
 	"github.com/krixlion/dev_forum-auth/pkg/tokens"
 	"github.com/krixlion/dev_forum-auth/pkg/tokens/tokensmocks"
 	"github.com/krixlion/dev_forum-lib/filter"
@@ -375,14 +375,14 @@ func TestAuthServer_GetValidationKeySet(t *testing.T) {
 						Type:       entity.RSA,
 						Algorithm:  entity.RS256,
 						Raw:        rsaPrivKey,
-						EncodeFunc: vault.EncodeRSA,
+						EncodeFunc: protokey.SerializeRSA,
 					}
 					ecsdaKey := entity.Key{
 						Id:         "test-ecdsa-id",
 						Type:       entity.ECDSA,
 						Algorithm:  entity.ES256,
 						Raw:        ecdsaPrivKey,
-						EncodeFunc: vault.EncodeECDSA,
+						EncodeFunc: protokey.SerializeECDSA,
 					}
 					m.On("GetKeySet", mock.Anything).Return([]entity.Key{rsaKey, ecsdaKey}, nil).Once()
 					return m
@@ -394,7 +394,7 @@ func TestAuthServer_GetValidationKeySet(t *testing.T) {
 					Alg: "RS256",
 					Kty: "RSA",
 					Key: func() *anypb.Any {
-						v, err := vault.EncodeRSA(rsaPrivKey.PublicKey)
+						v, err := protokey.SerializeRSA(rsaPrivKey.PublicKey)
 						if err != nil {
 							t.Fatalf("Failed to encode RSA key: %s", err)
 						}
@@ -410,7 +410,7 @@ func TestAuthServer_GetValidationKeySet(t *testing.T) {
 					Alg: "ES256",
 					Kty: "ECDSA",
 					Key: func() *anypb.Any {
-						v, err := vault.EncodeECDSA(ecdsaPrivKey.PublicKey)
+						v, err := protokey.SerializeECDSA(ecdsaPrivKey.PublicKey)
 						if err != nil {
 							t.Fatalf("Failed to encode ECDSA key: %s", err)
 						}

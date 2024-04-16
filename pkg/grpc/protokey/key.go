@@ -1,11 +1,14 @@
 package protokey
 
 import (
+	"crypto"
 	"crypto/ecdsa"
 	"crypto/elliptic"
 	"crypto/rsa"
 	"encoding/base64"
+	"encoding/binary"
 	"errors"
+	"fmt"
 	"math/big"
 	"strconv"
 
@@ -107,4 +110,70 @@ func DeserializeEC(input *ecpb.EC) (*ecdsa.PublicKey, error) {
 		X:     X,
 		Y:     Y,
 	}, nil
+}
+
+// SerializeRSA encodes given RSA PublicKey into a supported gRPC message format.
+// Returns an error if given key is not of type rsa.PublicKey or a pointer to it.
+func SerializeRSA(key crypto.PublicKey) (proto.Message, error) {
+	var pubKey *rsa.PublicKey
+
+	switch k := key.(type) {
+	case *rsa.PublicKey:
+		pubKey = k
+	case rsa.PublicKey:
+		pubKey = &k
+	default:
+		return nil, fmt.Errorf("received invalid key type, expected *rsa.PublicKey, received %T", key)
+	}
+
+	e := make([]byte, 4)
+	binary.BigEndian.PutUint32(e, uint32(pubKey.E))
+
+	n := pubKey.N.Bytes()
+
+	message := &rsapb.RSA{
+		N: base64.RawURLEncoding.EncodeToString(n),
+		E: base64.RawURLEncoding.EncodeToString(e),
+	}
+
+	return message, nil
+}
+
+// SerializeECDSA encodes given EC PublicKey into a supported gRPC message format.
+// Returns an error if given key is not of type ecdsa.PublicKey or a pointer to it.
+func SerializeECDSA(key crypto.PublicKey) (proto.Message, error) {
+	if key == nil {
+		return nil, errors.New("received nil key")
+	}
+
+	var pubKey *ecdsa.PublicKey
+	switch k := key.(type) {
+	case *ecdsa.PublicKey:
+		pubKey = k
+	case ecdsa.PublicKey:
+		pubKey = &k
+	default:
+		return nil, fmt.Errorf("received invalid key type, expected *ecdsa.PublicKey, received %T", key)
+	}
+
+	x := pubKey.X.Bytes()
+	y := pubKey.Y.Bytes()
+
+	var crv ecpb.ECType
+	switch pubKey.Curve {
+	case elliptic.P256():
+		crv = ecpb.ECType_P256
+	case elliptic.P384():
+		crv = ecpb.ECType_P384
+	case elliptic.P521():
+		crv = ecpb.ECType_P521
+	}
+
+	message := &ecpb.EC{
+		Crv: crv,
+		X:   base64.RawURLEncoding.EncodeToString(x),
+		Y:   base64.RawURLEncoding.EncodeToString(y),
+	}
+
+	return message, nil
 }
