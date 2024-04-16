@@ -39,7 +39,7 @@ func TestDecodeKey(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			_, _, err := DecodeKey(tt.args.algorithm, tt.args.encodedKey)
 			if (err != nil) != tt.wantErr {
-				t.Errorf("Decode() error = %v, wantErr %v", err, tt.wantErr)
+				t.Errorf("DecodeKey() error = %v, wantErr %v", err, tt.wantErr)
 				return
 			}
 		})
