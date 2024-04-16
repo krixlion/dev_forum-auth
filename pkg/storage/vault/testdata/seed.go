@@ -23,9 +23,11 @@ func Seed() error {
 	mountPath := os.Getenv("VAULT_MOUNT_PATH")
 	token := os.Getenv("VAULT_TOKEN")
 
-	client, err := vault.NewClient(&vault.Config{
-		Address: fmt.Sprintf("http://%s:%s", host, port),
-	})
+	config := vault.DefaultConfig()
+	config.Address = fmt.Sprintf("http://%s:%s", host, port)
+	defer config.HttpClient.CloseIdleConnections()
+
+	client, err := vault.NewClient(config)
 	if err != nil {
 		return err
 	}
