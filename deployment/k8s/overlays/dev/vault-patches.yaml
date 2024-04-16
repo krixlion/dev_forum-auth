@@ -1,0 +1,5 @@
+- op: add
+  path: "/spec/template/spec/containers/0/env/-"
+  value:
+    name: VAULT_DEV_ROOT_TOKEN_ID
+    value: "whJRtZXqabEGNtmFifSIiUH5ct7c6nIPQS0KBo5bnxVPNXOLee2BGVhf9xSrqfo9"

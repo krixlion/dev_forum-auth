@@ -27,6 +27,13 @@ patches:
       kind: Service
       name: auth-service
 
+  - path: vault-patches.yaml
+    target:
+      group: apps
+      version: v1
+      kind: StatefulSet
+      name: vault-cluster
+
 configMapGenerator:
   - name: auth-env
     env: auth.properties
