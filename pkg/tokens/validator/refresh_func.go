@@ -4,7 +4,7 @@ import (
 	"context"
 	"io"
 
-	"github.com/krixlion/dev_forum-auth/pkg/grpc/deserialize"
+	"github.com/krixlion/dev_forum-auth/pkg/grpc/protokey"
 	pb "github.com/krixlion/dev_forum-auth/pkg/grpc/v1"
 	"github.com/krixlion/dev_forum-lib/nulls"
 	"github.com/krixlion/dev_forum-lib/tracing"
@@ -64,7 +64,7 @@ func DefaultRefreshFunc(authClient pb.AuthServiceClient, tracer trace.Tracer) Re
 				return nil, err
 			}
 
-			raw, err := deserialize.Key(rawMessage)
+			raw, err := protokey.DeserializeKey(rawMessage)
 			if err != nil {
 				tracing.SetSpanErr(span, err)
 				return nil, err

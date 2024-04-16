@@ -1,4 +1,4 @@
-package deserialize
+package protokey
 
 import (
 	"crypto/ecdsa"
@@ -19,20 +19,20 @@ var (
 	ErrKeyNil             = errors.New("key is nil")
 )
 
-// Key detects a gRPC format of key and deserializes it using the corresponding function.
-func Key(input proto.Message) (interface{}, error) {
+// DeserializeKey detects a gRPC format of key and deserializes it using the corresponding function.
+func DeserializeKey(input proto.Message) (interface{}, error) {
 	switch msg := input.(type) {
 	case *rsapb.RSA:
-		return RSA(msg)
+		return DeserializeRSA(msg)
 	case *ecpb.EC:
-		return ECDSA(msg)
+		return DeserializeEC(msg)
 	default:
 		return nil, ErrUnknownMessageType
 	}
 }
 
-// Unserializes an RSA message.
-func RSA(input *rsapb.RSA) (*rsa.PublicKey, error) {
+// DeserializeRSA deserializes an RSA message.
+func DeserializeRSA(input *rsapb.RSA) (*rsa.PublicKey, error) {
 	if input == nil {
 		return nil, ErrKeyNil
 	}
@@ -69,8 +69,8 @@ func RSA(input *rsapb.RSA) (*rsa.PublicKey, error) {
 	}, nil
 }
 
-// Unserializes an ECDSA message.
-func ECDSA(input *ecpb.EC) (*ecdsa.PublicKey, error) {
+// DeserializeEC deserializes an EC message.
+func DeserializeEC(input *ecpb.EC) (*ecdsa.PublicKey, error) {
 	if input == nil {
 		return nil, ErrKeyNil
 	}

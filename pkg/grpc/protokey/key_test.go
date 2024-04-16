@@ -1,4 +1,4 @@
-package deserialize
+package protokey
 
 import (
 	"crypto/ecdsa"
@@ -12,7 +12,7 @@ import (
 	rsapb "github.com/krixlion/dev_forum-auth/pkg/grpc/v1/rsa"
 )
 
-func TestRSA(t *testing.T) {
+func TestDeserializeRSA(t *testing.T) {
 	type args struct {
 		input *rsapb.RSA
 	}
@@ -40,7 +40,7 @@ func TestRSA(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got, err := RSA(tt.args.input)
+			got, err := DeserializeRSA(tt.args.input)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("RSA(): error = %v, wantErr %v", err, tt.wantErr)
 				return
@@ -53,7 +53,7 @@ func TestRSA(t *testing.T) {
 	}
 }
 
-func TestECDSA(t *testing.T) {
+func TestDeserializeECDSA(t *testing.T) {
 	type args struct {
 		input *ecpb.EC
 	}
@@ -84,7 +84,7 @@ func TestECDSA(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got, err := ECDSA(tt.args.input)
+			got, err := DeserializeEC(tt.args.input)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("ECDSA(): error = %v, wantErr %v", err, tt.wantErr)
 				return
