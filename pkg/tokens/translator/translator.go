@@ -152,7 +152,7 @@ func isStreamRenewable(err error) bool {
 	}
 
 	if err == io.EOF {
-		// TODO: add desc
+		// Stream was closed naturally and does not need to be renewed.
 		return false
 	}
 
