@@ -45,10 +45,10 @@ func Make(host, port, token string, config Config, tracer trace.Tracer, logger l
 	if logger == nil {
 		logger = nulls.NullLogger{}
 	}
+	c := vault.DefaultConfig()
+	c.Address = fmt.Sprintf("http://%s:%s", host, port)
 
-	client, err := vault.NewClient(&vault.Config{
-		Address: fmt.Sprintf("http://%s:%s", host, port),
-	})
+	client, err := vault.NewClient(c)
 	if err != nil {
 		return Vault{}, err
 	}
