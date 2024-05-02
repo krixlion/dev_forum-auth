@@ -45,7 +45,7 @@ docker run -p 50051:50051 -p 2223:2223 krixlion/dev_forum-auth:<version>
 You need a working [Kubernetes environment](https://kubernetes.io/docs/setup) with [kustomize](https://kubernetes.io/docs/tasks/manage-kubernetes-objects/kustomization).
 
 Kubernetes resources are defined in `deployment/k8s` and deployed using [Kustomize](https://kubernetes.io/docs/tasks/manage-kubernetes-objects/kustomization/).
-Currently there are `stage` and `dev` overlays available and include any needed resources and configs.
+Currently there are `stage`, `dev` and `test` overlays available and include any needed resources and configs.
 
 Use `make` to apply manifests for dev_forum-auth and needed DBs for either dev or stage environment.
 Every `make` rule that depends on k8s accepts an `overlay` param which indicates the namespace for the rule.
