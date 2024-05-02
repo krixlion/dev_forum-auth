@@ -33,3 +33,15 @@ patches:
       version: v1
       kind: Deployment
       name: auth-d
+  - patch: |
+      - op: add
+        path: "/spec/template/spec/containers/0/env/-"
+        value:
+          name: VAULT_DEV_ROOT_TOKEN_ID
+          # Same as in .env.example.
+          value: "whJRtZXqabEGNtmFifSIiUH5ct7c6nIPQS0KBo5bnxVPNXOLee2BGVhf9xSrqfo9"
+    target:
+      group: apps
+      version: v1
+      kind: StatefulSet
+      name: vault-cluster
