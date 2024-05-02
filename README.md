@@ -48,12 +48,13 @@ Kubernetes resources are defined in `deployment/k8s` and deployed using [Kustomi
 Currently there are `stage` and `dev` overlays available and include any needed resources and configs.
 
 Use `make` to apply manifests for dev_forum-auth and needed DBs for either dev or stage environment.
+Every `make` rule that depends on k8s accepts an `overlay` param which indicates the namespace for the rule.
 ```shell
-make k8s-run overlay=<dev/stage>
+make k8s-run overlay=<dev/stage/...>
 ```
 ```shell
 # To delete
-make k8s-stop overlay=<dev/stage>
+make k8s-stop overlay=<dev/stage/...>
 ```
 
 ## Testing
@@ -73,11 +74,11 @@ go tool cover -html cover.out -o cover.html
 
 If the service is deployed on kubernetes you can use `make`.
 ```shell
-make k8s-integration-test
+make k8s-integration-test overlay=<dev/stage/...>
 ```
 or
 ```shell
-make k8s-unit-test
+make k8s-unit-test overlay=<dev/stage/...>
 ```
 
 ## Documentation 

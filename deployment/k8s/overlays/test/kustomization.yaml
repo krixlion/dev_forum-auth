@@ -1,0 +1,35 @@
+resources:
+  - ../../base
+
+namespace: test
+
+images:
+  - name: krixlion/dev_forum-auth
+    newTag: latest
+
+replicas:
+  - name: auth-d
+    count: 1
+
+configMapGenerator:
+  - name: auth-env
+
+patches:
+  - patch: |
+      - op: add
+        path: /spec/template/spec/containers/0/args/-
+        value: "-insecure=true"
+      - op: add
+        path: /spec/template/spec/containers/0/resources
+        value:
+          limits:
+            cpu: 2000m
+            memory: 750Mi
+          requests:
+            cpu: 500m
+            memory: 250Mi
+    target:
+      group: apps
+      version: v1
+      kind: Deployment
+      name: auth-d
