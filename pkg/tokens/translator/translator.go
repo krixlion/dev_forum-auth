@@ -55,7 +55,7 @@ func NewTranslator(grpcClient pb.AuthServiceClient, config Config, opts ...Optio
 
 // Run starts up necessary goroutines for automatic stream renewals
 // and job handling. Blocks until given context is cancelled.
-// It is intended to be invoked in a seperate goroutine.
+// It is intended to be invoked in a separate goroutine.
 func (t *Translator) Run(ctx context.Context) {
 	// Init stream on start.
 	t.renewStream(ctx)
@@ -97,7 +97,7 @@ type result struct {
 
 // handleJobs blocks until given context is cancelled.
 // It reads incoming jobs and executes them, optionally triggering a stream
-// renewal on error. It is intended to be invoked in a seperate goroutine.
+// renewal on error. It is intended to be invoked in a separate goroutine.
 func (t *Translator) handleJobs(ctx context.Context) {
 	for {
 		select {
@@ -162,7 +162,7 @@ func isStreamRenewable(err error) bool {
 // handleStreamRenewals listens for Translator signals
 // and renews the stream once a signal is received.
 // It blocks until given context is cancelled.
-// It is intended to be invoked in a seperate goroutine.
+// It is intended to be invoked in a separate goroutine.
 func (t *Translator) handleStreamRenewals(ctx context.Context) {
 	for {
 		select {
