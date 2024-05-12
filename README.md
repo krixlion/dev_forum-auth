@@ -6,6 +6,10 @@ Although this is a one-man project, contributions are welcome.
 Please feel free to open issues or submit pull requests.
 
 # dev_forum-auth
+[![GoDoc](https://godoc.org/github.com/krixlion/dev_forum-auth?status.svg)](https://godoc.org/github.com/krixlion/dev_forum-auth)
+[![Go Report Card](https://goreportcard.com/badge/github.com/krixlion/dev_forum-auth)](https://goreportcard.com/report/github.com/krixlion/dev_forum-auth)
+[![GitHub License](https://img.shields.io/github/license/krixlion/dev_forum-auth)](LICENSE)
+
 The authorization and authentication service that dev_forum relies on to provide user identities and permissions.
 
 It's dependent on:
