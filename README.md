@@ -10,7 +10,7 @@ Please feel free to open issues or submit pull requests.
 [![Go Report Card](https://goreportcard.com/badge/github.com/krixlion/dev_forum-auth)](https://goreportcard.com/report/github.com/krixlion/dev_forum-auth)
 [![GitHub License](https://img.shields.io/github/license/krixlion/dev_forum-auth)](LICENSE)
 
-The authorization and authentication service that dev_forum relies on to provide user identities and permissions.
+The authorization and authentication service that dev_forum relies on to provide user identities and authorization mechanisms.
 
 It's dependent on:
   - [HashiCorp Vault](https://developer.hashicorp.com/vault/docs?product_intent=vault) for private key storage,
