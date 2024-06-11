@@ -1,9 +1,9 @@
 apiVersion: cert-manager.io/v1
 kind: Certificate
 metadata:
-  name: tls-certificate-auth-client-user
+  name: tls-certificate-auth-client
 spec:
-  secretName: tls-secret-auth-client-user
+  secretName: tls-secret-auth-client
   privateKey:
     algorithm: ECDSA
     size: 256

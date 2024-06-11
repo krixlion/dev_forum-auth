@@ -80,7 +80,7 @@ func main() {
 // getServiceDependencies is the composition root.
 // Panics on any non-nil error.
 func getServiceDependencies(ctx context.Context, serviceName string, isTLS bool) (service.Dependencies, error) {
-	userClientCreds := insecure.NewCredentials()
+	clientCreds := insecure.NewCredentials()
 	serverCreds := insecure.NewCredentials()
 	if isTLS {
 		caCertPool, err := cert.LoadCaPool(os.Getenv("TLS_CA_PATH"))
@@ -95,12 +95,12 @@ func getServiceDependencies(ctx context.Context, serviceName string, isTLS bool)
 
 		serverCreds = cert.NewServerOptionalMTLSCreds(caCertPool, serverCert)
 
-		userServiceClientCert, err := cert.LoadX509KeyPair(os.Getenv("TLS_USER_SERVICE_CLIENT_CERT_PATH"), os.Getenv("TLS_USER_SERVICE_CLIENT_KEY_PATH"))
+		clientCert, err := cert.LoadX509KeyPair(os.Getenv("TLS_CLIENT_CERT_PATH"), os.Getenv("TLS_CLIENT_KEY_PATH"))
 		if err != nil {
 			return service.Dependencies{}, err
 		}
 
-		userClientCreds = cert.NewClientMTLSCreds(caCertPool, userServiceClientCert)
+		clientCreds = cert.NewClientMTLSCreds(caCertPool, clientCert)
 	}
 
 	shutdownTracing, err := tracing.InitProvider(ctx, serviceName)
@@ -141,7 +141,7 @@ func getServiceDependencies(ctx context.Context, serviceName string, isTLS bool)
 	tokenManager := manager.MakeManager(manager.Config{Issuer: issuer})
 
 	userConn, err := grpc.DialContext(ctx, "user-service:50051",
-		grpc.WithTransportCredentials(userClientCreds),
+		grpc.WithTransportCredentials(clientCreds),
 		grpc.WithChainUnaryInterceptor(
 			otelgrpc.UnaryClientInterceptor(),
 		),
@@ -208,7 +208,6 @@ func getServiceDependencies(ctx context.Context, serviceName string, isTLS bool)
 		ShutdownFunc: func() error {
 			grpcServer.GracefulStop()
 			shutdownTracing()
-
 			return errors.Join(userConn.Close(), authServer.Close())
 		},
 	}, nil

@@ -17,7 +17,7 @@
   value:
     name: tls-client-certs
     secret:
-      secretName: tls-secret-auth-client-user
+      secretName: tls-secret-auth-client
 
 - op: add
   path: /spec/template/spec/containers/0/volumeMounts/-
