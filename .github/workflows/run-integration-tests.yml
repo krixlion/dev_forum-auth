@@ -27,8 +27,8 @@ jobs:
       - name: Build and load Docker image to Kind
         run: |
           cp .env.example .env
-          docker build . -t krixlion/dev_forum-auth:latest -f deployment/Dockerfile --target test
-          kind load docker-image krixlion/dev_forum-auth:latest --name "testing"
+          make build-image version=testing args=--target=test
+          kind load docker-image krixlion/dev_forum-auth:testing --name "testing"
           
       - name: Deploy service
         run: |
