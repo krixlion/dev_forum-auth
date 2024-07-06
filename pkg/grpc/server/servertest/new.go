@@ -69,7 +69,7 @@ func NewServer(ctx context.Context, d Deps) pb.AuthServiceClient {
 		}
 	}()
 
-	conn, err := grpc.NewClient("bufnet", grpc.WithContextDialer(bufDialer), grpc.WithTransportCredentials(insecure.NewCredentials()))
+	conn, err := grpc.NewClient("passthrough://bufnet", grpc.WithContextDialer(bufDialer), grpc.WithTransportCredentials(insecure.NewCredentials()))
 	if err != nil {
 		log.Fatalf("Failed to dial bufnet: %v", err)
 	}
