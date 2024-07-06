@@ -77,7 +77,9 @@ func NewServer(ctx context.Context, d Deps) pb.AuthServiceClient {
 	go func() {
 		<-ctx.Done()
 		s.Stop()
-		conn.Close()
+		if err := conn.Close(); err != nil {
+			log.Fatalf("Failed to close client conn, err: %v", err)
+		}
 	}()
 
 	return pb.NewAuthServiceClient(conn)
