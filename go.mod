@@ -10,7 +10,7 @@ require (
 	github.com/krixlion/dev_forum-lib v0.0.0-20240625181556-ef51880b5d72
 	github.com/krixlion/dev_forum-rabbitmq v0.0.0-20240625181130-cb41ab882827
 	github.com/krixlion/dev_forum-user v0.0.0-20230323193418-8e6e611c0e10
-	github.com/lestrrat-go/jwx v1.2.28
+	github.com/lestrrat-go/jwx v1.2.29
 	github.com/sasha-s/go-deadlock v0.3.1
 	github.com/stretchr/testify v1.9.0
 	go.mongodb.org/mongo-driver v1.11.3
