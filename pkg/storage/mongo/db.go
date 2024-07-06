@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/krixlion/dev_forum-lib/event"
+	"github.com/krixlion/dev_forum-lib/event/dispatcher"
 	"github.com/krixlion/dev_forum-lib/logging"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
@@ -15,6 +16,8 @@ import (
 )
 
 const collectionName = "tokens"
+
+var _ dispatcher.Listener = (*Mongo)(nil)
 
 type Mongo struct {
 	client *mongo.Client
@@ -28,11 +31,7 @@ func Make(user, pass, host, port, dbName string, logger logging.Logger, tracer t
 	uri := fmt.Sprintf("mongodb://%s:%s/%s?retryWrites=true&w=majority&tls=false", host, port, dbName)
 	reg := bson.NewRegistryBuilder().Build()
 
-	serverAPIopts := options.ServerAPI(options.ServerAPIVersion1)
-	opts := options.Client().ApplyURI(uri).SetServerAPIOptions(serverAPIopts).SetRegistry(reg)
-
-	// Add tracing and metrics.
-	opts.Monitor = otelmongo.NewMonitor()
+	opts := options.Client().ApplyURI(uri).SetServerAPIOptions(options.ServerAPI(options.ServerAPIVersion1)).SetRegistry(reg).SetMonitor(otelmongo.NewMonitor())
 
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second*2)
 	defer cancel()
@@ -56,11 +55,7 @@ func (db Mongo) Close() error {
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second*2)
 	defer cancel()
 
-	if err := db.client.Disconnect(ctx); err != nil {
-		return err
-	}
-
-	return nil
+	return db.client.Disconnect(ctx)
 }
 
 func (db Mongo) EventHandlers() map[event.EventType][]event.Handler {
