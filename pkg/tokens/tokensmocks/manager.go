@@ -6,6 +6,8 @@ import (
 	"github.com/stretchr/testify/mock"
 )
 
+var _ tokens.Manager = (*TokenManager)(nil)
+
 type TokenManager struct {
 	*mock.Mock
 }
