@@ -140,11 +140,9 @@ func getServiceDependencies(ctx context.Context, serviceName string, isTLS bool)
 
 	tokenManager := manager.MakeManager(manager.Config{Issuer: issuer})
 
-	userConn, err := grpc.DialContext(ctx, "user-service:50051",
+	userConn, err := grpc.NewClient("user-service:50051",
+		grpc.WithStatsHandler(otelgrpc.NewClientHandler()),
 		grpc.WithTransportCredentials(clientCreds),
-		grpc.WithChainUnaryInterceptor(
-			otelgrpc.UnaryClientInterceptor(),
-		),
 	)
 	if err != nil {
 		return service.Dependencies{}, err
@@ -186,12 +184,11 @@ func getServiceDependencies(ctx context.Context, serviceName string, isTLS bool)
 
 	grpcServer := grpc.NewServer(
 		grpc.Creds(serverCreds),
-		grpc.StreamInterceptor(otelgrpc.StreamServerInterceptor()),
+		grpc.StatsHandler(otelgrpc.NewServerHandler()),
 		grpc.ChainUnaryInterceptor(
 			// grpc_auth.UnaryServerInterceptor(auth.Interceptor()),
 			// grpc_recovery.UnaryServerInterceptor(),
 			grpc_zap.UnaryServerInterceptor(zap.L()),
-			otelgrpc.UnaryServerInterceptor(),
 			authServer.ValidateRequestInterceptor(),
 		),
 	)

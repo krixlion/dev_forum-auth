@@ -31,8 +31,8 @@ type Deps struct {
 // NewServer initializes and runs in the background a gRPC
 // server allowing only for local calls for testing.
 // Returns a client to interact with the server.
-// The server is shutdown when provided context is cancelled.
-// No interceptor is registered.
+// The server is shutdown and the client is closed when provided
+// context is cancelled. No interceptors are registered.
 func NewServer(ctx context.Context, d Deps) pb.AuthServiceClient {
 	// bufconn allows the server to call itself
 	// great for testing across whole infrastructure
@@ -61,24 +61,24 @@ func NewServer(ctx context.Context, d Deps) pb.AuthServiceClient {
 	}
 
 	s := grpc.NewServer()
-	server := server.MakeAuthServer(deps, config)
-	pb.RegisterAuthServiceServer(s, server)
+	pb.RegisterAuthServiceServer(s, server.MakeAuthServer(deps, config))
+
 	go func() {
 		if err := s.Serve(lis); err != nil {
 			log.Fatalf("Server exited with an error: %v", err)
 		}
 	}()
 
-	go func() {
-		<-ctx.Done()
-		s.Stop()
-	}()
-
-	conn, err := grpc.DialContext(ctx, "bufnet", grpc.WithContextDialer(bufDialer), grpc.WithTransportCredentials(insecure.NewCredentials()))
+	conn, err := grpc.NewClient("bufnet", grpc.WithContextDialer(bufDialer), grpc.WithTransportCredentials(insecure.NewCredentials()))
 	if err != nil {
 		log.Fatalf("Failed to dial bufnet: %v", err)
 	}
 
-	client := pb.NewAuthServiceClient(conn)
-	return client
+	go func() {
+		<-ctx.Done()
+		s.Stop()
+		conn.Close()
+	}()
+
+	return pb.NewAuthServiceClient(conn)
 }
