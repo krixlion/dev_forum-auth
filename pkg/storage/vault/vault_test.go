@@ -1,6 +1,7 @@
 package vault
 
 import (
+	"context"
 	"testing"
 	"time"
 
@@ -10,11 +11,12 @@ import (
 
 func Test_Make(t *testing.T) {
 	t.Run("Test default logger and tracer are correctly assigned when not provided", func(t *testing.T) {
-		got, err := Make("host", "8888", "token", Config{
-			MountPath: "path",
-		}, nil, nil)
+		ctx, cancel := context.WithCancel(context.Background())
+		defer cancel()
+
+		got, err := Make(ctx, "host", "8888", "token", Config{MountPath: "path", KeyRefreshInterval: 0}, nil, nil)
 		if err != nil {
-			t.Errorf("Make() error = %v", err)
+			t.Errorf("Make(): error = %v", err)
 			return
 		}
 
@@ -28,21 +30,76 @@ func Test_Make(t *testing.T) {
 	})
 
 	t.Run("Test config is assigned", func(t *testing.T) {
+		ctx, cancel := context.WithCancel(context.Background())
+		defer cancel()
+
 		want := Config{
 			MountPath:          "path",
 			KeyCount:           50,
 			KeyRefreshInterval: time.Hour,
 		}
 
-		got, err := Make("host", "8888", "token", want, nil, nil)
+		got, err := Make(ctx, "host", "8888", "token", want, nil, nil)
 		if err != nil {
-			t.Errorf("Make() error = %v", err)
+			t.Errorf("Make(): error = %v", err)
 			return
 		}
 
 		if !cmp.Equal(got.config, want) {
-			t.Errorf("Make() = %v, want %v", got, want)
+			t.Errorf("Make():\n got = %v\n want = %v\n", got, want)
 		}
-
 	})
+}
+
+func TestConfig_validate(t *testing.T) {
+	type fields struct {
+		MountPath          string
+		KeyCount           int
+		KeyRefreshInterval time.Duration
+	}
+	tests := []struct {
+		name    string
+		fields  fields
+		wantErr bool
+	}{
+		{
+			name: "Test no error is returned on valid config",
+			fields: fields{
+				MountPath:          "/secret",
+				KeyCount:           10,
+				KeyRefreshInterval: time.Hour,
+			},
+			wantErr: false,
+		},
+		{
+			name: "Test no error is returned on key refresh interval set to zero",
+			fields: fields{
+				MountPath:          "/secret",
+				KeyCount:           10,
+				KeyRefreshInterval: 0,
+			},
+			wantErr: false,
+		},
+		{
+			name: "Test returns an error on key refresh interval set to any negative number",
+			fields: fields{
+				MountPath:          "/secret",
+				KeyCount:           2,
+				KeyRefreshInterval: -time.Minute,
+			},
+			wantErr: true,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			config := Config{
+				MountPath:          tt.fields.MountPath,
+				KeyCount:           tt.fields.KeyCount,
+				KeyRefreshInterval: tt.fields.KeyRefreshInterval,
+			}
+			if err := config.validate(); (err != nil) != tt.wantErr {
+				t.Errorf("Config.validate():\n error = %v\n wantErr = %v\n", err, tt.wantErr)
+			}
+		})
+	}
 }

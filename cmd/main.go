@@ -154,12 +154,10 @@ func getServiceDependencies(ctx context.Context, serviceName string, isTLS bool)
 		KeyCount:           10,
 		KeyRefreshInterval: time.Hour * 24, // Daily
 	}
-	vault, err := vault.Make(os.Getenv("VAULT_HOST"), os.Getenv("VAULT_PORT"), os.Getenv("VAULT_TOKEN"), vaultConfig, tracer, logger)
+	vault, err := vault.Make(ctx, os.Getenv("VAULT_HOST"), os.Getenv("VAULT_PORT"), os.Getenv("VAULT_TOKEN"), vaultConfig, tracer, logger)
 	if err != nil {
 		return service.Dependencies{}, err
 	}
-
-	go vault.Run(ctx)
 
 	authConfig := server.Config{
 		// AccessTokenValidityTime:  time.Minute * 15,

@@ -18,7 +18,7 @@ import (
 	"github.com/krixlion/dev_forum-lib/nulls"
 )
 
-func setUpVault() Vault {
+func setUpVault(ctx context.Context) Vault {
 	env.Load("app")
 
 	if err := vaultdata.Seed(); err != nil {
@@ -33,7 +33,7 @@ func setUpVault() Vault {
 		MountPath: mountPath,
 	}
 
-	vault, err := Make(host, port, token, config, nulls.NullTracer{}, nulls.NullLogger{})
+	vault, err := Make(ctx, host, port, token, config, nulls.NullTracer{}, nulls.NullLogger{})
 	if err != nil {
 		panic(err)
 	}
@@ -85,10 +85,10 @@ func TestVault_GetKeySet(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			db := setUpVault()
-
 			ctx, cancel := context.WithTimeout(context.Background(), time.Second*2)
 			defer cancel()
+
+			db := setUpVault(ctx)
 
 			got, err := db.GetKeySet(ctx)
 			if (err != nil) != tt.wantErr {
@@ -126,10 +126,10 @@ func TestVault_list(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			db := setUpVault()
-
 			ctx, cancel := context.WithTimeout(context.Background(), time.Second*2)
 			defer cancel()
+
+			db := setUpVault(ctx)
 
 			got, err := db.list(ctx, tt.args.path)
 			if (err != nil) != tt.wantErr {
@@ -150,10 +150,10 @@ func TestVault_purge(t *testing.T) {
 	}
 
 	t.Run("Test if Vault.list() returns an empty slice after purge", func(t *testing.T) {
-		db := setUpVault()
-
 		ctx, cancel := context.WithTimeout(context.Background(), time.Second*2)
 		defer cancel()
+
+		db := setUpVault(ctx)
 
 		if err := db.purge(ctx); err != nil {
 			t.Errorf("Vault.purge() error = %v", err)
@@ -197,10 +197,10 @@ func TestVault_create(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			db := setUpVault()
-
 			ctx, cancel := context.WithTimeout(context.Background(), time.Second*2)
 			defer cancel()
+
+			db := setUpVault(ctx)
 
 			if err := db.create(ctx, tt.args.secret); (err != nil) != tt.wantErr {
 				t.Errorf("Vault.create() error = %v, wantErr %v", err, tt.wantErr)

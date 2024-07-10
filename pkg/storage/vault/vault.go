@@ -37,7 +37,11 @@ type Config struct {
 }
 
 // Make takes in a Token used to connect to Vault and returns a DB instance or a non nil error.
-func Make(host, port, token string, config Config, tracer trace.Tracer, logger logging.Logger) (Vault, error) {
+//
+// If config.KeyRefreshInterval is greater than 0, Vault starts to
+// periodically purge the vault and write a new set of keys.
+// Vault stops refreshing keyset when provided context is cancelled.
+func Make(ctx context.Context, host, port, token string, config Config, tracer trace.Tracer, logger logging.Logger) (Vault, error) {
 	if tracer == nil {
 		tracer = nulls.NullTracer{}
 	}
@@ -45,8 +49,13 @@ func Make(host, port, token string, config Config, tracer trace.Tracer, logger l
 	if logger == nil {
 		logger = nulls.NullLogger{}
 	}
+
+	if err := config.validate(); err != nil {
+		return Vault{}, fmt.Errorf("failed to validate vault config: %w", err)
+	}
+
 	c := vault.DefaultConfig()
-	c.Address = fmt.Sprintf("http://%s:%s", host, port)
+	c.Address = "http://" + host + ":" + port
 
 	client, err := vault.NewClient(c)
 	if err != nil {
@@ -55,19 +64,25 @@ func Make(host, port, token string, config Config, tracer trace.Tracer, logger l
 
 	client.SetToken(token)
 
-	return Vault{
+	vault := Vault{
 		client: client,
 		vault:  client.KVv2(config.MountPath),
 		tracer: tracer,
 		config: config,
 		logger: logger,
-	}, nil
+	}
+
+	if config.KeyRefreshInterval > 0 {
+		go vault.run(ctx)
+	}
+
+	return vault, nil
 }
 
 // Run blocks until provided context is cancelled.
 // When invoked Vault starts to periodically purge the vault and write a new
 // set of keys in amount specified in the config.
-func (db *Vault) Run(ctx context.Context) {
+func (db *Vault) run(ctx context.Context) {
 	// Refresh the vault on start.
 	db.logger.Log(ctx, "refreshing keys")
 
@@ -92,4 +107,16 @@ func (db *Vault) Run(ctx context.Context) {
 		}
 
 	}
+}
+
+func (config Config) validate() error {
+	if config.MountPath == "" {
+		return errors.New("mount path cannot be empty")
+	}
+
+	if config.KeyRefreshInterval < 0 {
+		return errors.New("key refresh interval has to be a non-negative time duration")
+	}
+
+	return nil
 }
