@@ -106,7 +106,7 @@ func toJwaAlgorithm(algo entity.Algorithm) (jwa.SignatureAlgorithm, error) {
 }
 
 // decodeAndValidateOpaque takes a base64 encoded token without it's prefix, decodes and returns it.
-// Returns tokens.ErrInvalidToken on invalid checksum or length or any errors during decoding.
+// Returns a non-nil error on decoding error. Returns tokens.ErrInvalidToken on invalid checksum or length.
 func decodeAndValidateOpaque(encodedToken string) (string, error) {
 	decodedToken, err := base64.URLEncoding.DecodeString(encodedToken)
 	if err != nil {
