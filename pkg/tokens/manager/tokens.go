@@ -83,7 +83,7 @@ func (StdTokenManager) DecodeOpaque(typ tokens.OpaqueTokenPrefix, encodedOpaqueT
 		return "", err
 	}
 
-	if prefix := encodedOpaqueToken[:4]; prefix != typePrefix+"_" {
+	if encodedOpaqueToken[:4] != typePrefix+"_" {
 		// Invalid prefix.
 		return "", tokens.ErrMalformedToken
 	}
