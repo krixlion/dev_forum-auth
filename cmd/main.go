@@ -103,7 +103,7 @@ func getServiceDependencies(ctx context.Context, serviceName string, isTLS bool)
 		clientCreds = cert.NewClientMTLSCreds(caCertPool, clientCert)
 	}
 
-	shutdownTracing, err := tracing.InitProvider(ctx, serviceName)
+	shutdownTracing, err := tracing.InitProvider(ctx, serviceName, os.Getenv("OTEL_EXPORTER_OTLP_ENDPOINT"))
 	if err != nil {
 		return service.Dependencies{}, err
 	}
@@ -202,8 +202,7 @@ func getServiceDependencies(ctx context.Context, serviceName string, isTLS bool)
 		Dispatcher: dispatcher,
 		ShutdownFunc: func() error {
 			grpcServer.GracefulStop()
-			shutdownTracing()
-			return errors.Join(userConn.Close(), authServer.Close())
+			return errors.Join(userConn.Close(), authServer.Close(), shutdownTracing(), logger.Sync())
 		},
 	}, nil
 }
