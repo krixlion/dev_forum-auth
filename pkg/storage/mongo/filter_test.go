@@ -30,7 +30,7 @@ func Test_filterToBSON(t *testing.T) {
 					},
 				},
 			},
-			want: bson.D{{"user_id", bson.D{{"$eq", "test-user"}}}},
+			want: bson.D{{"user_id", bson.D{{"$eq", "test-user"}}}}, //nolint:govet // Unkeyed for convienience.
 		},
 	}
 	for _, tt := range tests {
