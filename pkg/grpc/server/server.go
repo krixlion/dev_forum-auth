@@ -78,10 +78,6 @@ func MakeAuthServer(dependencies Dependencies, config Config) AuthServer {
 	return s
 }
 
-func (s AuthServer) Close() error {
-	return s.storage.Close()
-}
-
 func (server AuthServer) SignIn(ctx context.Context, req *pb.SignInRequest) (*pb.SignInResponse, error) {
 	ctx, span := server.tracer.Start(ctx, "server.SignIn")
 	defer span.End()

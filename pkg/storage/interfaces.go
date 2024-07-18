@@ -2,7 +2,6 @@ package storage
 
 import (
 	"context"
-	"io"
 
 	"github.com/krixlion/dev_forum-auth/pkg/entity"
 	"github.com/krixlion/dev_forum-lib/filter"
@@ -11,7 +10,6 @@ import (
 type Storage interface {
 	Getter
 	Writer
-	io.Closer
 }
 
 type Vault interface {
