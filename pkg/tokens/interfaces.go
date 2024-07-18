@@ -6,6 +6,8 @@ import (
 	"github.com/krixlion/dev_forum-auth/pkg/entity"
 )
 
+const DefaultIssuer = "http://auth-service"
+
 var (
 	ErrMalformedToken   = errors.New("malformed token")
 	ErrInvalidTokenType = errors.New("invalid token type")

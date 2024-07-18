@@ -15,6 +15,7 @@ import (
 	"github.com/krixlion/dev_forum-auth/pkg/service"
 	"github.com/krixlion/dev_forum-auth/pkg/storage/mongo"
 	"github.com/krixlion/dev_forum-auth/pkg/storage/vault"
+	"github.com/krixlion/dev_forum-auth/pkg/tokens"
 	"github.com/krixlion/dev_forum-auth/pkg/tokens/manager"
 	"github.com/krixlion/dev_forum-lib/cert"
 	"github.com/krixlion/dev_forum-lib/env"
@@ -35,7 +36,6 @@ import (
 // Hardcoded root dir name.
 const projectDir = "app"
 const serviceName = "auth-service"
-const issuer = "http://auth-service"
 
 var port int
 var isTLS bool
@@ -138,7 +138,7 @@ func getServiceDependencies(ctx context.Context, serviceName string, isTLS bool)
 
 	dispatcher.Register(storage)
 
-	tokenManager := manager.MakeManager(manager.Config{Issuer: issuer})
+	tokenManager := manager.MakeManager(manager.Config{Issuer: tokens.DefaultIssuer})
 
 	userConn, err := grpc.NewClient("user-service:50051",
 		grpc.WithStatsHandler(otelgrpc.NewClientHandler()),
