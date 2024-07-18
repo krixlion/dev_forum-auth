@@ -9,7 +9,6 @@ import (
 	"syscall"
 	"time"
 
-	grpc_zap "github.com/grpc-ecosystem/go-grpc-middleware/logging/zap"
 	"github.com/krixlion/dev_forum-auth/pkg/grpc/server"
 	pb "github.com/krixlion/dev_forum-auth/pkg/grpc/v1"
 	"github.com/krixlion/dev_forum-auth/pkg/service"
@@ -27,7 +26,6 @@ import (
 	userPb "github.com/krixlion/dev_forum-user/pkg/grpc/v1"
 	"go.opentelemetry.io/contrib/instrumentation/google.golang.org/grpc/otelgrpc"
 	"go.opentelemetry.io/otel"
-	"go.uber.org/zap"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
 	"google.golang.org/grpc/reflection"
@@ -184,9 +182,6 @@ func getServiceDependencies(ctx context.Context, serviceName string, isTLS bool)
 		grpc.Creds(serverCreds),
 		grpc.StatsHandler(otelgrpc.NewServerHandler()),
 		grpc.ChainUnaryInterceptor(
-			// grpc_auth.UnaryServerInterceptor(auth.Interceptor()),
-			// grpc_recovery.UnaryServerInterceptor(),
-			grpc_zap.UnaryServerInterceptor(zap.L()),
 			authServer.ValidateRequestInterceptor(),
 		),
 	)
