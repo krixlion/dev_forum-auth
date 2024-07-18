@@ -199,7 +199,7 @@ func getServiceDependencies(ctx context.Context, serviceName string, isTLS bool)
 		Dispatcher: dispatcher,
 		ShutdownFunc: func() error {
 			grpcServer.GracefulStop()
-			return errors.Join(userConn.Close(), authServer.Close(), shutdownTracing(), logger.Sync())
+			return errors.Join(userConn.Close(), authServer.Close(), mq.Close(), shutdownTracing(), logger.Sync())
 		},
 	}, nil
 }
