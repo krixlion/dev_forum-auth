@@ -29,7 +29,7 @@ func TestNewAuthFunc(t *testing.T) {
 			args: args{
 				tokenValidator: func() tokensmocks.TokenValidator {
 					m := tokensmocks.NewTokenValidator()
-					m.On("VerifyToken", "test-token").Return(nil).Once()
+					m.On("ValidateToken", "test-token").Return(nil).Once()
 					return m
 				}(),
 				tracer: nulls.NullTracer{},
@@ -47,11 +47,11 @@ func TestNewAuthFunc(t *testing.T) {
 			wantErr: true,
 		},
 		{
-			name: "Test error is returned if the validator fails to verify the token",
+			name: "Test error is returned if the validator fails to validate the token",
 			args: args{
 				tokenValidator: func() tokensmocks.TokenValidator {
 					m := tokensmocks.NewTokenValidator()
-					m.On("VerifyToken", "test-token").Return(errors.New("test-err")).Once()
+					m.On("ValidateToken", "test-token").Return(errors.New("test-err")).Once()
 					return m
 				}(),
 				tracer: nulls.NullTracer{},

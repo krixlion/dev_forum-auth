@@ -47,7 +47,7 @@ func setUpTokenValidator(ctx context.Context, refreshFunc RefreshFunc, clockFunc
 	return v
 }
 
-func TestJWTValidator_VerifyJWT(t *testing.T) {
+func TestJWTValidator_ValidateToken(t *testing.T) {
 	type args struct {
 		token string
 	}
@@ -129,8 +129,8 @@ func TestJWTValidator_VerifyJWT(t *testing.T) {
 			defer cancel()
 			v := setUpTokenValidator(ctx, tt.refreshFunc, tt.clockFunc)
 
-			if err := v.VerifyToken(tt.args.token); (err != nil) != tt.wantErr {
-				t.Errorf("TokenManager.VerifyJWT() error = %v, wantErr %v", err, tt.wantErr)
+			if err := v.ValidateToken(tt.args.token); (err != nil) != tt.wantErr {
+				t.Errorf("TokenManager.ValidateToken() error = %v, wantErr %v", err, tt.wantErr)
 				return
 			}
 		})

@@ -17,7 +17,7 @@ func NewTokenValidator() TokenValidator {
 	}
 }
 
-func (m TokenValidator) VerifyToken(token string) error {
+func (m TokenValidator) ValidateToken(token string) error {
 	args := m.Called(token)
 	return args.Error(0)
 }

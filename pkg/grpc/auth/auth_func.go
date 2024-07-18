@@ -10,9 +10,9 @@ import (
 	"go.opentelemetry.io/otel/trace"
 )
 
-// NewAuthFunc returns a callback to be used with [grpc_auth] interceptor.
+// NewAuthFunc returns a callback to be used with grpc_auth interceptor.
 // It reads the Bearer token from the context of an incoming request
-// and verifies it using given [tokens.Validator].
+// and verifies it using given tokens.Validator.
 // If the validator fails to verify the token an error is returned.
 // Otherwise the context is returned unaltered.
 func NewAuthFunc(tokenValidator tokens.Validator, tracer trace.Tracer) grpc_auth.AuthFunc {
@@ -26,7 +26,7 @@ func NewAuthFunc(tokenValidator tokens.Validator, tracer trace.Tracer) grpc_auth
 			return nil, err
 		}
 
-		if err := tokenValidator.VerifyToken(token); err != nil {
+		if err := tokenValidator.ValidateToken(token); err != nil {
 			tracing.SetSpanErr(span, err)
 			return nil, err
 		}

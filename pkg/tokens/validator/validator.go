@@ -109,14 +109,14 @@ func (validator *JWTValidator) Run(ctx context.Context) {
 	}
 }
 
-// VerifyToken returns a non-nil error if the token is expired,
+// ValidateToken returns a non-nil error if the token is expired,
 // signature is invalid or any of the token's claims are different than expected.
 // Eg. token was issued in the future or specified 'kid' does not exist.
 //
 // Note that if the keyset expires, this method will not wait for a new keyset to be fetched
 // and instead it will return an error and will continue to do so until
 // an updated keyset is successfully retrieved.
-func (validator *JWTValidator) VerifyToken(token string) error {
+func (validator *JWTValidator) ValidateToken(token string) error {
 	jwToken, err := jwt.ParseString(token, jwt.WithKeySetProvider(validator.keySetProvider()))
 	if err != nil {
 		return err

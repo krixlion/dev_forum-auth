@@ -21,5 +21,5 @@ type Manager interface {
 }
 
 type Validator interface {
-	VerifyToken(string) error
+	ValidateToken(string) error
 }
