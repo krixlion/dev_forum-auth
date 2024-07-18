@@ -23,3 +23,7 @@ type Manager interface {
 type Validator interface {
 	ValidateToken(string) error
 }
+
+type Translator interface {
+	TranslateAccessToken(opaqueAccessToken string) (string, error)
+}
