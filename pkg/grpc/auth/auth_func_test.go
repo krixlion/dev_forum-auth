@@ -6,7 +6,7 @@ import (
 	"reflect"
 	"testing"
 
-	"github.com/grpc-ecosystem/go-grpc-middleware/util/metautils"
+	"github.com/grpc-ecosystem/go-grpc-middleware/v2/metadata"
 	"github.com/krixlion/dev_forum-auth/pkg/tokens"
 	"github.com/krixlion/dev_forum-auth/pkg/tokens/tokensmocks"
 	"github.com/krixlion/dev_forum-lib/nulls"
@@ -33,7 +33,7 @@ func TestNewAuthFunc(t *testing.T) {
 					return m
 				}(),
 				tracer: nulls.NullTracer{},
-				ctx:    metautils.NiceMD{}.Add("authorization", "Bearer test-token").ToIncoming(context.Background()),
+				ctx:    metadata.MD{}.Add("authorization", "Bearer test-token").ToIncoming(context.Background()),
 			},
 			wantErr: false,
 		},
@@ -55,7 +55,7 @@ func TestNewAuthFunc(t *testing.T) {
 					return m
 				}(),
 				tracer: nulls.NullTracer{},
-				ctx:    metautils.NiceMD{}.Add("authorization", "Bearer test-token").ToIncoming(context.Background()),
+				ctx:    metadata.MD{}.Add("authorization", "Bearer test-token").ToIncoming(context.Background()),
 			},
 			wantErr: true,
 		},

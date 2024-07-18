@@ -9,6 +9,7 @@ import (
 	"syscall"
 	"time"
 
+	grpc_recovery "github.com/grpc-ecosystem/go-grpc-middleware/v2/interceptors/recovery"
 	"github.com/krixlion/dev_forum-auth/pkg/grpc/server"
 	pb "github.com/krixlion/dev_forum-auth/pkg/grpc/v1"
 	"github.com/krixlion/dev_forum-auth/pkg/service"
@@ -182,6 +183,7 @@ func getServiceDependencies(ctx context.Context, serviceName string, isTLS bool)
 		grpc.Creds(serverCreds),
 		grpc.StatsHandler(otelgrpc.NewServerHandler()),
 		grpc.ChainUnaryInterceptor(
+			grpc_recovery.UnaryServerInterceptor(),
 			authServer.ValidateRequestInterceptor(),
 		),
 	)

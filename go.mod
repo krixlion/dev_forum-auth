@@ -5,7 +5,7 @@ go 1.22
 require (
 	github.com/gofrs/uuid v4.4.0+incompatible
 	github.com/google/go-cmp v0.6.0
-	github.com/grpc-ecosystem/go-grpc-middleware v1.4.0
+	github.com/grpc-ecosystem/go-grpc-middleware/v2 v2.1.0
 	github.com/hashicorp/vault/api v1.12.2
 	github.com/krixlion/dev_forum-lib v0.0.0-20240717215121-4c1f9a052987
 	github.com/krixlion/dev_forum-rabbitmq v0.0.0-20240625181130-cb41ab882827
