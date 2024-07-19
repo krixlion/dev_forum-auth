@@ -7,7 +7,7 @@ require (
 	github.com/google/go-cmp v0.6.0
 	github.com/grpc-ecosystem/go-grpc-middleware/v2 v2.1.0
 	github.com/hashicorp/vault/api v1.12.2
-	github.com/krixlion/dev_forum-lib v0.0.0-20240718134424-0617cc4ce71d
+	github.com/krixlion/dev_forum-lib v0.0.0-20240719215047-cf15439e26bb
 	github.com/krixlion/dev_forum-rabbitmq v0.0.0-20240625181130-cb41ab882827
 	github.com/krixlion/dev_forum-user v0.0.0-20230323193418-8e6e611c0e10
 	github.com/lestrrat-go/jwx v1.2.29
