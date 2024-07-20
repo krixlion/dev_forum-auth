@@ -116,7 +116,7 @@ func (t *Translator) handleJobs(ctx context.Context) {
 				resp, err := t.stream.Recv()
 				t.maybeSendRenewStreamSig(err)
 
-				job.ResultC <- result{TranslatedAccessToken: resp.AccessToken, Err: err}
+				job.ResultC <- result{TranslatedAccessToken: resp.GetAccessToken(), Err: err}
 				close(job.ResultC)
 			}()
 		case <-ctx.Done():

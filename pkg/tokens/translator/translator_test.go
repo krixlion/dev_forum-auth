@@ -207,6 +207,23 @@ func TestTranslator_TranslateAccessToken(t *testing.T) {
 			want:    "test-translated-token",
 			wantErr: false,
 		},
+		{
+			name: "Test error is returned on Recv error",
+			fields: fields{
+				grpcClient: func() mocks.AuthClient {
+					s := mocks.NewAuthStreamClient()
+					s.On("Send", &pb.TranslateAccessTokenRequest{OpaqueAccessToken: "test-opaque"}).Return(nil).Once()
+					s.On("Recv").Return((*pb.TranslateAccessTokenResponse)(nil), errors.New("test-err")).Once()
+
+					m := mocks.NewAuthClient()
+					// Stream will be renewed on second call.
+					m.On("TranslateAccessToken", mock.Anything, mock.Anything).Return(s, nil).Twice()
+					return m
+				}(),
+			},
+			args:    args{opaqueAccessToken: "test-opaque"},
+			wantErr: true,
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
