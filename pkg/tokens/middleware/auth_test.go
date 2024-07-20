@@ -2,6 +2,7 @@ package middleware
 
 import (
 	"errors"
+	"log"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -34,7 +35,9 @@ func TestAuth(t *testing.T) {
 				t.Errorf("Auth(): handler received an unexpected token:\n got = %v\n want = %v\n", gotToken, wantToken)
 				return
 			}
-			w.Write(nil)
+			if _, err := w.Write(nil); err != nil {
+				log.Fatalf("Auth(): failed to write nil resp from stub handler: %v", err)
+			}
 		})
 
 		Auth(m, nulls.NullLogger{})(h).ServeHTTP(w, r)
@@ -110,7 +113,11 @@ func TestAuth(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			w := httptest.NewRecorder()
-			handlerStub := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) { w.Write(nil) })
+			handlerStub := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				if _, err := w.Write(nil); err != nil {
+					log.Fatalf("Auth(): failed to write nil resp from stub handler: %v", err)
+				}
+			})
 
 			Auth(tt.args.translator, nulls.NullLogger{})(handlerStub).ServeHTTP(w, tt.args.r)
 
