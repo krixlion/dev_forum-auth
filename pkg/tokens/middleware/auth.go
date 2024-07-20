@@ -9,11 +9,9 @@ import (
 	"github.com/krixlion/dev_forum-lib/logging"
 )
 
-// Type created only to avoid collisions when using context.WithValue().
-type contextKey string
-
-// TokenKey to use to extract translated token from request context.
-const TokenKey contextKey = "token-key"
+// CtxTokenKey is used to extract translated token from request context.
+// Created only to avoid collisions with other packages when using context.WithValue().
+type CtxTokenKey struct{}
 
 // Auth returns Middleware which validates the Bearer token extracted from
 // the Authorization header. If the token is missing or invalid, it responds with 401.
@@ -47,7 +45,7 @@ func Auth(translator tokens.Translator, logger logging.Logger) func(http.Handler
 				return
 			}
 
-			h.ServeHTTP(w, r.WithContext(context.WithValue(ctx, TokenKey, token)))
+			h.ServeHTTP(w, r.WithContext(context.WithValue(ctx, CtxTokenKey{}, token)))
 		})
 	}
 }

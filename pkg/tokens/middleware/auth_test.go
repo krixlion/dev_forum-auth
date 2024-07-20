@@ -25,7 +25,7 @@ func TestAuth(t *testing.T) {
 		m.On("TranslateAccessToken", "test-token").Return(wantToken, nil).Once()
 
 		h := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			gotToken, ok := r.Context().Value(TokenKey).(string)
+			gotToken, ok := r.Context().Value(CtxTokenKey{}).(string)
 			if !ok {
 				t.Errorf("Auth(): failed to extract token from context")
 				return
