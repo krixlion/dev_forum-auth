@@ -160,7 +160,9 @@ func WithLogger(logger logging.Logger) Option {
 // Safe for concurrent use.
 func (validator *JWTValidator) fetchKeySet(ctx context.Context) (err error) {
 	defer func() {
-		err = fmt.Errorf("failed to fetch keyset: %w", err)
+		if err != nil {
+			err = fmt.Errorf("failed to fetch keyset: %w", err)
+		}
 	}()
 
 	keys, err := validator.refreshFunc(ctx)
