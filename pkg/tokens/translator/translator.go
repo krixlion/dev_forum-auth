@@ -2,6 +2,7 @@ package translator
 
 import (
 	"context"
+	"errors"
 	"io"
 	"time"
 
@@ -108,7 +109,7 @@ func (t *Translator) handleJobs(ctx context.Context) {
 
 				if err := t.stream.Send(&pb.TranslateAccessTokenRequest{OpaqueAccessToken: job.OpaqueAccessToken}); err != nil {
 					t.maybeSendRenewStreamSig(err)
-					job.ResultC <- result{Err: err}
+					job.ResultC <- makeResult("", err)
 					close(job.ResultC)
 					return
 				}
@@ -116,13 +117,28 @@ func (t *Translator) handleJobs(ctx context.Context) {
 				resp, err := t.stream.Recv()
 				t.maybeSendRenewStreamSig(err)
 
-				job.ResultC <- result{TranslatedAccessToken: resp.GetAccessToken(), Err: err}
+				job.ResultC <- makeResult(resp.GetAccessToken(), err)
 				close(job.ResultC)
 			}()
 		case <-ctx.Done():
 			return
 		}
 	}
+}
+
+// makeResult construct a result to respond with to a job.
+// Takes an access token and err returned by the gRPC client.
+// If the error is io.EOF then it will not be assigned to the result.
+func makeResult(accessToken string, err error) result {
+	res := result{
+		TranslatedAccessToken: accessToken,
+	}
+
+	if !errors.Is(err, io.EOF) {
+		res.Err = err
+	}
+
+	return res
 }
 
 // maybeSendRenewStreamSig sends a signal to Translator if
