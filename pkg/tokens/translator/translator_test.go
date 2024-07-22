@@ -8,6 +8,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/google/go-cmp/cmp"
 	"github.com/krixlion/dev_forum-auth/pkg/grpc/mocks"
 	pb "github.com/krixlion/dev_forum-auth/pkg/grpc/v1"
 	"github.com/stretchr/testify/mock"
@@ -272,4 +273,35 @@ func TestTranslator_maybeSendRenewStreamSig(t *testing.T) {
 			return
 		}
 	})
+}
+
+func Test_makeResult(t *testing.T) {
+	type args struct {
+		accessToken string
+		err         error
+	}
+	tests := []struct {
+		name string
+		args args
+		want result
+	}{
+		{
+			name: "Test access token is assigned and io.EOF error is ignored",
+			args: args{
+				accessToken: "test-token",
+				err:         io.EOF,
+			},
+			want: result{
+				TranslatedAccessToken: "test-token",
+				Err:                   nil,
+			},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := makeResult(tt.args.accessToken, tt.args.err); !cmp.Equal(got, tt.want) {
+				t.Errorf("makeResult():\n got = %v\n want = %v", got, tt.want)
+			}
+		})
+	}
 }
