@@ -32,8 +32,8 @@ k8s-unit-test: # param: args
 k8s-integration-test: # param: args
 	$(kubernetes) exec -it deploy/${AGGREGATE_ID}-d -- go test -race ${args} ./...  
 
-k8s-test-gen-coverage:
-	$(kubernetes) exec -it deploy/${AGGREGATE_ID}-d -- go test -coverprofile  cover.out ./...
+k8s-test-gen-coverage: # param: args
+	$(kubernetes) exec -it deploy/${AGGREGATE_ID}-d -- go test -coverprofile cover.out ${args} ./...
 	$(kubernetes) exec -it deploy/${AGGREGATE_ID}-d -- go tool cover -html cover.out -o cover.html
 
 k8s-run: k8s-stop
