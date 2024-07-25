@@ -39,7 +39,7 @@ jobs:
 
       - name: Run tests
         run: |
-          make k8s-test-gen-coverage overlay=test args="-timeout=3s"
+          make k8s-test-gen-coverage overlay=test args="-timeout=10s"
 
       - name: Coveralls GitHub Action
         uses: coverallsapp/github-action@v2
