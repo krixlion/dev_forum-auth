@@ -13,6 +13,7 @@ import (
 	"math/big"
 
 	"github.com/krixlion/dev_forum-auth/pkg/entity"
+	"github.com/krixlion/dev_forum-lib/event"
 	"github.com/krixlion/dev_forum-lib/str"
 	"github.com/krixlion/dev_forum-lib/tracing"
 )
@@ -177,7 +178,12 @@ func (db Vault) refreshKeys(ctx context.Context) (err error) {
 		}
 	}
 
-	return nil
+	e, err := event.MakeEvent(event.AuthAggregate, event.KeySetUpdated, nil, tracing.ExtractMetadataFromContext(ctx))
+	if err != nil {
+		return err
+	}
+
+	return db.broker.ResilientPublish(e)
 }
 
 // purge deletes all versions and metadata of all keys in the vault.

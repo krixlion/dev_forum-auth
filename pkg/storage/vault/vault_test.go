@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/google/go-cmp/cmp"
+	"github.com/krixlion/dev_forum-lib/mocks"
 	"github.com/krixlion/dev_forum-lib/nulls"
 )
 
@@ -14,7 +15,7 @@ func Test_Make(t *testing.T) {
 		ctx, cancel := context.WithCancel(context.Background())
 		defer cancel()
 
-		got, err := Make(ctx, "host", "8888", "token", Config{MountPath: "path", KeyRefreshInterval: 0}, nil, nil)
+		got, err := Make(ctx, "host", "8888", "token", Config{MountPath: "path", KeyRefreshInterval: 0}, mocks.NewBroker(), nil, nil)
 		if err != nil {
 			t.Errorf("Make(): error = %v", err)
 			return
@@ -39,7 +40,7 @@ func Test_Make(t *testing.T) {
 			KeyRefreshInterval: time.Hour,
 		}
 
-		got, err := Make(ctx, "host", "8888", "token", want, nil, nil)
+		got, err := Make(ctx, "host", "8888", "token", want, mocks.NewBroker(), nil, nil)
 		if err != nil {
 			t.Errorf("Make(): error = %v", err)
 			return
@@ -47,6 +48,22 @@ func Test_Make(t *testing.T) {
 
 		if !cmp.Equal(got.config, want) {
 			t.Errorf("Make():\n got = %v\n want = %v\n", got, want)
+		}
+	})
+
+	t.Run("Test returns an error when given broker is nil", func(t *testing.T) {
+		ctx, cancel := context.WithCancel(context.Background())
+		defer cancel()
+
+		config := Config{
+			MountPath:          "path",
+			KeyCount:           50,
+			KeyRefreshInterval: time.Hour,
+		}
+
+		if _, err := Make(ctx, "host", "8888", "token", config, nil, nil, nil); err == nil {
+			t.Errorf("Make(): error = %v, wantErr = true", err)
+			return
 		}
 	})
 }

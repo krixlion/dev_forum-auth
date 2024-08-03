@@ -7,6 +7,7 @@ import (
 	"time"
 
 	vault "github.com/hashicorp/vault/api"
+	"github.com/krixlion/dev_forum-lib/event"
 	"github.com/krixlion/dev_forum-lib/logging"
 	"github.com/krixlion/dev_forum-lib/nulls"
 	"go.opentelemetry.io/otel/trace"
@@ -25,6 +26,7 @@ type Vault struct {
 	vault  *vault.KVv2
 	client *vault.Client
 	config Config
+	broker event.Broker
 	tracer trace.Tracer
 	logger logging.Logger
 }
@@ -41,13 +43,17 @@ type Config struct {
 // If config.KeyRefreshInterval is greater than 0, Vault starts to
 // periodically purge the vault and write a new set of keys.
 // Vault stops refreshing keyset when provided context is cancelled.
-func Make(ctx context.Context, host, port, token string, config Config, tracer trace.Tracer, logger logging.Logger) (Vault, error) {
+func Make(ctx context.Context, host, port, token string, config Config, broker event.Broker, tracer trace.Tracer, logger logging.Logger) (Vault, error) {
 	if tracer == nil {
 		tracer = nulls.NullTracer{}
 	}
 
 	if logger == nil {
 		logger = nulls.NullLogger{}
+	}
+
+	if broker == nil {
+		return Vault{}, errors.New("no broker was provided")
 	}
 
 	if err := config.validate(); err != nil {
@@ -68,6 +74,7 @@ func Make(ctx context.Context, host, port, token string, config Config, tracer t
 		client: client,
 		vault:  client.KVv2(config.MountPath),
 		tracer: tracer,
+		broker: broker,
 		config: config,
 		logger: logger,
 	}

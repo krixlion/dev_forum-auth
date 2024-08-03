@@ -15,6 +15,7 @@ import (
 	"github.com/krixlion/dev_forum-auth/pkg/grpc/protokey/testdata"
 	vaultdata "github.com/krixlion/dev_forum-auth/pkg/storage/vault/testdata"
 	"github.com/krixlion/dev_forum-lib/env"
+	"github.com/krixlion/dev_forum-lib/mocks"
 	"github.com/krixlion/dev_forum-lib/nulls"
 )
 
@@ -33,7 +34,7 @@ func setUpVault(ctx context.Context) Vault {
 		MountPath: mountPath,
 	}
 
-	vault, err := Make(ctx, host, port, token, config, nulls.NullTracer{}, nulls.NullLogger{})
+	vault, err := Make(ctx, host, port, token, config, mocks.NewBroker(), nulls.NullTracer{}, nulls.NullLogger{})
 	if err != nil {
 		panic(err)
 	}

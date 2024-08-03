@@ -8,13 +8,17 @@ import (
 	"time"
 
 	"github.com/krixlion/dev_forum-auth/pkg/tokens"
+	"github.com/krixlion/dev_forum-lib/event"
+	"github.com/krixlion/dev_forum-lib/event/dispatcher"
 	"github.com/krixlion/dev_forum-lib/logging"
 	"github.com/krixlion/dev_forum-lib/nulls"
+	"github.com/krixlion/dev_forum-lib/tracing"
 	"github.com/lestrrat-go/jwx/jwk"
 	"github.com/lestrrat-go/jwx/jwt"
 )
 
 var _ tokens.Validator = (*JWTValidator)(nil)
+var _ dispatcher.Listener = (*JWTValidator)(nil)
 
 var (
 	ErrKeysNotReceived        = errors.New("no keys were received")
@@ -38,7 +42,7 @@ type JWTValidator struct {
 	logger logging.Logger
 
 	// keySetExpired is a channel which notifies when the current keyset is outdated
-	keySetExpired chan struct{}
+	keySetExpired chan map[string]string
 
 	keySetMutex   sync.RWMutex
 	lastRefreshed time.Time
@@ -62,7 +66,7 @@ func NewValidator(issuer string, refreshFunc RefreshFunc, options ...Option) (*J
 	v := &JWTValidator{
 		issuer:        issuer,
 		refreshFunc:   refreshFunc,
-		keySetExpired: make(chan struct{}, 16),
+		keySetExpired: make(chan map[string]string, 1),
 		keySetMutex:   sync.RWMutex{},
 	}
 
@@ -86,24 +90,24 @@ func NewValidator(issuer string, refreshFunc RefreshFunc, options ...Option) (*J
 // fails to fetch a new keyset.
 func (validator *JWTValidator) Run(ctx context.Context) {
 	// Set keySet on start.
-	validator.keySetExpired <- struct{}{}
+	validator.keySetExpired <- nil
 
 	for {
 		select {
-		case <-validator.keySetExpired:
+		case metadata := <-validator.keySetExpired:
 			isTooEarly := validator.lastRefreshed.Sub(validator.clock.Now()) < time.Second
-			isNotFirstInit := validator.lastRefreshed != time.Time{}
+			isNotInit := validator.lastRefreshed != time.Time{}
 
-			if isTooEarly && isNotFirstInit {
+			if isTooEarly && isNotInit {
 				continue
 			}
 
-			if err := validator.fetchKeySet(ctx); err != nil {
+			if err := validator.fetchKeySet(tracing.InjectMetadataIntoContext(ctx, metadata)); err != nil {
 				validator.logger.Log(ctx, "Failed to fetch a new keyset", "err", err)
 			}
 
 		case <-ctx.Done():
-			validator.logger.Log(ctx, "Shutting down")
+			validator.logger.Log(ctx, "Shutting down JWT validator")
 			return
 		}
 	}
@@ -136,6 +140,15 @@ func (validator *JWTValidator) ValidateToken(token string) error {
 	}
 
 	return nil
+}
+
+func (validator *JWTValidator) EventHandlers() map[event.EventType][]event.Handler {
+	return map[event.EventType][]event.Handler{
+		event.KeySetUpdated: {
+			event.HandlerFunc(func(e event.Event) {
+				validator.keySetExpired <- e.Metadata
+			}),
+		}}
 }
 
 type optionFunc func(*JWTValidator)
@@ -193,13 +206,12 @@ func (validator *JWTValidator) keySetProvider() jwt.KeySetProvider {
 
 		if validator.keySet == nil {
 			// Keyset hasn't been fetched yet.
-			validator.keySetExpired <- struct{}{}
+			validator.keySetExpired <- nil
 			return nil, ErrKeySetNotFound
 		}
 
-		// Keyset is handled internally and does not need to be derived from, or compared against
-		// the token, so it can just be copied so that the lestrrat-go library won't cause a data
-		// race when reading keys from it.
+		// Clone the keyset so it can that the jwx library
+		// won't cause a data race when reading keys from while they are updated.
 		return validator.keySet.Clone()
 	})
 }
