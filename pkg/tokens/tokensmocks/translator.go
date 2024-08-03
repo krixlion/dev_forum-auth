@@ -6,7 +6,7 @@ import (
 	"github.com/stretchr/testify/mock"
 )
 
-var _ tokens.Translator = (*translator.Translator)(nil)
+var _ tokens.Translator = (*TokenTranslator)(nil)
 
 type TokenTranslator struct {
 	*mock.Mock
