@@ -53,11 +53,14 @@ message GetAccessTokenResponse {
 
 message TranslateAccessTokenRequest {
     string opaque_access_token = 1;
+    map<string, string> metadata = 2;
 }
 
 message TranslateAccessTokenResponse {
     // Encoded JWT access token
     string access_token = 1;
+    // Trace ID and etc.
+    map<string, string> metadata = 2;
 }
 
 message Jwk {

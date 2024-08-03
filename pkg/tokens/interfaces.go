@@ -1,6 +1,7 @@
 package tokens
 
 import (
+	"context"
 	"errors"
 
 	"github.com/krixlion/dev_forum-auth/pkg/entity"
@@ -25,5 +26,5 @@ type Validator interface {
 }
 
 type Translator interface {
-	TranslateAccessToken(opaqueAccessToken string) (string, error)
+	TranslateAccessToken(ctx context.Context, opaqueAccessToken string) (string, error)
 }

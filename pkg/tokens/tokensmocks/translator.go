@@ -1,8 +1,9 @@
 package tokensmocks
 
 import (
+	"context"
+
 	"github.com/krixlion/dev_forum-auth/pkg/tokens"
-	"github.com/krixlion/dev_forum-auth/pkg/tokens/translator"
 	"github.com/stretchr/testify/mock"
 )
 
@@ -18,7 +19,7 @@ func NewTokenTranslator() TokenTranslator {
 	}
 }
 
-func (m TokenTranslator) TranslateAccessToken(opaqueAccessToken string) (string, error) {
-	args := m.Called(opaqueAccessToken)
+func (m TokenTranslator) TranslateAccessToken(ctx context.Context, opaqueAccessToken string) (string, error) {
+	args := m.Called(ctx, opaqueAccessToken)
 	return args.String(0), args.Error(1)
 }

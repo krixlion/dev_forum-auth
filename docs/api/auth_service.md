@@ -11,7 +11,9 @@
     - [SignInResponse](#auth-SignInResponse)
     - [SignOutRequest](#auth-SignOutRequest)
     - [TranslateAccessTokenRequest](#auth-TranslateAccessTokenRequest)
+    - [TranslateAccessTokenRequest.MetadataEntry](#auth-TranslateAccessTokenRequest-MetadataEntry)
     - [TranslateAccessTokenResponse](#auth-TranslateAccessTokenResponse)
+    - [TranslateAccessTokenResponse.MetadataEntry](#auth-TranslateAccessTokenResponse-MetadataEntry)
   
     - [AuthService](#auth-AuthService)
   
@@ -129,6 +131,23 @@
 | Field | Type | Label | Description |
 | ----- | ---- | ----- | ----------- |
 | opaque_access_token | [string](#string) |  |  |
+| metadata | [TranslateAccessTokenRequest.MetadataEntry](#auth-TranslateAccessTokenRequest-MetadataEntry) | repeated |  |
+
+
+
+
+
+
+<a name="auth-TranslateAccessTokenRequest-MetadataEntry"></a>
+
+### TranslateAccessTokenRequest.MetadataEntry
+
+
+
+| Field | Type | Label | Description |
+| ----- | ---- | ----- | ----------- |
+| key | [string](#string) |  |  |
+| value | [string](#string) |  |  |
 
 
 
@@ -144,6 +163,23 @@
 | Field | Type | Label | Description |
 | ----- | ---- | ----- | ----------- |
 | access_token | [string](#string) |  | Encoded JWT access token |
+| metadata | [TranslateAccessTokenResponse.MetadataEntry](#auth-TranslateAccessTokenResponse-MetadataEntry) | repeated | Trace ID and etc. |
+
+
+
+
+
+
+<a name="auth-TranslateAccessTokenResponse-MetadataEntry"></a>
+
+### TranslateAccessTokenResponse.MetadataEntry
+
+
+
+| Field | Type | Label | Description |
+| ----- | ---- | ----- | ----------- |
+| key | [string](#string) |  |  |
+| value | [string](#string) |  |  |
 
 
 

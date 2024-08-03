@@ -9,7 +9,9 @@ import (
 	pb "github.com/krixlion/dev_forum-auth/pkg/grpc/v1"
 	"github.com/krixlion/dev_forum-lib/logging"
 	"github.com/krixlion/dev_forum-lib/nulls"
+	"github.com/krixlion/dev_forum-lib/tracing"
 	sync "github.com/sasha-s/go-deadlock"
+	"go.opentelemetry.io/otel/trace"
 )
 
 type Translator struct {
@@ -23,6 +25,7 @@ type Translator struct {
 
 	jobs chan job
 
+	tracer trace.Tracer
 	logger logging.Logger
 	config Config
 }
@@ -44,6 +47,7 @@ func NewTranslator(grpcClient pb.AuthServiceClient, config Config, opts ...Optio
 		streamAborted: make(chan struct{}),
 		jobs:          make(chan job, config.JobQueueSize),
 		logger:        nulls.NullLogger{},
+		tracer:        nulls.NullTracer{},
 		config:        config,
 	}
 
@@ -67,10 +71,14 @@ func (t *Translator) Run(ctx context.Context) {
 
 // TranslateAccessToken takes in an opaqueAccessToken and translates it to an
 // encoded JWT token or returns a non-nil error.
-func (t *Translator) TranslateAccessToken(opaqueAccessToken string) (string, error) {
+func (t *Translator) TranslateAccessToken(ctx context.Context, opaqueAccessToken string) (string, error) {
+	ctx, span := t.tracer.Start(ctx, "translator.TranslateAccessToken")
+	defer span.End()
+
 	job := job{
 		OpaqueAccessToken: opaqueAccessToken,
 		ResultC:           make(chan result),
+		Metadata:          tracing.ExtractMetadataFromContext(ctx),
 	}
 
 	t.jobs <- job
@@ -86,6 +94,7 @@ func (t *Translator) TranslateAccessToken(opaqueAccessToken string) (string, err
 type job struct {
 	OpaqueAccessToken string
 	ResultC           chan result
+	Metadata          map[string]string
 }
 
 // result contains either a translated token or a non-nil error.
@@ -94,6 +103,7 @@ type job struct {
 type result struct {
 	TranslatedAccessToken string
 	Err                   error
+	Metadata              map[string]string
 }
 
 // handleJobs blocks until given context is cancelled.
@@ -107,9 +117,9 @@ func (t *Translator) handleJobs(ctx context.Context) {
 				t.mu.RLock()
 				defer t.mu.RUnlock()
 
-				if err := t.stream.Send(&pb.TranslateAccessTokenRequest{OpaqueAccessToken: job.OpaqueAccessToken}); err != nil {
+				if err := t.stream.Send(&pb.TranslateAccessTokenRequest{OpaqueAccessToken: job.OpaqueAccessToken, Metadata: job.Metadata}); err != nil {
 					t.maybeSendRenewStreamSig(err)
-					job.ResultC <- makeResult("", err)
+					job.ResultC <- makeResult("", job.Metadata, err)
 					close(job.ResultC)
 					return
 				}
@@ -117,7 +127,7 @@ func (t *Translator) handleJobs(ctx context.Context) {
 				resp, err := t.stream.Recv()
 				t.maybeSendRenewStreamSig(err)
 
-				job.ResultC <- makeResult(resp.GetAccessToken(), err)
+				job.ResultC <- makeResult(resp.GetAccessToken(), resp.GetMetadata(), err)
 				close(job.ResultC)
 			}()
 		case <-ctx.Done():
@@ -129,9 +139,10 @@ func (t *Translator) handleJobs(ctx context.Context) {
 // makeResult construct a result to respond with to a job.
 // Takes an access token and err returned by the gRPC client.
 // If the error is io.EOF then it will not be assigned to the result.
-func makeResult(accessToken string, err error) result {
+func makeResult(accessToken string, metadata map[string]string, err error) result {
 	res := result{
 		TranslatedAccessToken: accessToken,
+		Metadata:              metadata,
 	}
 
 	if !errors.Is(err, io.EOF) {

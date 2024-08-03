@@ -196,8 +196,8 @@ func TestTranslator_TranslateAccessToken(t *testing.T) {
 			fields: fields{
 				grpcClient: func() mocks.AuthClient {
 					s := mocks.NewAuthStreamClient()
-					s.On("Send", &pb.TranslateAccessTokenRequest{OpaqueAccessToken: "test-opaque"}).Return(nil).Once()
-					s.On("Recv").Return(&pb.TranslateAccessTokenResponse{AccessToken: "test-translated-token"}, nil).Once()
+					s.On("Send", &pb.TranslateAccessTokenRequest{OpaqueAccessToken: "test-opaque", Metadata: map[string]string{}}).Return(nil).Once()
+					s.On("Recv").Return(&pb.TranslateAccessTokenResponse{AccessToken: "test-translated-token", Metadata: map[string]string{}}, nil).Once()
 
 					m := mocks.NewAuthClient()
 					m.On("TranslateAccessToken", mock.Anything, mock.Anything).Return(s, nil).Once()
@@ -213,7 +213,7 @@ func TestTranslator_TranslateAccessToken(t *testing.T) {
 			fields: fields{
 				grpcClient: func() mocks.AuthClient {
 					s := mocks.NewAuthStreamClient()
-					s.On("Send", &pb.TranslateAccessTokenRequest{OpaqueAccessToken: "test-opaque"}).Return(nil).Once()
+					s.On("Send", &pb.TranslateAccessTokenRequest{OpaqueAccessToken: "test-opaque", Metadata: map[string]string{}}).Return(nil).Once()
 					s.On("Recv").Return((*pb.TranslateAccessTokenResponse)(nil), errors.New("test-err")).Once()
 
 					m := mocks.NewAuthClient()
@@ -234,7 +234,7 @@ func TestTranslator_TranslateAccessToken(t *testing.T) {
 			tr := NewTranslator(tt.fields.grpcClient, tt.fields.config)
 			go tr.Run(ctx)
 
-			got, err := tr.TranslateAccessToken(tt.args.opaqueAccessToken)
+			got, err := tr.TranslateAccessToken(ctx, tt.args.opaqueAccessToken)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("Translator.TranslateAccessToken():\n error = %v\n wantErr %v", err, tt.wantErr)
 				return
@@ -278,6 +278,7 @@ func TestTranslator_maybeSendRenewStreamSig(t *testing.T) {
 func Test_makeResult(t *testing.T) {
 	type args struct {
 		accessToken string
+		metadata    map[string]string
 		err         error
 	}
 	tests := []struct {
@@ -299,7 +300,7 @@ func Test_makeResult(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if got := makeResult(tt.args.accessToken, tt.args.err); !cmp.Equal(got, tt.want) {
+			if got := makeResult(tt.args.accessToken, tt.args.metadata, tt.args.err); !cmp.Equal(got, tt.want) {
 				t.Errorf("makeResult():\n got = %v\n want = %v", got, tt.want)
 			}
 		})

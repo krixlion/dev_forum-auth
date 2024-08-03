@@ -236,7 +236,7 @@ func (server AuthServer) TranslateAccessToken(stream pb.AuthService_TranslateAcc
 }
 
 func (server AuthServer) translateAccessToken(ctx context.Context, req *pb.TranslateAccessTokenRequest) (*pb.TranslateAccessTokenResponse, error) {
-	ctx, span := server.tracer.Start(ctx, "server.TranslateAccessToken")
+	ctx, span := server.tracer.Start(tracing.InjectMetadataIntoContext(ctx, req.Metadata), "server.TranslateAccessToken")
 	defer span.End()
 
 	encodedOpaqueAccessToken := req.GetOpaqueAccessToken()
@@ -267,6 +267,7 @@ func (server AuthServer) translateAccessToken(ctx context.Context, req *pb.Trans
 
 	return &pb.TranslateAccessTokenResponse{
 		AccessToken: string(tokenEncoded),
+		Metadata:    tracing.ExtractMetadataFromContext(ctx),
 	}, nil
 }
 
@@ -284,6 +285,7 @@ func (server AuthServer) GetValidationKeySet(_ *empty.Empty, stream pb.AuthServi
 
 	for _, key := range keys {
 		if err := ctx.Err(); err != nil {
+			tracing.SetSpanErr(span, err)
 			return err
 		}
 
@@ -295,6 +297,7 @@ func (server AuthServer) GetValidationKeySet(_ *empty.Empty, stream pb.AuthServi
 
 		marshaledKey, err := anypb.New(encoded)
 		if err != nil {
+			tracing.SetSpanErr(span, err)
 			return err
 		}
 
@@ -306,6 +309,7 @@ func (server AuthServer) GetValidationKeySet(_ *empty.Empty, stream pb.AuthServi
 		}
 
 		if err := stream.Send(jwk); err != nil {
+			tracing.SetSpanErr(span, err)
 			return err
 		}
 	}
