@@ -95,7 +95,7 @@ func (validator *JWTValidator) Run(ctx context.Context) {
 	for {
 		select {
 		case metadata := <-validator.keySetExpired:
-			isTooEarly := validator.lastRefreshed.Sub(validator.clock.Now()) < time.Second
+			isTooEarly := validator.clock.Now().Sub(validator.lastRefreshed) < time.Second
 			isNotInit := validator.lastRefreshed != time.Time{}
 
 			if isTooEarly && isNotInit {
