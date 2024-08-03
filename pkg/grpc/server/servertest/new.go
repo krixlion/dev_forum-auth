@@ -10,7 +10,6 @@ import (
 	pb "github.com/krixlion/dev_forum-auth/pkg/grpc/v1"
 	"github.com/krixlion/dev_forum-auth/pkg/storage"
 	"github.com/krixlion/dev_forum-auth/pkg/tokens"
-	"github.com/krixlion/dev_forum-lib/event/dispatcher"
 	"github.com/krixlion/dev_forum-lib/nulls"
 	userPb "github.com/krixlion/dev_forum-user/pkg/grpc/v1"
 	"google.golang.org/grpc"
@@ -55,7 +54,6 @@ func NewServer(ctx context.Context, d Deps) pb.AuthServiceClient {
 		Vault:        d.Vault,
 		TokenManager: d.TokenManager,
 		Storage:      d.Storage,
-		Dispatcher:   dispatcher.NewDispatcher(0),
 		Logger:       nulls.NullLogger{},
 		Tracer:       nulls.NullTracer{},
 	}

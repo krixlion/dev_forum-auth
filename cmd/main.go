@@ -174,7 +174,6 @@ func getServiceDependencies(ctx context.Context, serviceName string, isTLS bool)
 		Logger:       logger,
 		Tracer:       tracer,
 		TokenManager: tokenManager,
-		Dispatcher:   dispatcher,
 	}
 
 	authServer := server.MakeAuthServer(authDependencies, authConfig)

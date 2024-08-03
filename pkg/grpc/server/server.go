@@ -11,7 +11,6 @@ import (
 	"github.com/krixlion/dev_forum-auth/pkg/storage"
 	"github.com/krixlion/dev_forum-auth/pkg/tokens"
 	"github.com/krixlion/dev_forum-lib/cert"
-	"github.com/krixlion/dev_forum-lib/event/dispatcher"
 	"github.com/krixlion/dev_forum-lib/filter"
 	"github.com/krixlion/dev_forum-lib/logging"
 	"github.com/krixlion/dev_forum-lib/tracing"
@@ -30,7 +29,6 @@ type AuthServer struct {
 	vault        storage.Vault
 	storage      storage.Storage
 	tokenManager tokens.Manager
-	dispatcher   *dispatcher.Dispatcher
 	logger       logging.Logger
 	tracer       trace.Tracer
 	config       Config
@@ -41,7 +39,6 @@ type Dependencies struct {
 	Storage      storage.Storage
 	Vault        storage.Vault
 	TokenManager tokens.Manager
-	Dispatcher   *dispatcher.Dispatcher
 	Logger       logging.Logger
 	Tracer       trace.Tracer
 }
@@ -66,7 +63,6 @@ func MakeAuthServer(dependencies Dependencies, config Config) AuthServer {
 		storage:      dependencies.Storage,
 		vault:        dependencies.Vault,
 		tokenManager: dependencies.TokenManager,
-		dispatcher:   dependencies.Dispatcher,
 		logger:       dependencies.Logger,
 		tracer:       dependencies.Tracer,
 	}
