@@ -59,5 +59,6 @@ func (db Mongo) Close() error {
 }
 
 func (db Mongo) EventHandlers() map[event.EventType][]event.Handler {
+	// TODO: add handler for removing deleted users tokens.
 	return nil
 }
