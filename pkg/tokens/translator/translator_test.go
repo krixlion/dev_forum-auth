@@ -225,6 +225,37 @@ func TestTranslator_TranslateAccessToken(t *testing.T) {
 			args:    args{opaqueAccessToken: "test-opaque"},
 			wantErr: true,
 		},
+		{
+			name: "Test error is returned on Send error",
+			fields: fields{
+				grpcClient: func() mocks.AuthClient {
+					s := mocks.NewAuthStreamClient()
+					s.On("Send", &pb.TranslateAccessTokenRequest{OpaqueAccessToken: "test-opaque", Metadata: map[string]string{}}).Return(errors.New("test-err")).Once()
+
+					m := mocks.NewAuthClient()
+					m.On("TranslateAccessToken", mock.Anything, mock.Anything).Return(s, nil).Once()
+					return m
+				}(),
+			},
+			args:    args{opaqueAccessToken: "test-opaque"},
+			wantErr: true,
+		},
+		{
+			name: "Test no error and empty token are returned on io.EOF",
+			fields: fields{
+				grpcClient: func() mocks.AuthClient {
+					s := mocks.NewAuthStreamClient()
+					s.On("Send", &pb.TranslateAccessTokenRequest{OpaqueAccessToken: "test-opaque", Metadata: map[string]string{}}).Return(io.EOF).Once()
+
+					m := mocks.NewAuthClient()
+					m.On("TranslateAccessToken", mock.Anything, mock.Anything).Return(s, nil).Once()
+					return m
+				}(),
+			},
+			args:    args{opaqueAccessToken: "test-opaque"},
+			want:    "",
+			wantErr: false,
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
