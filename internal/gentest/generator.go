@@ -25,16 +25,12 @@ func RandomString(length int) string {
 func RandomToken(tokenType entity.TokenType) entity.Token {
 	userId := uuid.Must(uuid.NewV4())
 
-	var prefix tokens.OpaqueTokenPrefix
+	prefix := tokens.RefreshToken
 	if tokenType == entity.AccessToken {
 		prefix = tokens.AccessToken
-	} else {
-		prefix = tokens.RefreshToken
 	}
 
-	_, id, err := manager.MakeManager(manager.Config{
-		Issuer: "gentest",
-	}).GenerateOpaque(prefix)
+	_, id, err := manager.MakeManager(manager.Config{Issuer: "gentest"}).GenerateOpaque(prefix)
 	if err != nil {
 		panic(err)
 	}
