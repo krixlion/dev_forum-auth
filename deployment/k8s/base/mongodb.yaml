@@ -35,6 +35,15 @@ spec:
             requests:
               cpu: 250m
               memory: 50Mi
+          readinessProbe:
+            exec:
+              command:
+                - mongosh
+                - --eval
+                - "db.adminCommand({ping: 1})"
+            initialDelaySeconds: 5
+            timeoutSeconds: 5
+            periodSeconds: 10
           volumeMounts:
             # - name: secrets
             #   mountPath: /etc/secrets
