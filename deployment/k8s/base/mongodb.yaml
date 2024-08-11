@@ -45,9 +45,6 @@ spec:
             timeoutSeconds: 5
             periodSeconds: 10
           volumeMounts:
-            # - name: secrets
-            #   mountPath: /etc/secrets
-            #   readOnly: true
             - name: mongodb-scripts
               mountPath: /docker-entrypoint-initdb.d
               readOnly: true
