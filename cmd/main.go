@@ -140,7 +140,7 @@ func getServiceDependencies(ctx context.Context, serviceName string, isTLS bool)
 
 	tokenManager := manager.MakeManager(manager.Config{Issuer: tokens.DefaultIssuer})
 
-	userConn, err := grpc.NewClient("user-service:50051",
+	userConn, err := grpc.NewClient(os.Getenv("USER_SERVICE_SERVICE_HOST")+":"+os.Getenv("USER_SERVICE_SERVICE_PORT"),
 		grpc.WithStatsHandler(otelgrpc.NewClientHandler()),
 		grpc.WithTransportCredentials(clientCreds),
 	)
