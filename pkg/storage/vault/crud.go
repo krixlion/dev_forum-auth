@@ -147,7 +147,7 @@ func (db Vault) refreshKeys(ctx context.Context) (err error) {
 	}
 
 	for i := 0; i < db.config.KeyCount; i++ {
-		ECPem, err := generateECDSAPem()
+		ECPem, err := db.newECDSAPem(ctx)
 		if err != nil {
 			return err
 		}
@@ -162,7 +162,7 @@ func (db Vault) refreshKeys(ctx context.Context) (err error) {
 			return err
 		}
 
-		RSAPem, err := generateRSAPem()
+		RSAPem, err := db.newRSAPem(ctx)
 		if err != nil {
 			return err
 		}
@@ -234,7 +234,11 @@ func (db Vault) create(ctx context.Context, secret secretData) error {
 	return nil
 }
 
-func generateRSAPem() (string, error) {
+func (db Vault) newRSAPem(ctx context.Context) (_ string, err error) {
+	_, span := db.tracer.Start(ctx, "vault.newRSAPem")
+	defer span.End()
+	defer tracing.SetSpanErr(span, err)
+
 	key, err := rsa.GenerateKey(rand.Reader, 2048)
 	if err != nil {
 		return "", err
@@ -248,7 +252,11 @@ func generateRSAPem() (string, error) {
 	return string(pemData), nil
 }
 
-func generateECDSAPem() (string, error) {
+func (db Vault) newECDSAPem(ctx context.Context) (_ string, err error) {
+	_, span := db.tracer.Start(ctx, "vault.newECDSAPem")
+	defer span.End()
+	defer tracing.SetSpanErr(span, err)
+
 	key, err := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
 	if err != nil {
 		return "", err
