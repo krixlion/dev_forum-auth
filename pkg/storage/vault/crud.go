@@ -19,9 +19,10 @@ import (
 )
 
 // GetRandom returns a random existing private key from the Vault.
-func (db Vault) GetRandom(ctx context.Context) (entity.Key, error) {
+func (db Vault) GetRandom(ctx context.Context) (_ entity.Key, err error) {
 	ctx, span := db.tracer.Start(ctx, "vault.GetRandom")
 	defer span.End()
+	defer tracing.SetSpanErr(span, err)
 
 	keyPaths, err := db.list(ctx, db.config.MountPath)
 	if err != nil {
@@ -41,7 +42,6 @@ func (db Vault) GetRandom(ctx context.Context) (entity.Key, error) {
 
 	secret, err := db.vault.Get(ctx, randomPath)
 	if err != nil {
-		tracing.SetSpanErr(span, err)
 		return entity.Key{}, err
 	}
 
@@ -54,9 +54,10 @@ func (db Vault) GetRandom(ctx context.Context) (entity.Key, error) {
 }
 
 // GetKeySet returns a slice of keys present in the Vault.
-func (db Vault) GetKeySet(ctx context.Context) ([]entity.Key, error) {
+func (db Vault) GetKeySet(ctx context.Context) (_ []entity.Key, err error) {
 	ctx, span := db.tracer.Start(ctx, "vault.GetKeySet")
 	defer span.End()
+	defer tracing.SetSpanErr(span, err)
 
 	keyPaths, err := db.list(ctx, db.config.MountPath)
 	if err != nil {
@@ -89,13 +90,13 @@ func (db Vault) GetKeySet(ctx context.Context) ([]entity.Key, error) {
 
 // list returns a slice containing all available paths in the Vault.
 // They can be used to retrieve a key from the Vault.
-func (db Vault) list(ctx context.Context, mountPath string) ([]string, error) {
+func (db Vault) list(ctx context.Context, mountPath string) (_ []string, err error) {
 	ctx, span := db.tracer.Start(ctx, "vault.list")
 	defer span.End()
+	defer tracing.SetSpanErr(span, err)
 
 	secret, err := db.client.Logical().ListWithContext(ctx, mountPath+"/metadata/")
 	if err != nil {
-		tracing.SetSpanErr(span, err)
 		return nil, err
 	}
 
@@ -109,17 +110,13 @@ func (db Vault) list(ctx context.Context, mountPath string) ([]string, error) {
 	for _, pathLists := range secret.Data {
 		pathList, ok := pathLists.([]interface{})
 		if !ok {
-			err := ErrFailedToParseKey
-			tracing.SetSpanErr(span, err)
-			return nil, err
+			return nil, ErrFailedToParseKey
 		}
 
 		for _, path := range pathList {
 			path, ok := path.(string)
 			if !ok {
-				err := ErrFailedToParseKey
-				tracing.SetSpanErr(span, err)
-				return nil, err
+				return nil, ErrFailedToParseKey
 			}
 
 			paths = append(paths, path)
@@ -134,11 +131,11 @@ func (db Vault) list(ctx context.Context, mountPath string) ([]string, error) {
 func (db Vault) refreshKeys(ctx context.Context) (err error) {
 	ctx, span := db.tracer.Start(ctx, "vault.refreshKeys")
 	defer span.End()
+	defer tracing.SetSpanErr(span, err)
 
 	defer func() {
 		if err != nil {
 			err = fmt.Errorf("failed to refresh keys: %w", err)
-			tracing.SetSpanErr(span, err)
 		}
 	}()
 
@@ -187,31 +184,29 @@ func (db Vault) refreshKeys(ctx context.Context) (err error) {
 }
 
 // purge deletes all versions and metadata of all keys in the vault.
-func (db Vault) purge(ctx context.Context) error {
+func (db Vault) purge(ctx context.Context) (err error) {
 	ctx, span := db.tracer.Start(ctx, "vault.purge")
 	defer span.End()
+	defer tracing.SetSpanErr(span, err)
 
 	paths, err := db.list(ctx, db.config.MountPath)
 	if err != nil {
-		err = fmt.Errorf("failed to list keys: %w", err)
-		tracing.SetSpanErr(span, err)
-		return err
+		return fmt.Errorf("failed to list keys: %w", err)
 	}
 
 	for _, path := range paths {
 		if err := db.vault.DeleteMetadata(ctx, path); err != nil {
-			err = fmt.Errorf("failed to delete metadata: %w", err)
-			tracing.SetSpanErr(span, err)
-			return err
+			return fmt.Errorf("failed to delete metadata: %w", err)
 		}
 	}
 
 	return nil
 }
 
-func (db Vault) create(ctx context.Context, secret secretData) error {
+func (db Vault) create(ctx context.Context, secret secretData) (err error) {
 	ctx, span := db.tracer.Start(ctx, "vault.create")
 	defer span.End()
+	defer tracing.SetSpanErr(span, err)
 
 	keyData := map[string]interface{}{
 		"private":   secret.encodedKey,
@@ -221,14 +216,11 @@ func (db Vault) create(ctx context.Context, secret secretData) error {
 
 	id, err := str.RandomAlphaString(50)
 	if err != nil {
-		tracing.SetSpanErr(span, err)
 		return err
 	}
 
 	if _, err := db.vault.Put(ctx, id, keyData); err != nil {
-		err = fmt.Errorf("failed to create key: %w", err)
-		tracing.SetSpanErr(span, err)
-		return err
+		return fmt.Errorf("failed to create key: %w", err)
 	}
 
 	return nil

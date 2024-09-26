@@ -2,7 +2,6 @@ package server
 
 import (
 	"context"
-	"errors"
 	"net/mail"
 
 	pb "github.com/krixlion/dev_forum-auth/pkg/grpc/v1"
@@ -29,58 +28,53 @@ func (server AuthServer) ValidateRequestInterceptor() grpc.UnaryServerIntercepto
 	}
 }
 
-func (server AuthServer) validateSignIn(ctx context.Context, req *pb.SignInRequest, handler grpc.UnaryHandler) (interface{}, error) {
+func (server AuthServer) validateSignIn(ctx context.Context, req *pb.SignInRequest, handler grpc.UnaryHandler) (_ interface{}, err error) {
 	ctx, span := server.tracer.Start(ctx, "server.validateSignIn")
 	defer span.End()
+	defer tracing.SetSpanErr(span, err)
 
 	if _, err := mail.ParseAddress(req.GetEmail()); err != nil {
-		tracing.SetSpanErr(span, err)
 		return nil, status.Error(codes.FailedPrecondition, err.Error())
 	}
 
 	if req.GetPassword() == "" {
-		err := errors.New("invalid password")
-		tracing.SetSpanErr(span, err)
-		return nil, status.Error(codes.FailedPrecondition, err.Error())
+		return nil, status.Error(codes.FailedPrecondition, "invalid password")
 	}
 
 	return handler(ctx, req)
 }
 
-func (server AuthServer) validateSignOut(ctx context.Context, req *pb.SignOutRequest, handler grpc.UnaryHandler) (interface{}, error) {
+func (server AuthServer) validateSignOut(ctx context.Context, req *pb.SignOutRequest, handler grpc.UnaryHandler) (_ interface{}, err error) {
 	ctx, span := server.tracer.Start(ctx, "server.validateSignOut")
 	defer span.End()
+	defer tracing.SetSpanErr(span, err)
 
 	if req.GetRefreshToken() == "" {
-		err := errors.New("invalid refresh token")
-		tracing.SetSpanErr(span, err)
-		return nil, status.Error(codes.FailedPrecondition, err.Error())
+		return nil, status.Error(codes.FailedPrecondition, "invalid refresh token")
 	}
 
 	return handler(ctx, req)
 }
 
-func (server AuthServer) validateGetAccessToken(ctx context.Context, req *pb.GetAccessTokenRequest, handler grpc.UnaryHandler) (interface{}, error) {
+func (server AuthServer) validateGetAccessToken(ctx context.Context, req *pb.GetAccessTokenRequest, handler grpc.UnaryHandler) (_ interface{}, err error) {
 	ctx, span := server.tracer.Start(ctx, "server.validateGetAccessToken")
 	defer span.End()
+	defer tracing.SetSpanErr(span, err)
 
 	if req.GetRefreshToken() == "" {
-		err := errors.New("invalid refresh token")
-		tracing.SetSpanErr(span, err)
-		return nil, status.Error(codes.FailedPrecondition, err.Error())
+		return nil, status.Error(codes.FailedPrecondition, "invalid refresh token")
 	}
 
 	return handler(ctx, req)
 }
 
-func (server AuthServer) validateTranslateAccessToken(ctx context.Context, req *pb.TranslateAccessTokenRequest, handler grpc.UnaryHandler) (interface{}, error) {
+func (server AuthServer) validateTranslateAccessToken(ctx context.Context, req *pb.TranslateAccessTokenRequest, handler grpc.UnaryHandler) (_ interface{}, err error) {
 	ctx, span := server.tracer.Start(ctx, "server.validateTranslateAccessToken")
 	defer span.End()
+	defer tracing.SetSpanErr(span, err)
 
 	if req.GetOpaqueAccessToken() == "" {
-		err := errors.New("invalid access token")
-		tracing.SetSpanErr(span, err)
-		return nil, status.Error(codes.FailedPrecondition, err.Error())
+		return nil, status.Error(codes.FailedPrecondition, "invalid access token")
 	}
 
 	return handler(ctx, req)

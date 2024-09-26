@@ -74,9 +74,10 @@ func MakeAuthServer(dependencies Dependencies, config Config) AuthServer {
 	return s
 }
 
-func (server AuthServer) SignIn(ctx context.Context, req *pb.SignInRequest) (*pb.SignInResponse, error) {
+func (server AuthServer) SignIn(ctx context.Context, req *pb.SignInRequest) (_ *pb.SignInResponse, err error) {
 	ctx, span := server.tracer.Start(ctx, "server.SignIn")
 	defer span.End()
+	defer tracing.SetSpanErr(span, err)
 
 	password := req.GetPassword()
 	email := req.GetEmail()
@@ -87,7 +88,6 @@ func (server AuthServer) SignIn(ctx context.Context, req *pb.SignInRequest) (*pb
 		},
 	})
 	if err != nil {
-		tracing.SetSpanErr(span, err)
 		return nil, status.Error(codes.FailedPrecondition, err.Error())
 	}
 
@@ -99,7 +99,6 @@ func (server AuthServer) SignIn(ctx context.Context, req *pb.SignInRequest) (*pb
 
 	encodedOpaqueRefreshToken, tokenId, err := server.tokenManager.GenerateOpaque(tokens.RefreshToken)
 	if err != nil {
-		tracing.SetSpanErr(span, err)
 		return nil, status.Error(codes.Internal, err.Error())
 	}
 
@@ -121,15 +120,15 @@ func (server AuthServer) SignIn(ctx context.Context, req *pb.SignInRequest) (*pb
 	}, nil
 }
 
-func (server AuthServer) SignOut(ctx context.Context, req *pb.SignOutRequest) (*empty.Empty, error) {
+func (server AuthServer) SignOut(ctx context.Context, req *pb.SignOutRequest) (_ *empty.Empty, err error) {
 	ctx, span := server.tracer.Start(ctx, "server.SignOut")
 	defer span.End()
+	defer tracing.SetSpanErr(span, err)
 
 	encodedOpaqueRefreshToken := req.GetRefreshToken()
 
 	opaqueRefreshToken, err := server.tokenManager.DecodeOpaque(tokens.RefreshToken, encodedOpaqueRefreshToken)
 	if err != nil {
-		tracing.SetSpanErr(span, err)
 		return nil, status.Error(codes.PermissionDenied, err.Error())
 	}
 
@@ -156,27 +155,25 @@ func (server AuthServer) SignOut(ctx context.Context, req *pb.SignOutRequest) (*
 	return &empty.Empty{}, nil
 }
 
-func (server AuthServer) GetAccessToken(ctx context.Context, req *pb.GetAccessTokenRequest) (*pb.GetAccessTokenResponse, error) {
+func (server AuthServer) GetAccessToken(ctx context.Context, req *pb.GetAccessTokenRequest) (_ *pb.GetAccessTokenResponse, err error) {
 	ctx, span := server.tracer.Start(ctx, "server.GetAccessToken")
 	defer span.End()
+	defer tracing.SetSpanErr(span, err)
 
 	opaqueRefreshToken := req.GetRefreshToken()
 
 	refreshTokenId, err := server.tokenManager.DecodeOpaque(tokens.RefreshToken, opaqueRefreshToken)
 	if err != nil {
-		tracing.SetSpanErr(span, err)
 		return nil, status.Error(codes.PermissionDenied, err.Error())
 	}
 
 	refreshToken, err := server.storage.Get(ctx, refreshTokenId)
 	if err != nil {
-		tracing.SetSpanErr(span, err)
 		return nil, status.Error(codes.Internal, err.Error())
 	}
 
 	opaqueAccessToken, accessTokenId, err := server.tokenManager.GenerateOpaque(tokens.AccessToken)
 	if err != nil {
-		tracing.SetSpanErr(span, err)
 		return nil, status.Error(codes.Internal, err.Error())
 	}
 
@@ -231,33 +228,30 @@ func (server AuthServer) TranslateAccessToken(stream pb.AuthService_TranslateAcc
 	}
 }
 
-func (server AuthServer) translateAccessToken(ctx context.Context, req *pb.TranslateAccessTokenRequest) (*pb.TranslateAccessTokenResponse, error) {
+func (server AuthServer) translateAccessToken(ctx context.Context, req *pb.TranslateAccessTokenRequest) (_ *pb.TranslateAccessTokenResponse, err error) {
 	ctx, span := server.tracer.Start(tracing.InjectMetadataIntoContext(ctx, req.Metadata), "server.TranslateAccessToken")
 	defer span.End()
+	defer tracing.SetSpanErr(span, err)
 
 	encodedOpaqueAccessToken := req.GetOpaqueAccessToken()
 
 	opaqueAccessToken, err := server.tokenManager.DecodeOpaque(tokens.AccessToken, encodedOpaqueAccessToken)
 	if err != nil {
-		tracing.SetSpanErr(span, err)
 		return nil, status.Error(codes.FailedPrecondition, err.Error())
 	}
 
 	token, err := server.storage.Get(ctx, opaqueAccessToken)
 	if err != nil {
-		tracing.SetSpanErr(span, err)
 		return nil, status.Error(codes.Internal, err.Error())
 	}
 
 	privateKey, err := server.vault.GetRandom(ctx)
 	if err != nil {
-		tracing.SetSpanErr(span, err)
 		return nil, status.Error(codes.Internal, err.Error())
 	}
 
 	tokenEncoded, err := server.tokenManager.Encode(privateKey, token)
 	if err != nil {
-		tracing.SetSpanErr(span, err)
 		return nil, status.Error(codes.Internal, err.Error())
 	}
 
@@ -267,33 +261,30 @@ func (server AuthServer) translateAccessToken(ctx context.Context, req *pb.Trans
 	}, nil
 }
 
-func (server AuthServer) GetValidationKeySet(_ *empty.Empty, stream pb.AuthService_GetValidationKeySetServer) error {
+func (server AuthServer) GetValidationKeySet(_ *empty.Empty, stream pb.AuthService_GetValidationKeySetServer) (err error) {
 	ctx := stream.Context()
 
 	ctx, span := server.tracer.Start(ctx, "server.GetValidationKeySet")
 	defer span.End()
+	defer tracing.SetSpanErr(span, err)
 
 	keys, err := server.vault.GetKeySet(ctx)
 	if err != nil {
-		tracing.SetSpanErr(span, err)
 		return err
 	}
 
 	for _, key := range keys {
 		if err := ctx.Err(); err != nil {
-			tracing.SetSpanErr(span, err)
 			return err
 		}
 
 		encoded, err := key.Encode()
 		if err != nil {
-			tracing.SetSpanErr(span, err)
 			return err
 		}
 
 		marshaledKey, err := anypb.New(encoded)
 		if err != nil {
-			tracing.SetSpanErr(span, err)
 			return err
 		}
 
@@ -305,7 +296,6 @@ func (server AuthServer) GetValidationKeySet(_ *empty.Empty, stream pb.AuthServi
 		}
 
 		if err := stream.Send(jwk); err != nil {
-			tracing.SetSpanErr(span, err)
 			return err
 		}
 	}

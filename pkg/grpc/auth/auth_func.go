@@ -16,18 +16,17 @@ import (
 // If the validator fails to verify the token an error is returned.
 // Otherwise the context is returned unaltered.
 func NewAuthFunc(tokenValidator tokens.Validator, tracer trace.Tracer) grpc_auth.AuthFunc {
-	return func(ctx context.Context) (context.Context, error) {
+	return func(ctx context.Context) (_ context.Context, err error) {
 		ctx, span := tracer.Start(ctx, "server.AuthFunc")
 		defer span.End()
+		defer tracing.SetSpanErr(span, err)
 
 		token, err := grpc_auth.AuthFromMD(ctx, "Bearer")
 		if err != nil {
-			tracing.SetSpanErr(span, err)
 			return nil, err
 		}
 
 		if err := tokenValidator.ValidateToken(token); err != nil {
-			tracing.SetSpanErr(span, err)
 			return nil, err
 		}
 

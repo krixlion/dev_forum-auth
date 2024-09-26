@@ -71,9 +71,10 @@ func (t *Translator) Run(ctx context.Context) {
 
 // TranslateAccessToken takes in an opaqueAccessToken and translates it to an
 // encoded JWT token or returns a non-nil error.
-func (t *Translator) TranslateAccessToken(ctx context.Context, opaqueAccessToken string) (string, error) {
+func (t *Translator) TranslateAccessToken(ctx context.Context, opaqueAccessToken string) (_ string, err error) {
 	ctx, span := t.tracer.Start(ctx, "translator.TranslateAccessToken")
 	defer span.End()
+	defer tracing.SetSpanErr(span, err)
 
 	job := job{
 		OpaqueAccessToken: opaqueAccessToken,

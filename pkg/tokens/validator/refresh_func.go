@@ -31,13 +31,13 @@ func DefaultRefreshFunc(authClient pb.AuthServiceClient, tracer trace.Tracer) Re
 		tracer = nulls.NullTracer{}
 	}
 
-	return func(ctx context.Context) ([]Key, error) {
+	return func(ctx context.Context) (_ []Key, err error) {
 		ctx, span := tracer.Start(ctx, "refreshFunc")
 		defer span.End()
+		defer tracing.SetSpanErr(span, err)
 
 		stream, err := authClient.GetValidationKeySet(ctx, &emptypb.Empty{})
 		if err != nil {
-			tracing.SetSpanErr(span, err)
 			return nil, err
 		}
 
@@ -45,7 +45,6 @@ func DefaultRefreshFunc(authClient pb.AuthServiceClient, tracer trace.Tracer) Re
 
 		for {
 			if err := ctx.Err(); err != nil {
-				tracing.SetSpanErr(span, err)
 				return nil, err
 			}
 
@@ -54,19 +53,16 @@ func DefaultRefreshFunc(authClient pb.AuthServiceClient, tracer trace.Tracer) Re
 				if err == io.EOF {
 					break
 				}
-				tracing.SetSpanErr(span, err)
 				return nil, err
 			}
 
 			rawMessage, err := jwk.Key.UnmarshalNew()
 			if err != nil {
-				tracing.SetSpanErr(span, err)
 				return nil, err
 			}
 
 			raw, err := protokey.DeserializeKey(rawMessage)
 			if err != nil {
-				tracing.SetSpanErr(span, err)
 				return nil, err
 			}
 
