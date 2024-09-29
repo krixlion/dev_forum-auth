@@ -12,7 +12,6 @@ import (
 	"github.com/krixlion/dev_forum-auth/pkg/storage/mongo/mongotest"
 	"github.com/krixlion/dev_forum-auth/pkg/storage/mongo/testdata"
 	"github.com/krixlion/dev_forum-lib/filter"
-	"go.mongodb.org/mongo-driver/bson"
 )
 
 func TestDB_Create(t *testing.T) {
@@ -56,13 +55,11 @@ func TestDB_Create(t *testing.T) {
 				return
 			}
 
-			var doc tokenDocument
-			if err := db.tokens.FindOne(ctx, bson.M{"_id": tt.args.token.Id}).Decode(&doc); err != nil {
-				t.Errorf("DB.tokens.FindOne() error = %v", err)
+			got, err := db.Get(ctx, tt.args.token.Id)
+			if err != nil {
+				t.Errorf("DB.Get() error = %v", err)
 				return
 			}
-
-			got := makeTokenFromDocument(doc)
 
 			if !cmp.Equal(tt.args.token, got, cmpopts.EquateApproxTime(time.Second*2)) {
 				t.Errorf("DB.tokens.FindOne():\n want = %v\n got %v\n %v", tt.args.token, got, cmp.Diff(tt.args.token, got))
@@ -204,8 +201,8 @@ func TestDB_Delete(t *testing.T) {
 				return
 			}
 
-			if err := db.tokens.FindOne(ctx, bson.D{{Key: "_id", Value: tt.args.id}}).Err(); err == nil {
-				t.Errorf("DB.tokens.FindOne() error not nil")
+			if _, err := db.Get(ctx, tt.args.id); err == nil {
+				t.Errorf("DB.Get() error not nil")
 			}
 		})
 	}
