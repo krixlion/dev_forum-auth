@@ -16,9 +16,8 @@ func (db Mongo) Get(ctx context.Context, opaqueToken string) (entity.Token, erro
 	filter := bson.D{{Key: "_id", Value: bson.D{{Key: "$eq", Value: opaqueToken}}}}
 	opts := options.FindOne().SetHint(bson.D{{Key: "_id", Value: 1}})
 
-	result := db.tokens.FindOne(ctx, filter, opts)
 	tokenDoc := tokenDocument{}
-	if err := result.Decode(&tokenDoc); err != nil {
+	if err := db.tokens.FindOne(ctx, filter, opts).Decode(&tokenDoc); err != nil {
 		return entity.Token{}, err
 	}
 
