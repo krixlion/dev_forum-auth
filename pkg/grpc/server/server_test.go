@@ -234,12 +234,12 @@ func TestAuthServer_GetAccessToken(t *testing.T) {
 				return
 			}
 
-			// Equals false if both are nil or they point to the same memory address
-			// so be sure to use separate variables when providing args in order to prevent SEGV.
-			if got != tt.want {
-				if !cmp.Equal(got, tt.want, cmpopts.IgnoreUnexported(pb.GetAccessTokenRequest{}, pb.GetAccessTokenResponse{})) {
-					t.Errorf("AuthServer.GetAccessToken():\n got = %v\n want = %v", got, tt.want)
-				}
+			if !tt.wantErr {
+				return
+			}
+
+			if !cmp.Equal(got, tt.want, cmpopts.IgnoreUnexported(pb.GetAccessTokenRequest{}, pb.GetAccessTokenResponse{})) {
+				t.Errorf("AuthServer.GetAccessToken():\n got = %v\n want = %v", got, tt.want)
 			}
 		})
 	}
@@ -332,12 +332,12 @@ func TestAuthServer_TranslateAccessToken(t *testing.T) {
 				return
 			}
 
-			// Equals false if both are nil or they point to the same memory address
-			// so be sure to use separate variables when providing args in order to prevent SEGV.
-			if got != tt.want {
-				if !cmp.Equal(got, tt.want, cmpopts.IgnoreUnexported(pb.TranslateAccessTokenRequest{}, pb.TranslateAccessTokenResponse{})) {
-					t.Errorf("AuthServer.TranslateAccessToken():\n got = %v\n want = %v\n %v", got, tt.want, cmp.Diff(got, tt.want))
-				}
+			if !tt.wantErr {
+				return
+			}
+
+			if !cmp.Equal(got, tt.want, cmpopts.IgnoreUnexported(pb.TranslateAccessTokenRequest{}, pb.TranslateAccessTokenResponse{})) {
+				t.Errorf("AuthServer.TranslateAccessToken():\n got = %v\n want = %v\n %v", got, tt.want, cmp.Diff(got, tt.want))
 			}
 		})
 	}
