@@ -21,9 +21,7 @@ func (db Mongo) Get(ctx context.Context, opaqueToken string) (entity.Token, erro
 		return entity.Token{}, err
 	}
 
-	token := makeTokenFromDocument(tokenDoc)
-
-	return token, nil
+	return makeTokenFromDocument(tokenDoc), nil
 }
 
 func (db Mongo) GetMultiple(ctx context.Context, query filter.Filter) ([]entity.Token, error) {
@@ -61,10 +59,8 @@ func (db Mongo) Create(ctx context.Context, token entity.Token) error {
 
 	tokenDoc := makeDocumentFromToken(token)
 
-	if _, err := db.tokens.InsertOne(ctx, tokenDoc); err != nil {
-		return err
-	}
-	return nil
+	_, err := db.tokens.InsertOne(ctx, tokenDoc)
+	return err
 }
 
 func (db Mongo) Delete(ctx context.Context, id string) error {
@@ -74,9 +70,6 @@ func (db Mongo) Delete(ctx context.Context, id string) error {
 	filter := bson.D{{Key: "_id", Value: bson.D{{Key: "$eq", Value: id}}}}
 	opts := options.Delete().SetHint(bson.D{{Key: "_id", Value: 1}})
 
-	if _, err := db.tokens.DeleteOne(ctx, filter, opts); err != nil {
-		return err
-	}
-
-	return nil
+	_, err := db.tokens.DeleteOne(ctx, filter, opts)
+	return err
 }
