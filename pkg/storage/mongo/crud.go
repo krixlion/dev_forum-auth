@@ -6,18 +6,16 @@ import (
 	"github.com/krixlion/dev_forum-auth/pkg/entity"
 	"github.com/krixlion/dev_forum-lib/filter"
 	"go.mongodb.org/mongo-driver/bson"
-	"go.mongodb.org/mongo-driver/mongo/options"
 )
 
 func (db Mongo) Get(ctx context.Context, opaqueToken string) (entity.Token, error) {
 	ctx, span := db.tracer.Start(ctx, "db.Get")
 	defer span.End()
 
-	filter := bson.D{{Key: "_id", Value: bson.D{{Key: "$eq", Value: opaqueToken}}}}
-	opts := options.FindOne().SetHint(bson.D{{Key: "_id", Value: 1}})
+	filter := bson.M{"_id": bson.M{"$eq": opaqueToken}}
 
 	tokenDoc := tokenDocument{}
-	if err := db.tokens.FindOne(ctx, filter, opts).Decode(&tokenDoc); err != nil {
+	if err := db.tokens.FindOne(ctx, filter).Decode(&tokenDoc); err != nil {
 		return entity.Token{}, err
 	}
 
@@ -67,9 +65,8 @@ func (db Mongo) Delete(ctx context.Context, id string) error {
 	ctx, span := db.tracer.Start(ctx, "db.Delete")
 	defer span.End()
 
-	filter := bson.D{{Key: "_id", Value: bson.D{{Key: "$eq", Value: id}}}}
-	opts := options.Delete().SetHint(bson.D{{Key: "_id", Value: 1}})
+	filter := bson.M{"_id": bson.M{"$eq": id}}
 
-	_, err := db.tokens.DeleteOne(ctx, filter, opts)
+	_, err := db.tokens.DeleteOne(ctx, filter)
 	return err
 }
