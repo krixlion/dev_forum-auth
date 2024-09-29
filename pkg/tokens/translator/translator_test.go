@@ -241,19 +241,22 @@ func TestTranslator_TranslateAccessToken(t *testing.T) {
 			wantErr: true,
 		},
 		{
-			name: "Test no error and empty token are returned on io.EOF",
+			name: "Test job is retried on io.EOF until result is returned",
 			fields: fields{
 				grpcClient: func() mocks.AuthClient {
 					s := mocks.NewAuthStreamClient()
 					s.On("Send", &pb.TranslateAccessTokenRequest{OpaqueAccessToken: "test-opaque", Metadata: map[string]string{}}).Return(io.EOF).Once()
+					s.On("Send", &pb.TranslateAccessTokenRequest{OpaqueAccessToken: "test-opaque", Metadata: map[string]string{}}).Return(nil).Once()
+					s.On("Recv").Return(&pb.TranslateAccessTokenResponse{AccessToken: "test-token"}, nil).Once()
 
 					m := mocks.NewAuthClient()
 					m.On("TranslateAccessToken", mock.Anything, mock.Anything).Return(s, nil).Once()
 					return m
 				}(),
+				config: Config{JobQueueSize: 2},
 			},
 			args:    args{opaqueAccessToken: "test-opaque"},
-			want:    "",
+			want:    "test-token",
 			wantErr: false,
 		},
 	}
@@ -270,6 +273,11 @@ func TestTranslator_TranslateAccessToken(t *testing.T) {
 				t.Errorf("Translator.TranslateAccessToken():\n error = %v\n wantErr %v", err, tt.wantErr)
 				return
 			}
+
+			if !tt.wantErr {
+				return
+			}
+
 			if got != tt.want {
 				t.Errorf("Translator.TranslateAccessToken():\n got = %v\n want = %v", got, tt.want)
 			}
@@ -318,20 +326,21 @@ func Test_makeResult(t *testing.T) {
 		want result
 	}{
 		{
-			name: "Test access token is assigned and io.EOF error is ignored",
+			name: "Test fields are assigned",
 			args: args{
 				accessToken: "test-token",
 				err:         io.EOF,
 			},
 			want: result{
 				TranslatedAccessToken: "test-token",
-				Err:                   nil,
+				Err:                   io.EOF,
+				Metadata:              nil,
 			},
 		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if got := makeResult(tt.args.accessToken, tt.args.metadata, tt.args.err); !cmp.Equal(got, tt.want) {
+			if got := makeResult(tt.args.accessToken, tt.args.metadata, tt.args.err); !cmp.Equal(got, tt.want, cmp.Comparer(func(err, err2 error) bool { return err == err2 })) {
 				t.Errorf("makeResult():\n got = %v\n want = %v", got, tt.want)
 			}
 		})
