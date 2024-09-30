@@ -233,7 +233,8 @@ func TestTranslator_TranslateAccessToken(t *testing.T) {
 					s.On("Send", &pb.TranslateAccessTokenRequest{OpaqueAccessToken: "test-opaque", Metadata: map[string]string{}}).Return(errors.New("test-err")).Once()
 
 					m := mocks.NewAuthClient()
-					m.On("TranslateAccessToken", mock.Anything, mock.Anything).Return(s, nil).Once()
+					// Stream will be renewed on second call.
+					m.On("TranslateAccessToken", mock.Anything, mock.Anything).Return(s, nil).Twice()
 					return m
 				}(),
 			},
