@@ -292,14 +292,16 @@ func TestTranslator_maybeSendRenewStreamSig(t *testing.T) {
 			streamAborted: make(chan struct{}),
 		}
 
-		finished := make(chan struct{})
+		up := make(chan struct{})
+		done := make(chan struct{})
 		go func() {
+			up <- struct{}{}
 			<-tr.streamAborted
-			finished <- struct{}{}
+			done <- struct{}{}
 		}()
 
 		// Wait for the goroutine to start up.
-		time.Sleep(time.Millisecond)
+		<-up
 
 		before := time.Now()
 
@@ -307,8 +309,51 @@ func TestTranslator_maybeSendRenewStreamSig(t *testing.T) {
 
 		select {
 		case <-time.After(time.Millisecond):
-			t.Errorf("Func did not send stream renewal signal. Time passed: %vs", time.Since(before).Seconds())
-		case <-finished:
+			t.Errorf("Translator.maybeSendRenewStreamSig(): Func did not send stream renewal signal. Time passed: %vs", time.Since(before).Seconds())
+		case <-done:
+			return
+		}
+	})
+
+	t.Run("Test a streamAborted signal is sent on an unknown error", func(t *testing.T) {
+		ctx, cancel := context.WithCancel(context.Background())
+		defer cancel()
+
+		testErr := errors.New("test-error")
+		tr := &Translator{
+			streamAborted: make(chan struct{}),
+		}
+
+		up := make(chan struct{})
+		go func() {
+			up <- struct{}{}
+			select {
+			case tr.streamAborted <- struct{}{}:
+				return
+			case <-ctx.Done():
+				return
+			}
+		}()
+
+		// Wait for the goroutine to start up.
+		<-up
+
+		up = make(chan struct{})
+		done := make(chan struct{})
+		go func() {
+			up <- struct{}{}
+			tr.maybeSendRenewStreamSig(testErr)
+			done <- struct{}{}
+		}()
+
+		// Wait for the goroutine to start up.
+		<-up
+		before := time.Now()
+
+		select {
+		case <-time.After(time.Millisecond):
+			t.Errorf("Translator.maybeSendRenewStreamSig(): Func is blocking. Time passed: %vs", time.Since(before).Seconds())
+		case <-done:
 			return
 		}
 	})
