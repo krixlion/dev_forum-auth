@@ -115,7 +115,7 @@ func getServiceDependencies(ctx context.Context, serviceName string, isTLS bool)
 	}
 	grpclog.SetLoggerV2(logger)
 
-	storage, err := mongo.Make(os.Getenv("DB_USER"), os.Getenv("DB_PASS"), os.Getenv("DB_HOST"), os.Getenv("DB_PORT"), os.Getenv("DB_NAME"), logger, tracer)
+	storage, err := mongo.Make(ctx, os.Getenv("DB_USER"), os.Getenv("DB_PASS"), os.Getenv("DB_HOST"), os.Getenv("DB_PORT"), os.Getenv("DB_NAME"), logger, tracer)
 	if err != nil {
 		return service.Dependencies{}, err
 	}

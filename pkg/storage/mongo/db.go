@@ -26,15 +26,12 @@ type Mongo struct {
 	tracer trace.Tracer
 }
 
-func Make(user, pass, host, port, dbName string, logger logging.Logger, tracer trace.Tracer) (Mongo, error) {
+func Make(ctx context.Context, user, pass, host, port, dbName string, logger logging.Logger, tracer trace.Tracer) (Mongo, error) {
 	// uri := fmt.Sprintf("mongodb://%s:%s@%s:%s/%s?retryWrites=true&w=majority&tls=false&authSource=admin", user, pass, host, port, dbName)
 	uri := fmt.Sprintf("mongodb://%s:%s/%s?retryWrites=true&w=majority&tls=false", host, port, dbName)
 	reg := bson.NewRegistryBuilder().Build()
 
 	opts := options.Client().ApplyURI(uri).SetServerAPIOptions(options.ServerAPI(options.ServerAPIVersion1)).SetRegistry(reg).SetMonitor(otelmongo.NewMonitor())
-
-	ctx, cancel := context.WithTimeout(context.Background(), time.Second*2)
-	defer cancel()
 
 	client, err := mongo.Connect(ctx, opts)
 	if err != nil {

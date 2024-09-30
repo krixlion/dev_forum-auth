@@ -18,7 +18,7 @@ func NewMongo(ctx context.Context) (mongo.Mongo, error) {
 	user := os.Getenv("DB_USER")
 	pass := os.Getenv("DB_PASS")
 	dbName := os.Getenv("DB_NAME")
-	storage, err := mongo.Make(user, pass, host, port, dbName, nulls.NullLogger{}, nulls.NullTracer{})
+	storage, err := mongo.Make(ctx, user, pass, host, port, dbName, nulls.NullLogger{}, nulls.NullTracer{})
 	if err != nil {
 		return mongo.Mongo{}, err
 	}
