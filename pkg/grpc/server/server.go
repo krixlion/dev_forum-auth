@@ -79,12 +79,9 @@ func (server AuthServer) SignIn(ctx context.Context, req *pb.SignInRequest) (_ *
 	defer span.End()
 	defer tracing.SetSpanErr(span, err)
 
-	password := req.GetPassword()
-	email := req.GetEmail()
-
 	resp, err := server.services.User.GetSecret(ctx, &userPb.GetUserSecretRequest{
 		Query: &userPb.GetUserSecretRequest_Email{
-			Email: email,
+			Email: req.GetEmail(),
 		},
 	})
 	if err != nil {
@@ -93,7 +90,7 @@ func (server AuthServer) SignIn(ctx context.Context, req *pb.SignInRequest) (_ *
 
 	user := resp.GetUser()
 
-	if err := bcrypt.CompareHashAndPassword([]byte(user.GetPassword()), []byte(password)); err != nil {
+	if err := bcrypt.CompareHashAndPassword([]byte(user.GetPassword()), []byte(req.GetPassword())); err != nil {
 		return nil, status.Error(codes.FailedPrecondition, err.Error())
 	}
 
