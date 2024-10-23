@@ -1,6 +1,6 @@
 Welcome to the dev_forum-auth Wiki!
 
-### Documentation
+## Documentation
 
 [Features Overview](Features)
 
