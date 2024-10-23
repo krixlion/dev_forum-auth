@@ -73,5 +73,5 @@ Currently it's set to 24 hours.
 
 ## Telemetry
 
-It's also sending traces to an [OpenTelemetry-Collector](https://opentelemetry.io/docs/collector/). OpenTelemetry-Collector URL is configurable through `OTEL_EXPORTER_OTLP_ENDPOINT` env variable.\
-You can integrate OtelCollector with any backend supported by it, e.g [Jaeger](https://www.jaegertracing.io/docs/).
+Auth service is sending traces and metrics to an [OpenTelemetry-Collector](https://opentelemetry.io/docs/collector/). OpenTelemetry-Collector URL is configurable through `OTEL_EXPORTER_OTLP_ENDPOINT` environment variable.\
+You can integrate OtelCollector with any supported backend, e.g [Jaeger](https://www.jaegertracing.io/docs/).
