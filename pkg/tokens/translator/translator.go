@@ -6,6 +6,7 @@ import (
 	"time"
 
 	pb "github.com/krixlion/dev_forum-auth/pkg/grpc/v1"
+	"github.com/krixlion/dev_forum-lib/chans"
 	"github.com/krixlion/dev_forum-lib/logging"
 	"github.com/krixlion/dev_forum-lib/nulls"
 	"github.com/krixlion/dev_forum-lib/tracing"
@@ -161,13 +162,9 @@ func makeResult(accessToken string, metadata map[string]string, err error) resul
 // methods indicates that the stream was aborted and needs to be renewed.
 func (t *Translator) maybeSendRenewStreamSig(err error) {
 	if isStreamRenewable(err) {
-		select {
-		case t.streamAborted <- struct{}{}:
-		default:
-			// Stream is being renewed or is going to be renewed shortly.
-			// No need to bloat the buffer.
-			return
-		}
+		// Stream is being renewed or is going to be renewed shortly.
+		// No need to bloat the buffer.
+		chans.NonBlockSend(t.streamAborted, struct{}{})
 	}
 }
 
