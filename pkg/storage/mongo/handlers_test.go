@@ -14,6 +14,10 @@ import (
 
 func TestMongo_SignOutUsersOnDeletion(t *testing.T) {
 	t.Run("Test all tokens assigned to a user are deleted when the user is deleted", func(t *testing.T) {
+		if testing.Short() {
+			t.Skip("Skipping Mongo integration test...")
+		}
+
 		ctx, cancel := context.WithTimeout(context.Background(), time.Second*10)
 		defer cancel()
 
