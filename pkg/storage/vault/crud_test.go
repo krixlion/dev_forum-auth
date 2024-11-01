@@ -19,11 +19,13 @@ import (
 	"github.com/krixlion/dev_forum-lib/nulls"
 )
 
-func setUpVault(ctx context.Context) Vault {
-	env.Load("app")
+func setUpVault(ctx context.Context) (Vault, error) {
+	if err := env.Load("app"); err != nil {
+		return Vault{}, err
+	}
 
 	if err := vaultdata.Seed(); err != nil {
-		panic(err)
+		return Vault{}, err
 	}
 
 	host := os.Getenv("VAULT_HOST")
@@ -36,10 +38,10 @@ func setUpVault(ctx context.Context) Vault {
 
 	vault, err := Make(ctx, host, port, token, config, mocks.NewBroker(), nulls.NullTracer{}, nulls.NullLogger{})
 	if err != nil {
-		panic(err)
+		return Vault{}, err
 	}
 
-	return vault
+	return vault, nil
 }
 
 func TestVault_GetKeySet(t *testing.T) {
@@ -89,7 +91,11 @@ func TestVault_GetKeySet(t *testing.T) {
 			ctx, cancel := context.WithTimeout(context.Background(), time.Second*2)
 			defer cancel()
 
-			db := setUpVault(ctx)
+			db, err := setUpVault(ctx)
+			if err != nil {
+				t.Errorf("Vault.GetKeySet() error = %v", err)
+				return
+			}
 
 			got, err := db.GetKeySet(ctx)
 			if (err != nil) != tt.wantErr {
@@ -130,7 +136,11 @@ func TestVault_list(t *testing.T) {
 			ctx, cancel := context.WithTimeout(context.Background(), time.Second*2)
 			defer cancel()
 
-			db := setUpVault(ctx)
+			db, err := setUpVault(ctx)
+			if err != nil {
+				t.Errorf("Vault.list() error = %v", err)
+				return
+			}
 
 			got, err := db.list(ctx, tt.args.path)
 			if (err != nil) != tt.wantErr {
@@ -154,7 +164,11 @@ func TestVault_purge(t *testing.T) {
 		ctx, cancel := context.WithTimeout(context.Background(), time.Second*2)
 		defer cancel()
 
-		db := setUpVault(ctx)
+		db, err := setUpVault(ctx)
+		if err != nil {
+			t.Errorf("Vault.purge() error = %v", err)
+			return
+		}
 
 		if err := db.purge(ctx); err != nil {
 			t.Errorf("Vault.purge() error = %v", err)
@@ -201,7 +215,11 @@ func TestVault_create(t *testing.T) {
 			ctx, cancel := context.WithTimeout(context.Background(), time.Second*2)
 			defer cancel()
 
-			db := setUpVault(ctx)
+			db, err := setUpVault(ctx)
+			if err != nil {
+				t.Errorf("Vault.create() error = %v", err)
+				return
+			}
 
 			if err := db.create(ctx, tt.args.secret); (err != nil) != tt.wantErr {
 				t.Errorf("Vault.create() error = %v, wantErr %v", err, tt.wantErr)

@@ -16,7 +16,9 @@ import (
 var ErrFailedToParseKey = errors.New("failed to parse key")
 
 func Seed() error {
-	env.Load("app")
+	if err := env.Load("app"); err != nil {
+		return err
+	}
 
 	host := os.Getenv("VAULT_HOST")
 	port := os.Getenv("VAULT_PORT")

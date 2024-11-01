@@ -21,7 +21,9 @@ var Token = entity.Token{
 }
 
 func Seed() error {
-	env.Load("app")
+	if err := env.Load("app"); err != nil {
+		return err
+	}
 
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second*5)
 	defer cancel()
