@@ -3,7 +3,6 @@ package translator
 import (
 	"context"
 	"errors"
-	"fmt"
 	"io"
 	"testing"
 	"time"
@@ -129,53 +128,6 @@ func TestTranslator_handleJobs(t *testing.T) {
 	}
 }
 
-func Test_isStreamRenewable(t *testing.T) {
-	type args struct {
-		err error
-	}
-	tests := []struct {
-		name string
-		args args
-		want bool
-	}{
-		{
-			name: "Test returns false when error is nil",
-			args: args{
-				err: nil,
-			},
-			want: false,
-		},
-		{
-			name: "Test returns false when error is io.EOF",
-			args: args{
-				err: io.EOF,
-			},
-			want: false,
-		},
-		{
-			name: "Test returns true when error is wrapped io.EOF",
-			args: args{
-				err: fmt.Errorf("%w", io.EOF),
-			},
-			want: true,
-		},
-		{
-			name: "Test returns true on valid error",
-			args: args{
-				err: errors.New("test err"),
-			},
-			want: true,
-		},
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			if got := isStreamRenewable(tt.args.err); got != tt.want {
-				t.Errorf("isStreamRenewable():\n got = %v\n want = %v", got, tt.want)
-			}
-		})
-	}
-}
-
 func TestTranslator_TranslateAccessToken(t *testing.T) {
 	type fields struct {
 		grpcClient pb.AuthServiceClient
@@ -246,7 +198,7 @@ func TestTranslator_TranslateAccessToken(t *testing.T) {
 			fields: fields{
 				grpcClient: func() mocks.AuthClient {
 					s := mocks.NewAuthStreamClient()
-					s.On("Send", &pb.TranslateAccessTokenRequest{OpaqueAccessToken: "test-opaque", Metadata: map[string]string{}}).Return(io.EOF).Once()
+					s.On("Send", &pb.TranslateAccessTokenRequest{OpaqueAccessToken: "", Metadata: map[string]string{}}).Return(io.EOF).Once()
 					s.On("Send", &pb.TranslateAccessTokenRequest{OpaqueAccessToken: "test-opaque", Metadata: map[string]string{}}).Return(nil).Once()
 					s.On("Recv").Return(&pb.TranslateAccessTokenResponse{AccessToken: "test-token"}, nil).Once()
 
@@ -254,7 +206,7 @@ func TestTranslator_TranslateAccessToken(t *testing.T) {
 					m.On("TranslateAccessToken", mock.Anything, mock.Anything).Return(s, nil).Once()
 					return m
 				}(),
-				config: Config{JobQueueSize: 2},
+				config: Config{JobQueueSize: 1},
 			},
 			args:    args{opaqueAccessToken: "test-opaque"},
 			want:    "test-token",
@@ -316,7 +268,7 @@ func TestTranslator_maybeSendRenewStreamSig(t *testing.T) {
 		}
 	})
 
-	t.Run("Test a streamAborted signal is sent on an unknown error", func(t *testing.T) {
+	t.Run("Test if does not block on an unknown error and a full queue", func(t *testing.T) {
 		ctx, cancel := context.WithCancel(context.Background())
 		defer cancel()
 
@@ -360,35 +312,51 @@ func TestTranslator_maybeSendRenewStreamSig(t *testing.T) {
 	})
 }
 
-func Test_makeResult(t *testing.T) {
-	type args struct {
-		accessToken string
-		metadata    map[string]string
-		err         error
-	}
-	tests := []struct {
-		name string
-		args args
-		want result
-	}{
-		{
-			name: "Test fields are assigned",
-			args: args{
-				accessToken: "test-token",
-				err:         io.EOF,
-			},
-			want: result{
-				TranslatedAccessToken: "test-token",
-				Err:                   io.EOF,
-				Metadata:              nil,
-			},
-		},
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			if got := makeResult(tt.args.accessToken, tt.args.metadata, tt.args.err); !cmp.Equal(got, tt.want, cmp.Comparer(func(err, err2 error) bool { return err == err2 })) {
-				t.Errorf("makeResult():\n got = %v\n want = %v", got, tt.want)
-			}
-		})
-	}
+func TestTranslator_sendJobResultOrRequeue(t *testing.T) {
+	t.Run("Test job is requeued on io.EOF", func(t *testing.T) {
+		tr := NewTranslator(nil, Config{JobQueueSize: 1})
+
+		resp := &pb.TranslateAccessTokenResponse{}
+		job := job{
+			OpaqueAccessToken: "test-opaque-token",
+			ResultC:           make(chan result),
+			Metadata:          map[string]string{},
+		}
+
+		tr.sendJobResultOrRequeue(job, resp, io.EOF)
+
+		if len(tr.jobs) != 1 {
+			t.Error("Translator.sendJobResultOrRequeue(): job was not requeued")
+		}
+	})
+
+	t.Run("Test job is not requeued on unknown error", func(t *testing.T) {
+		tr := NewTranslator(nil, Config{JobQueueSize: 1})
+
+		resp := &pb.TranslateAccessTokenResponse{AccessToken: "test-access-token", Metadata: map[string]string{}}
+		job := job{
+			OpaqueAccessToken: "test-opaque-token",
+			ResultC:           make(chan result, 1),
+			Metadata:          map[string]string{},
+		}
+		err := errors.New("test-err")
+		want := result{
+			TranslatedAccessToken: resp.GetAccessToken(),
+			Metadata:              resp.GetMetadata(),
+			Err:                   err,
+		}
+
+		tr.sendJobResultOrRequeue(job, resp, err)
+
+		if len(tr.jobs) == 1 {
+			t.Error("Translator.sendJobResultOrRequeue(): job was requeued")
+		}
+
+		got := <-job.ResultC
+
+		errCmp := func(e1, e2 error) bool { return errors.Is(e1, e2) }
+		if !cmp.Equal(got, want, cmp.Comparer(errCmp)) {
+			t.Errorf("Translator.sendJobResultOrRequeue():\n want = %v\n got = %v\n", want, got)
+		}
+	})
 }

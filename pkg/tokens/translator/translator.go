@@ -120,20 +120,13 @@ func (t *Translator) handleJobs(ctx context.Context) {
 
 				if err := t.stream.Send(&pb.TranslateAccessTokenRequest{OpaqueAccessToken: job.OpaqueAccessToken, Metadata: job.Metadata}); err != nil {
 					t.maybeSendRenewStreamSig(err)
-					if err == io.EOF {
-						t.jobs <- job
-						return
-					}
-					job.ResultC <- makeResult("", job.Metadata, err)
-					close(job.ResultC)
+					t.sendJobResultOrRequeue(job, nil, err)
 					return
 				}
 
 				resp, err := t.stream.Recv()
 				t.maybeSendRenewStreamSig(err)
-
-				job.ResultC <- makeResult(resp.GetAccessToken(), resp.GetMetadata(), err)
-				close(job.ResultC)
+				t.sendJobResultOrRequeue(job, resp, err)
 			}()
 		case <-ctx.Done():
 			return
@@ -141,45 +134,37 @@ func (t *Translator) handleJobs(ctx context.Context) {
 	}
 }
 
-// makeResult construct a result to respond with to a job.
-// Takes an access token and err returned by the gRPC client.
-// If the error is io.EOF then it will not be assigned to the result.
-func makeResult(accessToken string, metadata map[string]string, err error) result {
-	return result{
-		TranslatedAccessToken: accessToken,
-		Metadata:              metadata,
+// sendJobResultOrRequeue takes in a job to handle and both response and error returned by the gRPC stream.
+// If the received error is io.EOF then the job is appended to the job queue for a retrial.
+// Otherwise response and error are sent through the result channel. The channel is closed afterwards.
+func (t Translator) sendJobResultOrRequeue(j job, resp *pb.TranslateAccessTokenResponse, err error) {
+	if err == io.EOF {
+		t.jobs <- j
+		return
+	}
+
+	j.ResultC <- result{
+		TranslatedAccessToken: resp.GetAccessToken(),
+		Metadata:              resp.GetMetadata(),
 		Err:                   err,
 	}
+
+	close(j.ResultC)
 }
 
 // maybeSendRenewStreamSig sends a signal to Translator if
-// the following conditions are met:
+// any of the following conditions are met:
 //   - given error is not nil,
-//   - given error is not io.EOF,
 //   - Translator is currently not renewing the stream.
 //
 // Use this func to determine whether the error returned by grpc.ClientStream
-// methods indicates that the stream was aborted and needs to be renewed.
+// indicates that the stream was aborted and needs to be renewed.
 func (t *Translator) maybeSendRenewStreamSig(err error) {
-	if isStreamRenewable(err) {
+	if err != nil {
 		// Stream is being renewed or is going to be renewed shortly.
 		// No need to bloat the buffer.
 		chans.NonBlockSend(t.streamAborted, struct{}{})
 	}
-}
-
-// isStreamRenewable returns true if given error is non-nil and not io.EOF.
-func isStreamRenewable(err error) bool {
-	if err == nil {
-		return false
-	}
-
-	if err == io.EOF {
-		// Stream was closed naturally and does not need to be renewed.
-		return false
-	}
-
-	return true
 }
 
 // handleStreamRenewals listens for Translator signals
