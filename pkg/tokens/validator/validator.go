@@ -31,8 +31,8 @@ type JWTValidator struct {
 	issuer string
 
 	// refreshFunc is used to retrieve a fresh keyset.
-	// It's used by TokenValidator to refresh the keyset used for JWT validation
-	// each time it fails to find an expected key.
+	// It's used by TokenValidator to refresh the keyset used for
+	// JWT validation each time it fails to find an expected key.
 	refreshFunc RefreshFunc
 
 	// clock is used to return current time when validating JWTs.
@@ -41,7 +41,8 @@ type JWTValidator struct {
 
 	logger logging.Logger
 
-	// keySetExpired is a channel which notifies when the current keyset is outdated
+	// keySetExpired is a channel which notifies when the current keyset is outdated.
+	// The map contains the event's metadata, e.g TraceId.
 	keySetExpired chan map[string]string
 
 	keySetMutex   sync.RWMutex
@@ -85,9 +86,9 @@ func NewValidator(issuer string, refreshFunc RefreshFunc, options ...Option) (*J
 	return v, nil
 }
 
-// Run starts up the validator to refresh the its keySet automatically using its RefreshFunc.
-// This function will block until provided context is cancelled or the validator
-// fails to fetch a new keyset.
+// Run starts up the validator to refresh its keySet automatically
+// using its RefreshFunc. This function will block until provided
+// context is cancelled or the validator fails to fetch a new keyset.
 func (validator *JWTValidator) Run(ctx context.Context) {
 	// Set keySet on start.
 	validator.keySetExpired <- nil
@@ -113,13 +114,13 @@ func (validator *JWTValidator) Run(ctx context.Context) {
 	}
 }
 
-// ValidateToken returns a non-nil error if the token is expired,
-// signature is invalid or any of the token's claims are different than expected.
+// ValidateToken returns a non-nil error if the token is expired, signature
+// is invalid or any of the token's claims are different than expected.
 // Eg. token was issued in the future or specified 'kid' does not exist.
 //
-// Note that if the keyset expires, this method will not wait for a new keyset to be fetched
-// and instead it will return an error and will continue to do so until
-// an updated keyset is successfully retrieved.
+// Note that if the keyset expires, this method will not wait for a new keyset
+// to be fetched and instead it will return an error and will continue to do
+// so until an updated keyset is successfully retrieved.
 func (validator *JWTValidator) ValidateToken(token string) error {
 	jwToken, err := jwt.ParseString(token, jwt.WithKeySetProvider(validator.keySetProvider()))
 	if err != nil {
@@ -169,8 +170,8 @@ func WithLogger(logger logging.Logger) Option {
 	})
 }
 
-// fetchKeySet invokes the RefreshFunc and serializes keys into validator's keySet.
-// Safe for concurrent use.
+// fetchKeySet invokes the RefreshFunc and serializes keys
+// into validator's keySet. Safe for concurrent use.
 func (validator *JWTValidator) fetchKeySet(ctx context.Context) (err error) {
 	defer func() {
 		if err != nil {
@@ -197,8 +198,8 @@ func (validator *JWTValidator) fetchKeySet(ctx context.Context) (err error) {
 	return nil
 }
 
-// keySetProvider returns a callback that safely returns the keyset for the library to use when verifying a JWS.
-// Safe for concurrent use.
+// keySetProvider returns a callback that safely returns the keyset for
+// the library to use when verifying a JWS. Safe for concurrent use.
 func (validator *JWTValidator) keySetProvider() jwt.KeySetProvider {
 	return jwt.KeySetProviderFunc(func(jwt.Token) (jwk.Set, error) {
 		validator.keySetMutex.RLock()
@@ -210,8 +211,8 @@ func (validator *JWTValidator) keySetProvider() jwt.KeySetProvider {
 			return nil, ErrKeySetNotFound
 		}
 
-		// Clone the keyset so it can that the jwx library
-		// won't cause a data race when reading keys from while they are updated.
+		// Clone the keyset so that the jwx library won't cause a data
+		// race when reading keys from it while they are updated.
 		return validator.keySet.Clone()
 	})
 }
