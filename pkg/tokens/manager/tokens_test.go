@@ -5,14 +5,14 @@ import (
 
 	"github.com/google/go-cmp/cmp"
 	"github.com/krixlion/dev_forum-auth/pkg/entity"
+	"github.com/krixlion/dev_forum-auth/pkg/entity/testdata"
 	"github.com/krixlion/dev_forum-auth/pkg/tokens"
-	"github.com/krixlion/dev_forum-auth/pkg/tokens/manager/testdata"
 	"github.com/lestrrat-go/jwx/jwa"
 )
 
 func setUpTokenManager() StdTokenManager {
 	m := MakeManager(Config{
-		Issuer: testdata.TestIssuer,
+		Issuer: testdata.Issuer,
 	})
 	return m
 }
@@ -32,9 +32,9 @@ func TestTokenManager_Encode(t *testing.T) {
 			name: "Test if correctly encodes and signes a token struct",
 			args: args{
 				privateKey: testdata.TestKey,
-				token:      testdata.TestToken,
+				token:      testdata.AccessToken,
 			},
-			want: testdata.SignedJWT,
+			want: testdata.AccessJWToken,
 		},
 	}
 	for _, tt := range tests {
@@ -42,12 +42,11 @@ func TestTokenManager_Encode(t *testing.T) {
 			m := setUpTokenManager()
 			got, err := m.Encode(tt.args.privateKey, tt.args.token)
 			if (err != nil) != tt.wantErr {
-				t.Errorf("TokenManager.Encode() error = %v, wantErr %v", err, tt.wantErr)
-				return
+				t.Fatalf("TokenManager.Encode() error = %v, wantErr %v", err, tt.wantErr)
 			}
 
 			if string(got) != tt.want {
-				t.Errorf("TokenManager.Encode():\n got = %v\n want = %v\n", string(got), tt.want)
+				t.Fatalf("TokenManager.Encode():\n got = %v\n want = %v\n", string(got), tt.want)
 			}
 		})
 	}
@@ -78,17 +77,15 @@ func TestTokenManager_GenerateOpaque(t *testing.T) {
 
 			got, gotTokenId, err := m.GenerateOpaque(tt.args.prefixType)
 			if (err != nil) != tt.wantErr {
-				t.Errorf("TokenManager.GenerateOpaqueToken() error = %v, wantErr %v", err, tt.wantErr)
-				return
+				t.Fatalf("TokenManager.GenerateOpaque() error = %v, wantErr %v", err, tt.wantErr)
 			}
 
 			if got != tt.want {
-				t.Errorf("TokenManager.GenerateOpaqueToken():\n got = %v\n want = %v\n", got, tt.want)
-				return
+				t.Errorf("TokenManager.GenerateOpaque():\n got = %v\n want = %v\n", got, tt.want)
 			}
 
 			if gotTokenId != tt.wantTokenId {
-				t.Errorf("TokenManager.GenerateOpaqueToken():\n gotTokenId = %v\n want = %v\n", gotTokenId, tt.wantTokenId)
+				t.Fatalf("TokenManager.GenerateOpaque():\n gotTokenId = %v\n want = %v\n", gotTokenId, tt.wantTokenId)
 			}
 		})
 	}
@@ -119,11 +116,11 @@ func TestTokenManager_DecodeOpaque(t *testing.T) {
 			m := setUpTokenManager()
 			got, err := m.DecodeOpaque(tt.args.typ, tt.args.encodedOpaqueToken)
 			if (err != nil) != tt.wantErr {
-				t.Errorf("TokenManager.DecodeOpaqueToken() error = %v, wantErr %v", err, tt.wantErr)
-				return
+				t.Fatalf("TokenManager.DecodeOpaque() error = %v, wantErr %v", err, tt.wantErr)
 			}
+
 			if got != tt.want {
-				t.Errorf("TokenManager.DecodeOpaqueToken() = %v, want %v", got, tt.want)
+				t.Fatalf("TokenManager.DecodeOpaque() = %v, want %v", got, tt.want)
 			}
 		})
 	}
@@ -153,11 +150,11 @@ func Test_decodeAndValidateOpaque(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			got, err := decodeAndValidateOpaque(tt.args.rawToken)
 			if (err != nil) != tt.wantErr {
-				t.Errorf("TokenManager.decodeAndValidateOpaque() error = %v, wantErr %v", err, tt.wantErr)
-				return
+				t.Fatalf("decodeAndValidateOpaque() error = %v, wantErr %v", err, tt.wantErr)
 			}
+
 			if got != tt.want {
-				t.Errorf("TokenManager.decodeAndValidateOpaque() = %v, want %v", got, tt.want)
+				t.Fatalf("decodeAndValidateOpaque() = %v, want %v", got, tt.want)
 			}
 		})
 	}
@@ -205,11 +202,11 @@ func Test_toJwaAlgorithm(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			got, err := toJwaAlgorithm(tt.args.algo)
 			if (err != nil) != tt.wantErr {
-				t.Errorf("verifyAlgorithm() error = %v, wantErr %v", err, tt.wantErr)
-				return
+				t.Fatalf("toJwaAlgorithm() error = %v, wantErr %v", err, tt.wantErr)
 			}
+
 			if !cmp.Equal(got, tt.want) {
-				t.Errorf("verifyAlgorithm() = %v, want %v", got, tt.want)
+				t.Fatalf("toJwaAlgorithm() = %v, want %v", got, tt.want)
 			}
 		})
 	}

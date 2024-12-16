@@ -21,8 +21,8 @@ type Manager interface {
 	DecodeOpaque(typ OpaqueTokenPrefix, encodedOpaqueToken string) (string, error)
 }
 
-type Validator interface {
-	ValidateToken(string) error
+type Parser interface {
+	ParseToken(string) (entity.Token, error)
 }
 
 type Translator interface {

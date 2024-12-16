@@ -1,4 +1,4 @@
-package validator
+package parser
 
 import (
 	"context"
@@ -6,33 +6,23 @@ import (
 	"time"
 
 	"github.com/krixlion/dev_forum-auth/internal/gentest"
+	"github.com/krixlion/dev_forum-auth/pkg/entity"
+	"github.com/krixlion/dev_forum-auth/pkg/entity/testdata"
 	"github.com/lestrrat-go/jwx/jwt"
 )
 
-const testIssuer = "test"
+var testClockFunc = jwt.ClockFunc(func() time.Time {
+	return time.Unix(1682517486, 0)
+})
 
-// Signed valid JWT token.
-const (
-	testAccessToken  = "eyJhbGciOiJIUzI1NiIsImtpZCI6InRlc3QiLCJ0eXAiOiJKV1QifQ.eyJleHAiOjE2ODI1MTc1NzIsImlhdCI6MTY4MjUxNzI4NiwiaXNzIjoidGVzdCIsImp0aSI6InRlc3QiLCJzdWIiOiJ0ZXN0LWlkIiwidHlwZSI6ImFjY2Vzcy10b2tlbiJ9.wxoMBhYMLxZo_0il-EeQOnfcYUXfyuGWI--3IiYupbY"
-	testRefreshToken = "eyJhbGciOiJIUzI1NiIsImtpZCI6InRlc3QiLCJ0eXAiOiJKV1QifQ.eyJleHAiOjE2ODI1MTc1NzIsImlhdCI6MTY4MjUxNzI4NiwiaXNzIjoidGVzdCIsImp0aSI6InRlc3QiLCJzdWIiOiJ0ZXN0LWlkIiwidHlwZSI6InJlZnJlc2gtdG9rZW4ifQ.uiDFSRVO5urzRb5u4aXD4fn15hmNZN9w8ArDDdbLC5Q"
-)
+var testKey = Key{
+	Id:        "test",
+	Algorithm: "HS256",
+	Raw:       testdata.HMACKey,
+}
 
-var (
-	testHMACKey = []byte("key")
-
-	testClockFunc = jwt.ClockFunc(func() time.Time {
-		return time.Unix(1682517486, 0)
-	})
-
-	testKey = Key{
-		Id:        "test",
-		Algorithm: "HS256",
-		Raw:       testHMACKey,
-	}
-)
-
-func setUpTokenValidator(ctx context.Context, refreshFunc RefreshFunc, clockFunc jwt.Clock) *JWTValidator {
-	v, err := NewValidator(testIssuer, refreshFunc, WithClock(clockFunc))
+func setUpTokenParser(ctx context.Context, refreshFunc RefreshFunc, clockFunc jwt.Clock) *JWTParser {
+	v, err := NewParser(testdata.Issuer, refreshFunc, WithClock(clockFunc))
 	if err != nil {
 		panic(err)
 	}
@@ -47,7 +37,7 @@ func setUpTokenValidator(ctx context.Context, refreshFunc RefreshFunc, clockFunc
 	return v
 }
 
-func TestJWTValidator_ValidateToken(t *testing.T) {
+func TestJWTParser_ParseToken(t *testing.T) {
 	type args struct {
 		token string
 	}
@@ -56,23 +46,25 @@ func TestJWTValidator_ValidateToken(t *testing.T) {
 		args        args
 		refreshFunc RefreshFunc
 		clockFunc   jwt.Clock
+		want        entity.Token
 		wantErr     bool
 	}{
 		{
 			name: "Test if correctly parses a valid token",
 			args: args{
-				token: testAccessToken,
+				token: testdata.AccessJWToken,
 			},
 			refreshFunc: func(ctx context.Context) ([]Key, error) {
 				return []Key{testKey}, nil
 			},
 			clockFunc: testClockFunc,
+			want:      testdata.AccessToken,
 			wantErr:   false,
 		},
 		{
 			name: "Test if fails on invalid token type",
 			args: args{
-				token: testRefreshToken,
+				token: testdata.RefreshJWToken,
 			},
 			refreshFunc: func(ctx context.Context) ([]Key, error) {
 				return []Key{testKey}, nil
@@ -83,14 +75,14 @@ func TestJWTValidator_ValidateToken(t *testing.T) {
 		{
 			name: "Test if fails on invalid algorithm",
 			args: args{
-				token: testRefreshToken,
+				token: testdata.AccessJWToken,
 			},
 			refreshFunc: func(ctx context.Context) ([]Key, error) {
 				return []Key{{
 					Id:        "test",
 					Type:      "HMAC",
-					Algorithm: "HS256",
-					Raw:       testHMACKey,
+					Algorithm: "RS256",
+					Raw:       testdata.HMACKey,
 				}}, nil
 			},
 			clockFunc: testClockFunc,
@@ -99,7 +91,7 @@ func TestJWTValidator_ValidateToken(t *testing.T) {
 		{
 			name: "Test if fails on expired token",
 			args: args{
-				token: testRefreshToken,
+				token: testdata.AccessJWToken,
 			},
 			refreshFunc: func(ctx context.Context) ([]Key, error) {
 				return []Key{testKey}, nil
@@ -127,17 +119,24 @@ func TestJWTValidator_ValidateToken(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			ctx, cancel := context.WithTimeout(context.Background(), time.Second)
 			defer cancel()
-			v := setUpTokenValidator(ctx, tt.refreshFunc, tt.clockFunc)
+			parser := setUpTokenParser(ctx, tt.refreshFunc, tt.clockFunc)
+			got, err := parser.ParseToken(tt.args.token)
+			if (err != nil) != tt.wantErr {
+				t.Fatalf("JWTParser.ParseToken() error = %v, wantErr = %v", err, tt.wantErr)
+			}
 
-			if err := v.ValidateToken(tt.args.token); (err != nil) != tt.wantErr {
-				t.Errorf("TokenManager.ValidateToken() error = %v, wantErr %v", err, tt.wantErr)
+			if tt.wantErr {
 				return
+			}
+
+			if got != tt.want {
+				t.Fatalf("JWTParser.ParseToken():\n got = %v\n want = %v", got, tt.want)
 			}
 		})
 	}
 }
 
-func Test_NewTokenValidator(t *testing.T) {
+func Test_NewTokenParser(t *testing.T) {
 	type args struct {
 		Issuer      string
 		RefreshFunc RefreshFunc
@@ -151,7 +150,7 @@ func Test_NewTokenValidator(t *testing.T) {
 		{
 			name: "Test if returns an error on nil RefreshFunc",
 			args: args{
-				Issuer:      testIssuer,
+				Issuer:      testdata.Issuer,
 				options:     []Option{WithClock(testClockFunc)},
 				RefreshFunc: nil,
 			},
@@ -160,7 +159,7 @@ func Test_NewTokenValidator(t *testing.T) {
 		{
 			name: "Test if does not return an err on nil Clock",
 			args: args{
-				Issuer:      testIssuer,
+				Issuer:      testdata.Issuer,
 				options:     []Option{WithClock(nil)},
 				RefreshFunc: func(ctx context.Context) ([]Key, error) { return nil, nil },
 			},
@@ -169,18 +168,17 @@ func Test_NewTokenValidator(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if _, err := NewValidator(tt.args.Issuer, tt.args.RefreshFunc, tt.args.options...); (err != nil) != tt.wantErr {
-				t.Errorf("MakeTokenValidator() error = %v, wantErr %v", err, tt.wantErr)
+			if _, err := NewParser(tt.args.Issuer, tt.args.RefreshFunc, tt.args.options...); (err != nil) != tt.wantErr {
+				t.Fatalf("MakeTokenParser() error = %v, wantErr %v", err, tt.wantErr)
 			}
 		})
 	}
 }
 
-func TestJWTValidator_RunReturnsOnContextCancellation(t *testing.T) {
-	validator, err := NewValidator("", func(ctx context.Context) ([]Key, error) { return []Key{testKey}, nil })
+func TestJWTParser_RunReturnsOnContextCancellation(t *testing.T) {
+	parser, err := NewParser("", func(ctx context.Context) ([]Key, error) { return []Key{testKey}, nil })
 	if err != nil {
-		t.Errorf("JWTValidator.Run() unexpected error = %v", err)
-		return
+		t.Fatalf("JWTParser.Run() unexpected error = %v", err)
 	}
 
 	ctx, cancel := context.WithCancel(context.Background())
@@ -188,7 +186,7 @@ func TestJWTValidator_RunReturnsOnContextCancellation(t *testing.T) {
 	done := make(chan struct{})
 
 	go func() {
-		validator.Run(ctx)
+		parser.Run(ctx)
 		done <- struct{}{}
 	}()
 	cancel()
@@ -198,7 +196,7 @@ func TestJWTValidator_RunReturnsOnContextCancellation(t *testing.T) {
 
 	select {
 	case <-ctxT.Done():
-		t.Errorf("JWTValidator.Run() did not return on context cancellation")
+		t.Fatalf("JWTParser.Run() did not return on context cancellation")
 	case <-done:
 		return
 	}

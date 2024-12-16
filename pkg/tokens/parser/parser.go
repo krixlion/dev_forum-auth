@@ -1,4 +1,4 @@
-package validator
+package parser
 
 import (
 	"context"
@@ -7,6 +7,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/krixlion/dev_forum-auth/pkg/entity"
 	"github.com/krixlion/dev_forum-auth/pkg/tokens"
 	"github.com/krixlion/dev_forum-lib/event"
 	"github.com/krixlion/dev_forum-lib/event/dispatcher"
@@ -17,8 +18,8 @@ import (
 	"github.com/lestrrat-go/jwx/jwt"
 )
 
-var _ tokens.Validator = (*JWTValidator)(nil)
-var _ dispatcher.Listener = (*JWTValidator)(nil)
+var _ tokens.Parser = (*JWTParser)(nil)
+var _ dispatcher.Listener = (*JWTParser)(nil)
 
 var (
 	ErrKeysNotReceived        = errors.New("no keys were received")
@@ -26,13 +27,12 @@ var (
 	ErrRefreshFuncNotProvided = errors.New("no refreshFunc was provided to refresh the keyset")
 )
 
-type JWTValidator struct {
+type JWTParser struct {
 	// Expected tokens issuer, used to validate JWTs.
 	issuer string
 
-	// refreshFunc is used to retrieve a fresh keyset.
-	// It's used by TokenValidator to refresh the keyset used for
-	// JWT validation each time it fails to find an expected key.
+	// refreshFunc is used to refresh the keyset used for JWT
+	// validation each time it fails to find an expected key.
 	refreshFunc RefreshFunc
 
 	// clock is used to return current time when validating JWTs.
@@ -51,20 +51,20 @@ type JWTValidator struct {
 }
 
 type Option interface {
-	apply(*JWTValidator)
+	apply(*JWTParser)
 }
 
-// NewValidator returns a new instance or a non-nil error if provided RefreshFunc is nil.
+// NewParser returns a new instance or a non-nil error if provided RefreshFunc is nil.
 // If no Clock is provided time.Now() is used by default.
 // If no logger is provided then logging is disabled by default.
 //
 // Make sure to invoke Run() before verifying tokens to start fetching keysets.
-func NewValidator(issuer string, refreshFunc RefreshFunc, options ...Option) (*JWTValidator, error) {
+func NewParser(issuer string, refreshFunc RefreshFunc, options ...Option) (*JWTParser, error) {
 	if refreshFunc == nil {
 		return nil, ErrRefreshFuncNotProvided
 	}
 
-	v := &JWTValidator{
+	v := &JWTParser{
 		issuer:        issuer,
 		refreshFunc:   refreshFunc,
 		keySetExpired: make(chan map[string]string, 1),
@@ -86,100 +86,106 @@ func NewValidator(issuer string, refreshFunc RefreshFunc, options ...Option) (*J
 	return v, nil
 }
 
-// Run starts up the validator to refresh its keySet automatically
+// Run starts up the parser to refresh its keySet automatically
 // using its RefreshFunc. This function will block until provided
-// context is cancelled or the validator fails to fetch a new keyset.
-func (validator *JWTValidator) Run(ctx context.Context) {
+// context is cancelled or the parser fails to fetch a new keyset.
+func (parser *JWTParser) Run(ctx context.Context) {
 	// Set keySet on start.
-	validator.keySetExpired <- nil
+	parser.keySetExpired <- nil
 
 	for {
 		select {
-		case metadata := <-validator.keySetExpired:
-			isTooEarly := validator.clock.Now().Sub(validator.lastRefreshed) < time.Second
-			isNotInit := validator.lastRefreshed != time.Time{}
+		case metadata := <-parser.keySetExpired:
+			isTooEarly := parser.clock.Now().Sub(parser.lastRefreshed) < time.Second
+			isNotInit := parser.lastRefreshed != time.Time{}
 
 			if isTooEarly && isNotInit {
 				continue
 			}
 
-			if err := validator.fetchKeySet(tracing.InjectMetadataIntoContext(ctx, metadata)); err != nil {
-				validator.logger.Log(ctx, "Failed to fetch a new keyset", "err", err)
+			if err := parser.fetchKeySet(tracing.InjectMetadataIntoContext(ctx, metadata)); err != nil {
+				parser.logger.Log(ctx, "Failed to fetch a new keyset", "err", err)
 			}
 
 		case <-ctx.Done():
-			validator.logger.Log(ctx, "Shutting down JWT validator")
+			parser.logger.Log(ctx, "Shutting down JWT parser")
 			return
 		}
 	}
 }
 
-// ValidateToken returns a non-nil error if the token is expired, signature
-// is invalid or any of the token's claims are different than expected.
+// ParseToken returns a non-nil error if the token is expired, signature
+// is invalid or any of the token's claims are invalid.
 // Eg. token was issued in the future or specified 'kid' does not exist.
 //
 // Note that if the keyset expires, this method will not wait for a new keyset
-// to be fetched and instead it will return an error and will continue to do
+// to be fetched and instead it will return an error and it will continue to do
 // so until an updated keyset is successfully retrieved.
-func (validator *JWTValidator) ValidateToken(token string) error {
-	jwToken, err := jwt.ParseString(token, jwt.WithKeySetProvider(validator.keySetProvider()))
+func (parser *JWTParser) ParseToken(s string) (entity.Token, error) {
+	jwToken, err := jwt.ParseString(s, jwt.WithKeySetProvider(parser.keySetProvider()))
 	if err != nil {
-		return err
+		return entity.Token{}, err
 	}
 
 	validateOptions := []jwt.ValidateOption{
-		jwt.WithIssuer(validator.issuer),
-		jwt.WithClock(validator.clock),
+		jwt.WithIssuer(parser.issuer),
+		jwt.WithClock(parser.clock),
 	}
 
 	if err := jwt.Validate(jwToken, validateOptions...); err != nil {
-		return err
+		return entity.Token{}, err
 	}
 
 	if tokenType, ok := jwToken.Get("type"); !ok || tokenType != "access-token" {
-		return tokens.ErrInvalidTokenType
+		return entity.Token{}, tokens.ErrInvalidTokenType
 	}
 
-	return nil
+	return entity.Token{
+		Id:        jwToken.JwtID(),
+		UserId:    jwToken.Subject(),
+		Type:      entity.AccessToken,
+		ExpiresAt: jwToken.Expiration(),
+		IssuedAt:  jwToken.IssuedAt(),
+	}, nil
 }
 
-func (validator *JWTValidator) EventHandlers() map[event.EventType][]event.Handler {
+func (parser *JWTParser) EventHandlers() map[event.EventType][]event.Handler {
 	return map[event.EventType][]event.Handler{
 		event.KeySetUpdated: {
 			event.HandlerFunc(func(e event.Event) {
-				validator.keySetExpired <- e.Metadata
+				parser.keySetExpired <- e.Metadata
 			}),
 		}}
 }
 
-type optionFunc func(*JWTValidator)
+type optionFunc func(*JWTParser)
 
-func (fn optionFunc) apply(validator *JWTValidator) {
-	fn(validator)
+func (fn optionFunc) apply(parser *JWTParser) {
+	fn(parser)
 }
 
 func WithClock(clock jwt.Clock) Option {
-	return optionFunc(func(validator *JWTValidator) {
-		validator.clock = clock
+	return optionFunc(func(parser *JWTParser) {
+		parser.clock = clock
 	})
 }
 
 func WithLogger(logger logging.Logger) Option {
-	return optionFunc(func(validator *JWTValidator) {
-		validator.logger = logger
+	return optionFunc(func(parser *JWTParser) {
+		parser.logger = logger
 	})
 }
 
 // fetchKeySet invokes the RefreshFunc and serializes keys
-// into validator's keySet. Safe for concurrent use.
-func (validator *JWTValidator) fetchKeySet(ctx context.Context) (err error) {
+// into parser's keySet. Safe for concurrent use.
+func (parser *JWTParser) fetchKeySet(ctx context.Context) (err error) {
 	defer func() {
 		if err != nil {
 			err = fmt.Errorf("failed to fetch keyset: %w", err)
 		}
 	}()
 
-	keys, err := validator.refreshFunc(ctx)
+	keys, err := parser.refreshFunc(ctx)
 	if err != nil {
 		return err
 	}
@@ -189,30 +195,30 @@ func (validator *JWTValidator) fetchKeySet(ctx context.Context) (err error) {
 		return err
 	}
 
-	validator.keySetMutex.Lock()
-	defer validator.keySetMutex.Unlock()
+	parser.keySetMutex.Lock()
+	defer parser.keySetMutex.Unlock()
 
-	validator.keySet = keySet
-	validator.lastRefreshed = validator.clock.Now()
+	parser.keySet = keySet
+	parser.lastRefreshed = parser.clock.Now()
 
 	return nil
 }
 
 // keySetProvider returns a callback that safely returns the keyset for
 // the library to use when verifying a JWS. Safe for concurrent use.
-func (validator *JWTValidator) keySetProvider() jwt.KeySetProvider {
+func (parser *JWTParser) keySetProvider() jwt.KeySetProvider {
 	return jwt.KeySetProviderFunc(func(jwt.Token) (jwk.Set, error) {
-		validator.keySetMutex.RLock()
-		defer validator.keySetMutex.RUnlock()
+		parser.keySetMutex.RLock()
+		defer parser.keySetMutex.RUnlock()
 
-		if validator.keySet == nil {
+		if parser.keySet == nil {
 			// Keyset hasn't been fetched yet.
-			validator.keySetExpired <- nil
+			parser.keySetExpired <- nil
 			return nil, ErrKeySetNotFound
 		}
 
 		// Clone the keyset so that the jwx library won't cause a data
 		// race when reading keys from it while they are updated.
-		return validator.keySet.Clone()
+		return parser.keySet.Clone()
 	})
 }

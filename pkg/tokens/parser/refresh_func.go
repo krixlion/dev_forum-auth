@@ -1,7 +1,8 @@
-package validator
+package parser
 
 import (
 	"context"
+	"crypto"
 	"io"
 
 	"github.com/krixlion/dev_forum-auth/pkg/grpc/protokey"
@@ -20,7 +21,7 @@ type Key struct {
 	Id        string
 	Algorithm string
 	Type      string
-	Raw       interface{}
+	Raw       crypto.PublicKey
 }
 
 // DefaultRefreshFunc returns a callback that uses the auth service as the

@@ -23,7 +23,7 @@ var (
 )
 
 // DeserializeKey detects a gRPC format of key and deserializes it using the corresponding function.
-func DeserializeKey(input proto.Message) (interface{}, error) {
+func DeserializeKey(input proto.Message) (crypto.PublicKey, error) {
 	switch msg := input.(type) {
 	case *rsapb.RSA:
 		return DeserializeRSA(msg)
