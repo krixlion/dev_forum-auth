@@ -28,10 +28,13 @@ func Seed() error {
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second*5)
 	defer cancel()
 
-	port := os.Getenv("DB_PORT")
-	host := os.Getenv("DB_HOST")
 	dbName := os.Getenv("DB_NAME")
-	client, err := connect(ctx, host, port)
+	uri := fmt.Sprintf("mongodb://%s:%s@%s:%s/%s?replicaSet=mongodb&ssl=false", os.Getenv("DB_USER"), os.Getenv("DB_PASS"), os.Getenv("DB_HOST"), os.Getenv("DB_PORT"), dbName)
+
+	serverAPI := options.ServerAPI(options.ServerAPIVersion1)
+	opts := options.Client().ApplyURI(uri).SetServerAPIOptions(serverAPI)
+
+	client, err := mongo.Connect(ctx, opts)
 	if err != nil {
 		return fmt.Errorf("failed to connect to mongodb: %w", err)
 	}
@@ -57,22 +60,4 @@ func Seed() error {
 	}
 
 	return nil
-}
-
-func connect(ctx context.Context, host, port string) (*mongo.Client, error) {
-	// dbUser := os.Getenv("DB_USER")
-	// pass := os.Getenv("DB_PASS")
-	// uri := fmt.Sprintf("mongodb://%s:%s@%s:%s/?retryWrites=true&w=majority&tls=false", dbUser, pass, host, port)
-
-	uri := fmt.Sprintf("mongodb://%s:%s/?retryWrites=true&w=majority&tls=false", host, port)
-
-	serverAPI := options.ServerAPI(options.ServerAPIVersion1)
-	opts := options.Client().ApplyURI(uri).SetServerAPIOptions(serverAPI)
-
-	client, err := mongo.Connect(ctx, opts)
-	if err != nil {
-		return nil, err
-	}
-
-	return client, nil
 }

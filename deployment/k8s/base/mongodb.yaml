@@ -1,83 +1,32 @@
-apiVersion: apps/v1
-kind: StatefulSet
+apiVersion: mongodbcommunity.mongodb.com/v1
+kind: MongoDBCommunity
 metadata:
-  name: mongodb-cluster
+  name: mongodb
 spec:
-  serviceName: mongodb-service
-  replicas: 1
-  selector:
-    matchLabels:
-      database: mongodb
-  volumeClaimTemplates:
-    - metadata:
-        name: mongodb-data
-      spec:
-        accessModes: ["ReadWriteOnce"]
-        resources:
-          requests:
-            storage: 300Mi
-  template:
-    metadata:
-      labels:
-        database: mongodb
-    spec:
-      containers:
-        - name: mongodb-cluster
-          image: mongo:6.0
-          ports:
-            - name: mongodb
-              containerPort: 27017
-              protocol: TCP
-          resources:
-            limits:
-              cpu: 750m
-              memory: 350Mi
-            requests:
-              cpu: 250m
-              memory: 50Mi
-          readinessProbe:
-            exec:
-              command:
-                - mongosh
-                - --eval
-                - "db.adminCommand({ping: 1})"
-            initialDelaySeconds: 5
-            timeoutSeconds: 5
-            periodSeconds: 10
-          volumeMounts:
-            - name: mongodb-scripts
-              mountPath: /docker-entrypoint-initdb.d
-              readOnly: true
-            - name: mongodb-config
-              mountPath: /config
-              readOnly: true
-            - name: mongodb-data
-              mountPath: /data/db
-      volumes:
-        - name: mongodb-scripts
-          configMap:
-            name: mongodb-config
-            items:
-              - key: ensure-users.js
-                path: ensure-users.js
-        - name: mongodb-config
-          configMap:
-            name: mongodb-config
-            items:
-              - key: mongo.conf
-                path: mongo.conf
-        - name: mongodb-data
-          persistentVolumeClaim:
-            claimName: mongodb-pvc
+  members: 1
+  type: ReplicaSet
+  version: "8.0.0"
+  featureCompatibilityVersion: "8.0"
+  security:
+    authentication:
+      modes: ["SCRAM"]
+  users:
+    - name: admin
+      db: auth-service
+      connectionStringSecretName: mongodb-admin-uri
+      scramCredentialsSecretName: mongodb-admin
+      passwordSecretRef: # a reference to the secret that will be used to generate the user's password
+        name: mongodb-secret
+      roles:
+        - name: "dbOwner"
+          db: "auth-service"
+  additionalMongodConfig:
+    storage.wiredTiger.engineConfig.journalCompressor: zlib
 ---
 apiVersion: v1
-kind: Service
+kind: Secret
 metadata:
-  name: mongodb-service
-spec:
-  selector:
-    database: mongodb
-  clusterIP: None
-  ports:
-    - port: 27017
-      targetPort: 27017
+  name: mongodb-secret
+type: Opaque
+stringData:
+  password: 96ZWNQpUr9AmNaH

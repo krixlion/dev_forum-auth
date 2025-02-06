@@ -3,12 +3,8 @@ resources:
   - mongodb.yaml
   - vault.yaml
 
-commonLabels:
-  aggregate: auth
-  version: v0.1.0
-
-configMapGenerator:
-  - name: mongodb-config
-    files:
-      - config/mongo.conf
-      - config/ensure-users.js
+labels:
+  - includeSelectors: true
+    pairs:
+      aggregate: auth
+      version: v0.1.0

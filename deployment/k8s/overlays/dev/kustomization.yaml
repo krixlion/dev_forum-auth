@@ -37,5 +37,6 @@ patches:
       name: vault-cluster
 
 configMapGenerator:
-  - name: auth-env
-    env: auth.properties
+  - envs:
+      - auth.properties
+    name: auth-env
