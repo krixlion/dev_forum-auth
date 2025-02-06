@@ -10,6 +10,7 @@ import (
 	"github.com/krixlion/dev_forum-lib/logging"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
+	"go.mongodb.org/mongo-driver/mongo/readpref"
 	"go.opentelemetry.io/contrib/instrumentation/go.mongodb.org/mongo-driver/mongo/otelmongo"
 	"go.opentelemetry.io/otel/trace"
 )
@@ -39,6 +40,10 @@ func Make(ctx context.Context, user, pass, host, port, dbName string, logger log
 	}
 
 	tokens := client.Database(dbName).Collection(collectionName)
+
+	if err := client.Ping(ctx, readpref.Primary()); err != nil {
+		return Mongo{}, fmt.Errorf("failed to ping mongodb: %w", err)
+	}
 
 	return Mongo{
 		client: client,
